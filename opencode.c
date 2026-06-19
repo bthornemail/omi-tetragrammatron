@@ -433,9 +433,184 @@ static uint32_t compute_slot5040(int fano7, int role3, int local240) {
     return (uint32_t)(((fano7%7)*720u) + ((role3%3)*240u) + (uint32_t)(local240%240));
 }
 
-/* ─── Digital Twin Geometry: full Hopf/BQF/Fano/Polybius pipeline ─── */
+/* ─── Digital Twin Geometry: full Hopf/BQF/Fano/Polybius/Solid pipeline ─── */
 
 #define TWIN_PI 3.14159265358979323846
+
+/* ─── Tetrahedron Seed Crystals ───
+   All Platonic, Archimedean, Catalan, and 4D shapes derive from the
+   tetrahedron and its stellation (stellated octahedron).
+   Tetrahedron -> Stellated Octahedron -> Octahedron -> Cube -> ... */
+
+#define SEED_PHI 1.61803398874989484820
+#define SEED_PSI 0.61803398874989484820
+
+typedef struct { double x, y, z; } V3;
+typedef struct { int a, b; } E2;
+typedef struct { int v[3]; } F3;
+typedef struct { double x, y, z, w; } V4;
+
+/* ─── Tetrahedron: seed of all shapes (4 vertices, 6 edges, 4 faces) ─── */
+static const V3 SEED_TETRA[] = {
+    { 1, 1, 1}, { 1,-1,-1}, {-1, 1,-1}, {-1,-1, 1}
+};
+static const E2 SEED_TETRA_E[] = {{0,1},{0,2},{0,3},{1,2},{1,3},{2,3}};
+static const F3 SEED_TETRA_F[] = {{0,1,2},{0,1,3},{0,2,3},{1,2,3}};
+#define SEED_TETRA_N 4
+#define SEED_TETRA_EN 6
+#define SEED_TETRA_FN 4
+
+/* ─── Stellated Tetrahedron: tetra ∪ -tetra (8 vertices, 12 edges, 8 faces) ─── */
+static const V3 SEED_STELLATED[] = {
+    { 1, 1, 1}, { 1,-1,-1}, {-1, 1,-1}, {-1,-1, 1},
+    {-1,-1,-1}, {-1, 1, 1}, { 1,-1, 1}, { 1, 1,-1}
+};
+static const E2 SEED_STELLATED_E[] = {
+    {0,1},{0,2},{0,3},{1,2},{1,3},{2,3},
+    {4,5},{4,6},{4,7},{5,6},{5,7},{6,7}
+};
+#define SEED_STELLATED_N 8
+#define SEED_STELLATED_EN 12
+
+/* ─── Octahedron from stellated tetrahedron (6 vertices) ─── */
+static const V3 SEED_OCTA[] = {
+    { 1, 0, 0},{-1, 0, 0},{ 0, 1, 0},{ 0,-1, 0},{ 0, 0, 1},{ 0, 0,-1}
+};
+static const E2 SEED_OCTA_E[] = {
+    {0,2},{0,3},{0,4},{0,5},{1,2},{1,3},{1,4},{1,5},{2,4},{2,5},{3,4},{3,5}
+};
+#define SEED_OCTA_N 6
+#define SEED_OCTA_EN 12
+
+/* ─── Cube (hexahedron): dual of octahedron ─── */
+static const V3 SEED_CUBE[] = {
+    {-1,-1,-1},{ 1,-1,-1},{ 1, 1,-1},{-1, 1,-1},
+    {-1,-1, 1},{ 1,-1, 1},{ 1, 1, 1},{-1, 1, 1}
+};
+static const E2 SEED_CUBE_E[] = {
+    {0,1},{1,2},{2,3},{3,0},{4,5},{5,6},{6,7},{7,4},
+    {0,4},{1,5},{2,6},{3,7}
+};
+#define SEED_CUBE_N 8
+#define SEED_CUBE_EN 12
+
+/* ─── Icosahedron (12 vertices) via tetrahedral stellation ─── */
+static const V3 SEED_ICOSA[] = {
+    {0,-SEED_PHI,1},{0,-SEED_PHI,-1},{0,SEED_PHI,1},{0,SEED_PHI,-1},
+    {-SEED_PHI,1,0},{-SEED_PHI,-1,0},{SEED_PHI,1,0},{SEED_PHI,-1,0},
+    {1,0,-SEED_PHI},{-1,0,-SEED_PHI},{1,0,SEED_PHI},{-1,0,SEED_PHI}
+};
+
+/* ─── Dodecahedron (20 vertices): dual of icosahedron ─── */
+static const V3 SEED_DODEC[] = {
+    {-1,-1,-1},{ 1,-1,-1},{ 1, 1,-1},{-1, 1,-1},
+    {-1,-1, 1},{ 1,-1, 1},{ 1, 1, 1},{-1, 1, 1},
+    {0,-SEED_PSI,-SEED_PHI},{0,SEED_PSI,-SEED_PHI},
+    {0,-SEED_PSI,SEED_PHI},{0,SEED_PSI,SEED_PHI},
+    {-SEED_PSI,-SEED_PHI,0},{-SEED_PSI,SEED_PHI,0},
+    {SEED_PSI,-SEED_PHI,0},{SEED_PSI,SEED_PHI,0},
+    {-SEED_PHI,0,-SEED_PSI},{-SEED_PHI,0,SEED_PSI},
+    {SEED_PHI,0,-SEED_PSI},{SEED_PHI,0,SEED_PSI}
+};
+
+/* ─── Solid family: each Fano point roots a family tree ───
+   Fano 0: Tetrahedron family (A₄ symmetry)
+   Fano 1: Octahedron family (B₃ symmetry)
+   Fano 2: Cube family (B₃ symmetry)
+   Fano 3: Cuboctahedron family (B₃ symmetry)
+   Fano 4: Icosahedron family (H₃ symmetry)
+   Fano 5: Dodecahedron family (H₃ symmetry)
+   Fano 6: Icosidodecahedron family (H₃ symmetry)
+   Each family has a base shape + truncation + rectification + dual */
+
+typedef struct {
+    const char *name;        /* solid name */
+    int fano_root;           /* 0-6: originating Fano point */
+    int family_seq;          /* sequence within family */
+    int nverts, nedges, nfaces;
+    const V3 *verts;
+    const E2 *edges;
+    int schlafli_p, schlafli_q;  /* {p,q} Schläfli symbol */
+} ShapeDef;
+
+/* Compact shape database: seed shapes + key derivatives */
+static const ShapeDef SHAPE_DB[] = {
+    /* Fano 0: Tetrahedron family */
+    {"Tetrahedron", 0,0, 4,6,4, SEED_TETRA, SEED_TETRA_E, 3,3},
+    {"Stellated Tetrahedron", 0,1, 8,12,8, SEED_STELLATED, SEED_STELLATED_E, 3,3},
+    {"Octahedron", 0,2, 6,12,8, SEED_OCTA, SEED_OCTA_E, 3,4},
+    /* Fano 1: Octahedron family */
+    {"Octahedron", 1,0, 6,12,8, SEED_OCTA, SEED_OCTA_E, 3,4},
+    {"Truncated Octahedron", 1,1, 24,36,14, 0,0, 4,6},   /* 24v Archimedean */
+    {"Tetrakis Hexahedron", 1,2, 14,36,24, 0,0, 4,6},     /* dual of truncated octahedron */
+    /* Fano 2: Cube family */
+    {"Cube", 2,0, 8,12,6, SEED_CUBE, SEED_CUBE_E, 4,3},
+    {"Truncated Cube", 2,1, 24,36,14, 0,0, 3,8},
+    {"Triakis Octahedron", 2,2, 14,36,24, 0,0, 3,8},
+    /* Fano 3: Cuboctahedron family */
+    {"Cuboctahedron", 3,0, 12,24,14, 0,0, 3,4},
+    {"Cuboctahedron", 3,1, 12,24,14, 0,0, 3,4},
+    {"Rhombic Dodecahedron", 3,2, 14,24,12, 0,0, 3,4},
+    /* Fano 4: Icosahedron family */
+    {"Icosahedron", 4,0, 12,30,20, SEED_ICOSA, 0, 3,5},
+    {"Truncated Icosahedron", 4,1, 60,90,32, 0,0, 5,3},
+    {"Pentakis Dodecahedron", 4,2, 32,90,60, 0,0, 5,3},
+    /* Fano 5: Dodecahedron family */
+    {"Dodecahedron", 5,0, 20,30,12, SEED_DODEC, 0, 5,3},
+    {"Truncated Dodecahedron", 5,1, 60,90,32, 0,0, 3,5},
+    {"Triakis Icosahedron", 5,2, 32,90,60, 0,0, 3,5},
+    /* Fano 6: Icosidodecahedron family */
+    {"Icosidodecahedron", 6,0, 30,60,32, 0,0, 3,5},
+    {"Truncated Icosidodecahedron", 6,1, 120,180,62, 0,0, 4,6},
+    {"Disdyakis Triacontahedron", 6,2, 62,180,120, 0,0, 4,6},
+};
+#define SHAPE_DB_N (sizeof(SHAPE_DB)/sizeof(SHAPE_DB[0]))
+
+/* ─── Deterministic solid selection from computation state ─── */
+typedef struct {
+    int solid_idx;           /* 0-20: which shape def */
+    const ShapeDef *shape;
+    int highlight_vertex;    /* BQF → vertex index */
+    int highlight_edge;      /* BQF → edge index */
+    double rotate_x, rotate_y, rotate_z;
+    double scale;
+} SolidRenderState;
+
+static const ShapeDef *solid_lookup(int fano7, int role3) {
+    /* Fano point selects family, role3 selects which within family */
+    int idx = -1;
+    for (int i = 0; i < (int)SHAPE_DB_N; i++) {
+        if (SHAPE_DB[i].fano_root == fano7) {
+            idx = i;
+            int seq = 0;
+            for (int j = i; j < (int)SHAPE_DB_N && SHAPE_DB[j].fano_root == fano7; j++) {
+                if (seq == role3) { idx = j; break; }
+                seq++;
+            }
+            break;
+        }
+    }
+    return (idx >= 0) ? &SHAPE_DB[idx] : &SHAPE_DB[0];
+}
+
+static SolidRenderState resolve_solid_geometry(uint16_t xf, uint16_t sf, uint16_t rf, int fano7, int role3, int local240) {
+    SolidRenderState s;
+    memset(&s, 0, sizeof(s));
+
+    s.solid_idx = (int)((xf ^ sf ^ rf) % (int)SHAPE_DB_N);
+    s.shape = solid_lookup(fano7, role3);
+
+    if (s.shape && s.shape->nverts > 0)
+        s.highlight_vertex = local240 % s.shape->nverts;
+    if (s.shape && s.shape->nedges > 0)
+        s.highlight_edge = (local240 / 3) % s.shape->nedges;
+
+    s.rotate_x = (double)(xf % 360) * TWIN_PI / 180.0;
+    s.rotate_y = (double)(sf % 360) * TWIN_PI / 180.0;
+    s.rotate_z = (double)(rf % 360) * TWIN_PI / 180.0;
+    s.scale = 0.8;
+    return s;
+}
 
 typedef struct {
     int chart11, baseQ, fiberQ, fano7, role3;
@@ -450,6 +625,7 @@ typedef struct {
     uint16_t result;
     uint16_t xf, sf, rf;
     uint16_t opcode;
+    SolidRenderState solid;  /* solid geometry */
 } TwinGeometry;
 
 static int mod_pos(int x, int m) { int r = x % m; return r < 0 ? r + m : r; }
@@ -498,6 +674,8 @@ static TwinGeometry resolve_hopf_ququart_route(int chart11, int baseQ, int fiber
     polybius_get_interior(px, py, &g.polybius_row, &g.polybius_col);
 
     g.frame_type = baseQ & 3;
+    g.solid = resolve_solid_geometry((uint16_t)g.chart11, (uint16_t)g.baseQ,
+        (uint16_t)g.fiberQ, g.fano7, g.role3, g.local240);
     return g;
 }
 
@@ -543,6 +721,33 @@ static TwinGeometry tetragrammatron_geometry_route(uint64_t cycle, uint16_t xf, 
     return g;
 }
 
+/* ─── Smith Chart projection: maps 5040-slot ring to reflection coefficient Γ ─── */
+typedef struct {
+    double gr, gi;   /* gamma real, imag */
+    double zr, zi;   /* normalized impedance real, imag */
+    double yr, yi;   /* normalized admittance real, imag */
+    double rho, theta;
+} SmithState;
+
+static SmithState resolve_smith(uint32_t slot5040, uint64_t hash) {
+    SmithState s;
+    memset(&s, 0, sizeof(s));
+    s.rho = (double)(hash & 0xFFFF) / 65535.0;
+    s.theta = 2.0 * M_PI * (double)(slot5040 % 5040) / 5040.0;
+    double gr = s.rho * cos(s.theta);
+    double gi = s.rho * sin(s.theta);
+    double denom = (1.0 - gr) * (1.0 - gr) + gi * gi;
+    if (denom < 1e-12) denom = 1e-12;
+    double zr = ((1.0 + gr) * (1.0 - gr) + gi * gi) / denom;
+    double zi = (2.0 * gi) / denom;
+    double zmag2 = zr * zr + zi * zi;
+    if (zmag2 < 1e-12) zmag2 = 1e-12;
+    s.gr = gr; s.gi = gi;
+    s.zr = zr; s.zi = zi;
+    s.yr = zr / zmag2; s.yi = -zi / zmag2;
+    return s;
+}
+
 static void print_twin_geometry(const TwinGeometry *g) {
     printf("TWIN cyc=%llu res=0x%04x op=0x%04x",
         (unsigned long long)g->cycle, g->result, g->opcode);
@@ -553,6 +758,10 @@ static void print_twin_geometry(const TwinGeometry *g) {
     printf(" hopf=(%d,%d,%d) phase=%.4f", g->a, g->b, g->c, g->fiberPhase);
     printf(" polybius=(%d,%d)", g->polybius_row, g->polybius_col);
     printf(" quat=(%.4f,%.4f,%.4f,%.4f)", g->qw, g->qx, g->qy, g->qz);
+    if (g->solid.shape)
+        printf(" solid=%s[%d] v=%d e=%d",
+            g->solid.shape->name, g->solid.solid_idx,
+            g->solid.highlight_vertex, g->solid.highlight_edge);
     printf("\n");
 }
 
@@ -594,12 +803,20 @@ static void render_frame_json(void) {
         if (!first) printf(",");
         first = 0;
         const char *fnames[] = {"US","GS","RS","FS"};
+        const char *sname = g.solid.shape ? g.solid.shape->name : "none";
+        SmithState sm = resolve_smith((uint32_t)g.slot5040, ring[i].hash);
         printf("{\"cy\":%llu,\"h\":\"0x%016llx\","
                "\"twin\":{\"chart\":%d,\"base\":%d,\"fiber\":%d,"
                "\"fano\":%d,\"role\":%d,\"bqf\":%u,\"local\":%d,"
                "\"slot\":%d,\"hopf\":[%d,%d,%d],\"phase\":%.4f,"
                "\"cell\":[%d,%d],\"quat\":[%.4f,%.4f,%.4f,%.4f],"
-               "\"frame\":\"%s\"}}",
+               "\"frame\":\"%s\","
+               "\"solid\":{\"id\":%d,\"name\":\"%s\","
+               "\"verts\":%d,\"edges\":%d,\"faces\":%d,"
+               "\"hv\":%d,\"he\":%d},"
+               "\"smith\":{\"gamma\":[%.4f,%.4f],"
+               "\"z\":[%.4f,%.4f],\"y\":[%.4f,%.4f],"
+               "\"rho\":%.4f,\"theta\":%.4f}}}",
             (unsigned long long)ring[i].cycle,
             (unsigned long long)ring[i].hash,
             g.chart11, g.baseQ, g.fiberQ,
@@ -607,7 +824,13 @@ static void render_frame_json(void) {
             g.slot5040, g.a, g.b, g.c, g.fiberPhase,
             g.polybius_row, g.polybius_col,
             g.qw, g.qx, g.qy, g.qz,
-            fnames[g.frame_type & 3]);
+            fnames[g.frame_type & 3],
+            g.solid.solid_idx, sname,
+            g.solid.shape ? g.solid.shape->nverts : 0,
+            g.solid.shape ? g.solid.shape->nedges : 0,
+            g.solid.shape ? g.solid.shape->nfaces : 0,
+            g.solid.highlight_vertex, g.solid.highlight_edge,
+            sm.gr, sm.gi, sm.zr, sm.zi, sm.yr, sm.yi, sm.rho, sm.theta);
     }
 
     printf("],\"summary\":{\"frame_counts\":[");
@@ -616,8 +839,67 @@ static void render_frame_json(void) {
         const char *names[] = {"US","GS","RS","FS"};
         printf("{\"name\":\"%s\",\"count\":%d}", names[f], frame_counts[f]);
     }
-    printf("],\"hopf_flux\":[%d,%d,%d],\"filled\":%d}}\n",
+    printf("],\"hopf_flux\":[%d,%d,%d],\"filled\":%d}}}\n",
         hopf_counts[0], hopf_counts[1], hopf_counts[2], filled);
+}
+
+/* ─── Smith Chart SVG Renderer (--smith) ─── */
+static void render_smith_svg(void) {
+    int filled = count_filled_ring_slots();
+    uint16_t xf = ring_xor_fold(), sf = ring_sum_fold(), rf = ring_rot_fold();
+    const double S = 300.0;
+    double rs[] = {0, 0.5, 1, 2, 5};
+    int frame_counts[4] = {0};
+    const char *fcolors[] = {"#ff4444","#44ff44","#4444ff","#44ffff"};
+    const char *fnames[] = {"US","GS","RS","FS"};
+
+    printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    printf("<svg viewBox=\"-400 -400 800 800\" xmlns=\"http://www.w3.org/2000/svg\">\n");
+    printf("<defs><clipPath id=\"uc\"><circle cx=\"0\" cy=\"0\" r=\"%.0f\"/></clipPath></defs>\n", S);
+    printf("<rect x=\"-400\" y=\"-400\" width=\"800\" height=\"800\" fill=\"#0a0a14\"/>\n");
+    printf("<circle cx=\"0\" cy=\"0\" r=\"%.0f\" fill=\"none\" stroke=\"#444466\" stroke-width=\"2\"/>\n", S);
+    printf("<g clip-path=\"url(#uc)\" stroke=\"#333355\" stroke-width=\"0.5\" fill=\"none\">\n");
+    for (int i = 1; i < 5; i++) {
+        double cx = rs[i] / (1.0 + rs[i]);
+        double r = 1.0 / (1.0 + rs[i]);
+        printf("<circle cx=\"%.3f\" cy=\"0\" r=\"%.3f\"/>\n", cx * S, r * S);
+    }
+    double xs[] = {0.5, 1, 2, 5};
+    for (int i = 0; i < 4; i++) {
+        double cy = 1.0 / xs[i];
+        double cr = fabs(cy);
+        printf("<circle cx=\"%.3f\" cy=\"%.3f\" r=\"%.3f\"/>\n", S, cy * S, cr * S);
+        printf("<circle cx=\"%.3f\" cy=\"%.3f\" r=\"%.3f\"/>\n", S, -cy * S, cr * S);
+    }
+    printf("</g>\n");
+    printf("<circle cx=\"0\" cy=\"0\" r=\"4\" fill=\"#ffffff\"/>\n");
+    printf("<line x1=\"-6\" y1=\"0\" x2=\"6\" y2=\"0\" stroke=\"#ffffff\" stroke-width=\"1\"/>\n");
+    printf("<line x1=\"0\" y1=\"-6\" x2=\"0\" y2=\"6\" stroke=\"#ffffff\" stroke-width=\"1\"/>\n");
+
+    for (size_t i = 0; i < RING_SIZE; i++) {
+        if (!ring[i].hash && !ring[i].receipt[0]) continue;
+        TwinGeometry g = resolve_hopf_ququart_route(
+            (int)(ring[i].cycle % 11), (int)(ring[i].hash % 4),
+            (int)((ring[i].hash >> 8) % 4),
+            (int)((ring[i].cycle + ring[i].hash) % 7),
+            (int)(ring[i].hash % 3));
+        SmithState sm = resolve_smith((uint32_t)g.slot5040, ring[i].hash);
+        double px = sm.gr * S;
+        double py = -sm.gi * S;
+        int fi = g.frame_type & 3;
+        if (fi < 4) frame_counts[fi]++;
+        printf("<circle cx=\"%.3f\" cy=\"%.3f\" r=\"2.5\" fill=\"%s\" opacity=\"0.7\"/>\n",
+            px, py, fcolors[fi]);
+    }
+
+    printf("<g transform=\"translate(-380, 340)\">\n");
+    for (int f = 0; f < 4; f++) {
+        printf("<rect x=\"0\" y=\"%d\" width=\"10\" height=\"10\" fill=\"%s\"/>\n", f*20, fcolors[f]);
+        printf("<text x=\"16\" y=\"%d\" fill=\"#aaaacc\" font-size=\"12\" font-family=\"monospace\">%s: %d</text>\n", f*20+9, fnames[f], frame_counts[f]);
+    }
+    printf("</g>\n");
+    printf("<text x=\"0\" y=\"-360\" fill=\"#aaaacc\" font-size=\"16\" font-family=\"monospace\" text-anchor=\"middle\">OMI Smith Chart — %d receipts  xor=0x%04x  sum=0x%04x  rot=0x%04x</text>\n", filled, xf, sf, rf);
+    printf("</svg>\n");
 }
 
 static void render_ppm(void) {
@@ -1086,6 +1368,7 @@ int main(int argc, char **argv) {
         }
         if(strcmp(argv[1],"--render-frame")==0){render_frame_json();return 0;}
         if(strcmp(argv[1],"--render-ppm")==0){render_ppm();return 0;}
+        if(strcmp(argv[1],"--smith")==0){render_smith_svg();return 0;}
         if(strcmp(argv[1],"--twin")==0){
             printf("OPENCORE v2 \342\200\224 digital twin universe\n");
             uint16_t xf=ring_xor_fold(), sf=ring_sum_fold(), rf=ring_rot_fold();
@@ -1143,6 +1426,7 @@ int main(int argc, char **argv) {
             printf("  --twin        display digital twin universe geometry\n");
             printf("  --render-frame  output twin geometry as JSON frame\n");
             printf("  --render-ppm    output Polybius grid as PPM image\n");
+            printf("  --smith         output Smith chart as SVG\n");
             printf("  --serve [port]  HTTP server for WebGL viewer (default 8080)\n");
             printf("  --help        this message\n");
             return 0;

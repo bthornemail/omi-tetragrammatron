@@ -66,6 +66,7 @@ class TwinViewer {
     this.buildFanoPlane();
     this.buildSpiralPath();
     this.buildAxes();
+    this.buildSmithChart();
 
     window.addEventListener('resize', () => this.onResize());
   }
@@ -336,6 +337,7 @@ class TwinViewer {
     this.updatePolybiusGrid(fcounts);
     this.updateSpiral(receipts);
     this.updateHopfArrows(receipts);
+    this.updateSmithChart(receipts);
     this.updateInfo(frameData);
 
     /* Ring occupancy bar */
@@ -346,6 +348,178 @@ class TwinViewer {
       bar.style.width = pct + '%';
       bar.textContent = filled + ' / 5040';
     }
+  }
+
+  buildSmithChart() {
+    this.smithCanvas = document.getElementById('smith-canvas');
+    this.smithTooltip = document.getElementById('smith-tooltip');
+    if (!this.smithCanvas) return;
+    this.smithCtx = this.smithCanvas.getContext('2d');
+    const S = 240;
+    this.smithScale = S;
+    this.smithCx = this.smithCanvas.width / 2;
+    this.smithCy = this.smithCanvas.height / 2;
+
+    const ctx = this.smithCtx;
+    ctx.clearRect(0, 0, this.smithCanvas.width, this.smithCanvas.height);
+
+    /* Outer circle */
+    ctx.strokeStyle = '#444466';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(this.smithCx, this.smithCy, S, 0, 2 * Math.PI);
+    ctx.stroke();
+
+    /* Grid clipped to outer circle */
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(this.smithCx, this.smithCy, S, 0, 2 * Math.PI);
+    ctx.clip();
+
+    ctx.strokeStyle = '#333355';
+    ctx.lineWidth = 0.5;
+
+    /* Constant resistance circles: r = 0.5, 1, 2, 5 */
+    const rs = [0.5, 1, 2, 5];
+    for (const r of rs) {
+      const cx = this.smithCx + (r / (1 + r)) * S;
+      const rad = (1 / (1 + r)) * S;
+      ctx.beginPath();
+      ctx.arc(cx, this.smithCy, rad, 0, 2 * Math.PI);
+      ctx.stroke();
+    }
+
+    /* Constant reactance arcs (full circles clipped): x = ±0.5, ±1, ±2, ±5 */
+    const xs = [0.5, 1, 2, 5];
+    for (const x of xs) {
+      const cy = this.smithCy - (1 / x) * S;
+      const rad = (1 / x) * S;
+      ctx.beginPath();
+      ctx.arc(this.smithCx + S, cy, rad, 0, 2 * Math.PI);
+      ctx.stroke();
+      const cy2 = this.smithCy + (1 / x) * S;
+      ctx.beginPath();
+      ctx.arc(this.smithCx + S, cy2, rad, 0, 2 * Math.PI);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    /* Center crosshair */
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(this.smithCx - 6, this.smithCy);
+    ctx.lineTo(this.smithCx + 6, this.smithCy);
+    ctx.moveTo(this.smithCx, this.smithCy - 6);
+    ctx.lineTo(this.smithCx, this.smithCy + 6);
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(this.smithCx, this.smithCy, 3, 0, 2 * Math.PI);
+    ctx.fill();
+
+    this.smithPoints = [];
+    this.smithHoverIdx = -1;
+
+    this.smithCanvas.addEventListener('mousemove', (e) => this.onSmithHover(e));
+    this.smithCanvas.addEventListener('mouseleave', () => {
+      this.smithHoverIdx = -1;
+      this.smithTooltip.style.display = 'none';
+      this.drawSmithPoints();
+    });
+  }
+
+  onSmithHover(e) {
+    if (!this.smithPoints || !this.smithPoints.length) return;
+    const rect = this.smithCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const scaleX = this.smithCanvas.width / rect.width;
+    const scaleY = this.smithCanvas.height / rect.height;
+    const cx = mx * scaleX;
+    const cy = my * scaleY;
+
+    let closest = -1;
+    let minDist = 20; /* hover radius in canvas pixels */
+    for (let i = 0; i < this.smithPoints.length; i++) {
+      const p = this.smithPoints[i];
+      const d = Math.hypot(cx - p.x, cy - p.y);
+      if (d < minDist) { minDist = d; closest = i; }
+    }
+    if (closest !== this.smithHoverIdx) {
+      this.smithHoverIdx = closest;
+      this.drawSmithPoints();
+      if (closest >= 0) {
+        const p = this.smithPoints[closest];
+        this.smithTooltip.style.display = 'block';
+        this.smithTooltip.style.left = (e.clientX + 12) + 'px';
+        this.smithTooltip.style.top = (e.clientY - 10) + 'px';
+        const fi = ['US','GS','RS','FS'][p.fi] || '?';
+        this.smithTooltip.innerHTML =
+          `<b>${fi}</b> cy=${p.cy} slot=${p.slot} ` +
+          `Γ=(${p.gr.toFixed(3)},${p.gi.toFixed(3)}) ` +
+          `z=(${p.zr.toFixed(2)},${p.zi.toFixed(2)}) ` +
+          `ρ=${p.rho.toFixed(3)} θ=${(p.theta * 180 / Math.PI).toFixed(1)}°`;
+      } else {
+        this.smithTooltip.style.display = 'none';
+      }
+    }
+  }
+
+  drawSmithPoints() {
+    const ctx = this.smithCtx;
+    const scale = this.smithScale;
+    const cx = this.smithCx;
+    const cy = this.smithCy;
+    const colors = ['#ff4444','#44ff44','#4444ff','#44ffff'];
+    if (!ctx) return;
+
+    /* Redraw grid background (simple clear + static re-draw would be expensive;
+       just clear and redraw the whole thing. For efficiency, draw on overlay canvas. */
+    /* Clear bottom layer — but we don't want to erase the grid! Use a second canvas for points. */
+    /* Instead, draw points directly over the grid and use copy for hover later. */
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, scale, 0, 2 * Math.PI);
+    ctx.clip();
+
+    /* Draw all points */
+    for (let i = 0; i < this.smithPoints.length; i++) {
+      const p = this.smithPoints[i];
+      const px = cx + p.gr * scale;
+      const py = cy - p.gi * scale; /* SVG y-flip */
+      const isHover = (i === this.smithHoverIdx);
+      const radius = isHover ? 5 : 2.5;
+      ctx.beginPath();
+      ctx.arc(px, py, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = colors[p.fi] || '#888';
+      ctx.globalAlpha = isHover ? 1.0 : 0.7;
+      ctx.fill();
+      if (isHover) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1.0;
+  }
+
+  updateSmithChart(receipts) {
+    if (!this.smithCtx) return;
+    this.smithPoints = [];
+    for (const r of (receipts || [])) {
+      const sm = r.twin && r.twin.smith;
+      if (!sm) continue;
+      this.smithPoints.push({
+        gr: sm.gamma[0], gi: sm.gamma[1],
+        zr: sm.z[0], zi: sm.z[1],
+        rho: sm.rho, theta: sm.theta,
+        fi: r.twin.frame === 'US' ? 0 : r.twin.frame === 'GS' ? 1 : r.twin.frame === 'RS' ? 2 : 3,
+        cy: r.cy, slot: r.twin.slot
+      });
+    }
+    this.drawSmithPoints();
   }
 
   animate() {
