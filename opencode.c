@@ -420,10 +420,18 @@ static int polybius_get_interior(int x, int y, int *row, int *col) { if(x<0||x>3
 static int polybius_is_rail(int row, int col) { if(row<1||row>5||col<1||col>5)return 0; if(row==1&&col==1)return 0; return row==1||col==1; }
 static int polybius_is_interior(int row, int col) { if(row<1||row>5||col<1||col>5)return 0; if(row==1&&col==1)return 0; return row>1&&col>1; }
 
-/* ─── Fano Plane (7 points, 7 lines) ─── */
-static const uint16_t FANO_LINES[7][3] = {
+/* ─── Fano Plane incidence hypergraph (7 points, 7 lines) ─── */
+static const uint8_t FANO_LINES[7][3] = {
     {0,1,2},{0,3,4},{1,3,5},{1,4,6},{2,3,6},{2,4,5},{3,4,0}
 };
+/* Dual: for each point, which 3 lines contain it */
+static const uint8_t FANO_PT_LINES[7][3] = {
+    {0,1,6},{0,2,3},{0,4,5},{1,2,4},{1,3,5},{2,5,6},{3,4,6}
+};
+
+/* ConfigMatrix: incidence from Fano point to shape family base in SHAPE_DB */
+static const uint8_t CONFIG_MATRIX[7] = {0, 3, 6, 9, 12, 15, 18};
+#define CONFIG_FAMILY_SIZE 3
 
 /* ─── QuQuart Phase Map ─── */
 static const unsigned char QUQUART_PHASE[4] = {OMI_US, OMI_GS, OMI_RS, OMI_FS};
@@ -760,20 +768,9 @@ typedef struct {
 } SolidRenderState;
 
 static const ShapeDef *solid_lookup(int fano7, int role3) {
-    /* Fano point selects family, role3 selects which within family */
-    int idx = -1;
-    for (int i = 0; i < (int)SHAPE_DB_N; i++) {
-        if (SHAPE_DB[i].fano_root == fano7) {
-            idx = i;
-            int seq = 0;
-            for (int j = i; j < (int)SHAPE_DB_N && SHAPE_DB[j].fano_root == fano7; j++) {
-                if (seq == role3) { idx = j; break; }
-                seq++;
-            }
-            break;
-        }
-    }
-    return (idx >= 0) ? &SHAPE_DB[idx] : &SHAPE_DB[0];
+    int base = CONFIG_MATRIX[fano7 % 7];
+    int idx = base + (role3 % CONFIG_FAMILY_SIZE);
+    return (idx < (int)SHAPE_DB_N) ? &SHAPE_DB[idx] : &SHAPE_DB[0];
 }
 
 static SolidRenderState resolve_solid_geometry(uint16_t xf, uint16_t sf, uint16_t rf, int fano7, int role3, int local240, uint64_t hash) {
@@ -1219,12 +1216,10 @@ static void quat_to_rot(double qw, double qx, double qy, double qz, double rot[3
 }
 
 static const ShapeDef *find_solid_with_data(int fano7, int role3) {
-    for (int i = 0; i < (int)SHAPE_DB_N; i++) {
-        if (SHAPE_DB[i].fano_root == fano7 && SHAPE_DB[i].family_seq == role3) {
-            if (SHAPE_DB[i].edges && SHAPE_DB[i].nverts > 0)
-                return &SHAPE_DB[i];
-        }
-    }
+    int base = CONFIG_MATRIX[fano7 % 7];
+    int idx = base + (role3 % CONFIG_FAMILY_SIZE);
+    if (idx < (int)SHAPE_DB_N && SHAPE_DB[idx].edges && SHAPE_DB[idx].nverts > 0)
+        return &SHAPE_DB[idx];
     return NULL;
 }
 
