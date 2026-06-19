@@ -12,6 +12,9 @@
 #include <signal.h>
 #include <time.h>
 #include <math.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #define OMI_FS 0x1cu
 #define OMI_GS 0x1du
@@ -784,6 +787,174 @@ static int write_ring_omi(const char *path) {
     fclose(f); return 1;
 }
 
+/* ─── HTTP Server (--serve) ─── */
+
+#define SERVE_PORT 8080
+#define BUFLEN 65536
+
+static const char *mime_type(const char *path) {
+    const char *ext = strrchr(path, '.');
+    if (!ext) return "application/octet-stream";
+    if (strcmp(ext, ".html") == 0) return "text/html;charset=utf-8";
+    if (strcmp(ext, ".js") == 0)   return "application/javascript;charset=utf-8";
+    if (strcmp(ext, ".css") == 0)  return "text/css;charset=utf-8";
+    if (strcmp(ext, ".json") == 0) return "application/json;charset=utf-8";
+    if (strcmp(ext, ".png") == 0)  return "image/png";
+    if (strcmp(ext, ".ico") == 0)  return "image/x-icon";
+    return "application/octet-stream";
+}
+
+static void http_ok(int fd, const char *ctype, const char *body, size_t blen) {
+    char hdr[512];
+    int hlen = snprintf(hdr, sizeof(hdr),
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: %s\r\n"
+        "Content-Length: %zu\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
+        "Connection: close\r\n"
+        "\r\n", ctype, blen);
+    write(fd, hdr, (size_t)hlen);
+    if (blen) write(fd, body, blen);
+}
+
+static void http_404(int fd) {
+    const char *msg = "<h1>404 Not Found</h1>";
+    http_ok(fd, "text/html;charset=utf-8", msg, strlen(msg));
+}
+
+static void serve_file(int fd, const char *path) {
+    /* strip leading / */
+    const char *rel = path;
+    while (*rel == '/') rel++;
+    if (!*rel) rel = "index.html";
+
+    /* safety: only serve from viewer/ */
+    char full[512];
+    snprintf(full, sizeof(full), "viewer/%s", rel);
+
+    FILE *f = fopen(full, "rb");
+    if (!f) { http_404(fd); return; }
+    fseek(f, 0, SEEK_END);
+    long flen = ftell(f);
+    if (flen < 0) { fclose(f); http_404(fd); return; }
+    rewind(f);
+
+    char *buf = (char *)xmalloc((size_t)flen + 1);
+    size_t nread = fread(buf, 1, (size_t)flen, f);
+    fclose(f);
+    buf[nread] = 0;
+
+    http_ok(fd, mime_type(rel), buf, nread);
+    free(buf);
+}
+
+static void serve_frame_json(int fd) {
+    /* Capture render_frame_json output via temp file (avoids pipe deadlock) */
+    static const char *tmp = "/tmp/omi_frame.json";
+    int saved = dup(STDOUT_FILENO);
+    int tf = open(tmp, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (tf < 0) { close(saved); http_404(fd); return; }
+    dup2(tf, STDOUT_FILENO);
+    close(tf);
+    render_frame_json();
+    fflush(stdout);
+    dup2(saved, STDOUT_FILENO);
+    close(saved);
+
+    int rf = open(tmp, O_RDONLY);
+    if (rf < 0) { http_404(fd); return; }
+    off_t flen = lseek(rf, 0, SEEK_END);
+    lseek(rf, 0, SEEK_SET);
+    if (flen <= 0) { close(rf); http_404(fd); return; }
+    char *buf = (char *)xmalloc((size_t)flen + 1);
+    ssize_t n = read(rf, buf, (size_t)flen);
+    close(rf);
+    if (n <= 0) { free(buf); http_404(fd); return; }
+    buf[n] = 0;
+    http_ok(fd, "application/json;charset=utf-8", buf, (size_t)n);
+    free(buf);
+}
+
+static void serve_ring_json(int fd) {
+    Buffer b = {0};
+    bappend(&b, "{\"ring\":[");
+    int first = 1;
+    for (size_t i = 0; i < RING_SIZE; i++) {
+        if (!ring[i].hash && !ring[i].receipt[0]) continue;
+        if (!first) bappend(&b, ",");
+        first = 0;
+        char tmp[256];
+        snprintf(tmp, sizeof(tmp),
+            "{\"slot\":%zu,\"cy\":%llu,\"h\":\"0x%016llx\"",
+            i, (unsigned long long)ring[i].cycle,
+            (unsigned long long)ring[i].hash);
+        bappend(&b, tmp);
+        /* escape receipt */
+        bappend(&b, ",\"r\":\"");
+        jesc(&b, ring[i].receipt);
+        bappend(&b, "\"}");
+    }
+    bappend(&b, "]}");
+    http_ok(fd, "application/json;charset=utf-8", b.data, b.len);
+    bfree(&b);
+}
+
+static void serve_http(int port) {
+    int s = socket(AF_INET, SOCK_STREAM, 0);
+    if (s < 0) { perror("socket"); return; }
+    int opt = 1;
+    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    addr.sin_port = htons((uint16_t)port);
+    if (bind(s, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        perror("bind"); close(s); return;
+    }
+    if (listen(s, 5) < 0) {
+        perror("listen"); close(s); return;
+    }
+    fprintf(stderr, "OPENCORE v2 — HTTP serve on http://127.0.0.1:%d\n", port);
+    fprintf(stderr, "  /frame   — deterministic JSON frame\n");
+    fprintf(stderr, "  /ring    — full ring dump\n");
+    fprintf(stderr, "  /        — WebGL viewer (index.html)\n");
+    fflush(stderr);
+
+    while (g_running) {
+        fd_set rfds; FD_ZERO(&rfds); FD_SET(s, &rfds);
+        struct timeval tv = {1, 0};
+        if (select(s + 1, &rfds, NULL, NULL, &tv) <= 0) continue;
+
+        struct sockaddr_in cli;
+        socklen_t clen = sizeof(cli);
+        int c = accept(s, (struct sockaddr*)&cli, &clen);
+        if (c < 0) continue;
+
+        char req[BUFLEN];
+        ssize_t n = read(c, req, sizeof(req) - 1);
+        if (n > 0) {
+            req[n] = 0;
+            /* parse GET path */
+            char method[16], path[512];
+            method[0] = path[0] = 0;
+            sscanf(req, "%15s %511s", method, path);
+            if (strcmp(method, "GET") == 0) {
+                if (strcmp(path, "/frame") == 0) {
+                    serve_frame_json(c);
+                } else if (strcmp(path, "/ring") == 0) {
+                    serve_ring_json(c);
+                } else {
+                    serve_file(c, path);
+                }
+            }
+        }
+        close(c);
+    }
+    close(s);
+    fprintf(stderr, "serve: stopped\n");
+}
+
 /* ─── Main ─── */
 int main(int argc, char **argv) {
     signal(SIGINT,handle_signal); signal(SIGTERM,handle_signal);
@@ -950,6 +1121,10 @@ int main(int argc, char **argv) {
             for(int i=0;i<BOOT_COUNT;i++){OmiInst inst;parse_omi_addr(BOOT_ROM[i],&inst);fwrite(&inst,32,1,f);}
             fclose(f); printf("seed=%s instructions=%d\n",argv[2],BOOT_COUNT); return 0;
         }
+        if(strcmp(argv[1],"--serve")==0){
+            int port = (argc > 2) ? atoi(argv[2]) : SERVE_PORT;
+            serve_http(port); return 0;
+        }
         if(strcmp(argv[1],"--help")==0||strcmp(argv[1],"-h")==0){
             printf("OPENCORE v2 \342\200\224 deterministic autonomous AGI seed\n");
             printf("Usage: opencode.bin [mode] [args]\n");
@@ -968,6 +1143,7 @@ int main(int argc, char **argv) {
             printf("  --twin        display digital twin universe geometry\n");
             printf("  --render-frame  output twin geometry as JSON frame\n");
             printf("  --render-ppm    output Polybius grid as PPM image\n");
+            printf("  --serve [port]  HTTP server for WebGL viewer (default 8080)\n");
             printf("  --help        this message\n");
             return 0;
         }

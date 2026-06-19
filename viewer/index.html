@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMI Tetragrammatron — Digital Twin Viewer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a14; color: #c8d0e0; font-family: 'Courier New', monospace; overflow: hidden; }
+  #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+  #twin-info {
+    position: fixed; top: 12px; left: 12px;
+    background: rgba(10,10,20,0.85); border: 1px solid #334;
+    border-radius: 6px; padding: 12px 16px;
+    font-size: 12px; line-height: 1.6;
+    min-width: 240px; z-index: 10;
+    backdrop-filter: blur(4px);
+  }
+  .info-grid { display: flex; flex-direction: column; gap: 2px; }
+  .info-grid b { color: #88aacc; }
+  .info-loading { color: #667; font-style: italic; }
+  .frame-us { color: #c83c3c; }
+  .frame-gs { color: #3cc83c; }
+  .frame-rs { color: #3c3cc8; }
+  .frame-fs { color: #3cc8c8; }
+  #ring-bar-container {
+    position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+    width: 60%; max-width: 600px; height: 20px;
+    background: rgba(10,10,20,0.85); border: 1px solid #334;
+    border-radius: 4px; overflow: hidden; z-index: 10;
+    font-size: 10px; line-height: 20px; text-align: center;
+  }
+  #ring-bar {
+    height: 100%; background: linear-gradient(90deg, #1a3366, #4488cc);
+    transition: width 0.5s ease; white-space: nowrap; overflow: hidden;
+  }
+  #controls-hint {
+    position: fixed; bottom: 44px; right: 12px;
+    color: #445; font-size: 10px; z-index: 10; text-align: right;
+  }
+  @media (max-width: 600px) {
+    #twin-info { font-size: 10px; min-width: 160px; padding: 8px 10px; }
+    #ring-bar-container { width: 90%; }
+  }
+</style>
+</head>
+<body>
+<div id="canvas-container"></div>
+<div id="twin-info"><div class="info-loading">Waiting for ring data...</div></div>
+<div id="ring-bar-container"><div id="ring-bar">0 / 5040</div></div>
+<div id="controls-hint">drag to orbit · scroll to zoom</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* Patch THREE onto window for twin-viewer.js */
+window.THREE = THREE;
+window.THREE.OrbitControls = OrbitControls;
+
+</script>
+
+<script src="geometry-decoder.js"></script>
+<script src="ring-loader.js"></script>
+<script src="twin-viewer.js"></script>
+
+<script>
+(function() {
+  const container = document.getElementById('canvas-container');
+  const viewer = new TwinViewer(container);
+  viewer.animate();
+
+  const loader = new RingLoader('');
+
+  /* Load initial frame, then poll */
+  async function init() {
+    try {
+      const frame = await loader.fetchFrame();
+      viewer.update(frame);
+    } catch (e) {
+      console.log('Initial fetch failed, will retry...');
+    }
+    loader.onUpdate(frame => viewer.update(frame));
+    loader.pollFrame(2000);
+  }
+  init();
+})();
+</script>
+</body>
+</html>
