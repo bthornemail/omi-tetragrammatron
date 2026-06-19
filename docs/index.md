@@ -21,6 +21,10 @@ do not encode nondeterminism
 - [Examples](examples.md): copy-paste workflows for evaluation, file runs, frames, images, and serving.
 - [Development notes](development.md): invariants, documentation workflow, and safe extension points.
 - [Troubleshooting](troubleshooting.md): common build, ring, server, and viewer issues.
+- [HTTP and render API](http-and-render-api.md): server routes, JSON frame shape, ring JSON, and PPM output.
+- [Determinism guide](determinism.md): what must remain deterministic and what is only carrier behavior.
+- [Smoke-test matrix](smoke-test-matrix.md): quick command matrix for validating runtime modes.
+- [Glossary](glossary.md): project terms and symbols.
 
 ## Current artifact
 
