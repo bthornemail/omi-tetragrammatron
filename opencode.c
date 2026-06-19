@@ -500,6 +500,19 @@ static const V3 SEED_ICOSA[] = {
     {-SEED_PHI,1,0},{-SEED_PHI,-1,0},{SEED_PHI,1,0},{SEED_PHI,-1,0},
     {1,0,-SEED_PHI},{-1,0,-SEED_PHI},{1,0,SEED_PHI},{-1,0,SEED_PHI}
 };
+static const E2 SEED_ICOSA_E[] = {
+    {0,1},{0,5},{0,7},{0,10},{0,11},
+    {1,5},{1,7},{1,8},{1,9},
+    {2,3},{2,4},{2,6},{2,10},{2,11},
+    {3,4},{3,6},{3,8},{3,9},
+    {4,5},{4,9},{4,11},
+    {5,9},{5,11},
+    {6,7},{6,8},{6,10},
+    {7,8},{7,10},
+    {8,9},{10,11}
+};
+#define SEED_ICOSA_N 12
+#define SEED_ICOSA_EN 30
 
 /* ─── Dodecahedron (20 vertices): dual of icosahedron ─── */
 static const V3 SEED_DODEC[] = {
@@ -512,6 +525,50 @@ static const V3 SEED_DODEC[] = {
     {-SEED_PHI,0,-SEED_PSI},{-SEED_PHI,0,SEED_PSI},
     {SEED_PHI,0,-SEED_PSI},{SEED_PHI,0,SEED_PSI}
 };
+static const E2 SEED_DODEC_E[] = {
+    {0,1},{0,2},{0,3},{1,2},{1,5},{2,6},
+    {3,7},{4,5},{4,6},{4,7},{5,6},{5,10},
+    {6,11},{7,11},{8,9},{8,12},{8,16},{9,13},
+    {9,16},{10,11},{10,12},{10,17},{11,13},{11,17},
+    {12,14},{12,17},{13,15},{13,17},{14,15},{14,18},
+    {15,19},{16,17},{16,18},{18,19}
+};
+#define SEED_DODEC_N 20
+#define SEED_DODEC_EN 30
+
+/* ─── Cuboctahedron (12 vertices, 24 edges) — Archimedean ─── */
+static const V3 SEED_CUBOCT[] = {
+    { 1, 1, 0},{ 1,-1, 0},{-1, 1, 0},{-1,-1, 0},
+    { 1, 0, 1},{ 1, 0,-1},{-1, 0, 1},{-1, 0,-1},
+    { 0, 1, 1},{ 0, 1,-1},{ 0,-1, 1},{ 0,-1,-1}
+};
+static const E2 SEED_CUBOCT_E[] = {
+    {0,4},{0,5},{0,8},{0,9},{1,4},{1,5},{1,10},{1,11},
+    {2,6},{2,7},{2,8},{2,9},{3,6},{3,7},{3,10},{3,11},
+    {4,8},{4,10},{5,9},{5,11},{6,8},{6,10},{7,9},{7,11}
+};
+#define SEED_CUBOCT_N 12
+#define SEED_CUBOCT_EN 24
+
+/* ─── Truncated Octahedron (24 vertices, 36 edges) — Archimedean ─── */
+static const V3 SEED_TRUNCOCT[] = {
+    { 0, 1, 2},{ 0, 1,-2},{ 0,-1, 2},{ 0,-1,-2},
+    { 0, 2, 1},{ 0,-2, 1},{ 0, 2,-1},{ 0,-2,-1},
+    { 1, 0, 2},{ 1, 0,-2},{-1, 0, 2},{-1, 0,-2},
+    { 1, 2, 0},{ 1,-2, 0},{-1, 2, 0},{-1,-2, 0},
+    { 2, 0, 1},{-2, 0, 1},{ 2, 0,-1},{-2, 0,-1},
+    { 2, 1, 0},{-2, 1, 0},{ 2,-1, 0},{-2,-1, 0}
+};
+static const E2 SEED_TRUNCOCT_E[] = {
+    {0,4},{0,8},{0,10},{1,6},{1,9},{1,11},
+    {2,5},{2,8},{2,10},{3,7},{3,9},{3,11},
+    {4,12},{4,14},{5,13},{5,15},{6,12},{6,14},
+    {7,13},{7,15},{8,16},{9,18},{10,17},{11,19},
+    {12,20},{13,22},{14,21},{15,23},{16,20},{16,22},
+    {17,21},{17,23},{18,20},{18,22},{19,21},{19,23}
+};
+#define SEED_TRUNCOCT_N 24
+#define SEED_TRUNCOCT_EN 36
 
 /* ─── Solid family: each Fano point roots a family tree ───
    Fano 0: Tetrahedron family (A₄ symmetry)
@@ -541,22 +598,22 @@ static const ShapeDef SHAPE_DB[] = {
     {"Octahedron", 0,2, 6,12,8, SEED_OCTA, SEED_OCTA_E, 3,4},
     /* Fano 1: Octahedron family */
     {"Octahedron", 1,0, 6,12,8, SEED_OCTA, SEED_OCTA_E, 3,4},
-    {"Truncated Octahedron", 1,1, 24,36,14, 0,0, 4,6},   /* 24v Archimedean */
+    {"Truncated Octahedron", 1,1, 24,36,14, SEED_TRUNCOCT, SEED_TRUNCOCT_E, 4,6},
     {"Tetrakis Hexahedron", 1,2, 14,36,24, 0,0, 4,6},     /* dual of truncated octahedron */
     /* Fano 2: Cube family */
     {"Cube", 2,0, 8,12,6, SEED_CUBE, SEED_CUBE_E, 4,3},
     {"Truncated Cube", 2,1, 24,36,14, 0,0, 3,8},
     {"Triakis Octahedron", 2,2, 14,36,24, 0,0, 3,8},
     /* Fano 3: Cuboctahedron family */
-    {"Cuboctahedron", 3,0, 12,24,14, 0,0, 3,4},
-    {"Cuboctahedron", 3,1, 12,24,14, 0,0, 3,4},
+    {"Cuboctahedron", 3,0, 12,24,14, SEED_CUBOCT, SEED_CUBOCT_E, 3,4},
+    {"Cuboctahedron", 3,1, 12,24,14, SEED_CUBOCT, SEED_CUBOCT_E, 3,4},
     {"Rhombic Dodecahedron", 3,2, 14,24,12, 0,0, 3,4},
     /* Fano 4: Icosahedron family */
-    {"Icosahedron", 4,0, 12,30,20, SEED_ICOSA, 0, 3,5},
+    {"Icosahedron", 4,0, 12,30,20, SEED_ICOSA, SEED_ICOSA_E, 3,5},
     {"Truncated Icosahedron", 4,1, 60,90,32, 0,0, 5,3},
     {"Pentakis Dodecahedron", 4,2, 32,90,60, 0,0, 5,3},
     /* Fano 5: Dodecahedron family */
-    {"Dodecahedron", 5,0, 20,30,12, SEED_DODEC, 0, 5,3},
+    {"Dodecahedron", 5,0, 20,30,12, SEED_DODEC, SEED_DODEC_E, 5,3},
     {"Truncated Dodecahedron", 5,1, 60,90,32, 0,0, 3,5},
     {"Triakis Icosahedron", 5,2, 32,90,60, 0,0, 3,5},
     /* Fano 6: Icosidodecahedron family */
