@@ -16,6 +16,11 @@ do not encode nondeterminism
 - [Command reference](cli.md): all `opencode.bin` modes and their expected outputs.
 - [Geometry and ring](geometry-and-ring.md): receipt ring, Fano routing, BQF, Polybius, and Hopf projection.
 - [Viewer](viewer.md): WebGL digital twin viewer and HTTP endpoints.
+- [S-expressions and OMI frames](sexpr-and-omi.md): accepted input shapes, receipts, lanes, and address execution.
+- [Runtime data model](runtime-data-model.md): major in-memory structures and how state moves through the runtime.
+- [Examples](examples.md): copy-paste workflows for evaluation, file runs, frames, images, and serving.
+- [Development notes](development.md): invariants, documentation workflow, and safe extension points.
+- [Troubleshooting](troubleshooting.md): common build, ring, server, and viewer issues.
 
 ## Current artifact
 
