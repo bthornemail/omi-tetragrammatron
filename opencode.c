@@ -422,11 +422,11 @@ static int polybius_is_interior(int row, int col) { if(row<1||row>5||col<1||col>
 
 /* ─── Fano Plane incidence hypergraph (7 points, 7 lines) ─── */
 static const uint8_t FANO_LINES[7][3] = {
-    {0,1,2},{0,3,4},{1,3,5},{1,4,6},{2,3,6},{2,4,5},{3,4,0}
+    {0,1,2},{0,3,4},{0,5,6},{1,3,5},{1,4,6},{2,3,6},{2,4,5}
 };
 /* Dual: for each point, which 3 lines contain it */
 static const uint8_t FANO_PT_LINES[7][3] = {
-    {0,1,6},{0,2,3},{0,4,5},{1,2,4},{1,3,5},{2,5,6},{3,4,6}
+    {0,1,2},{0,3,4},{0,5,6},{1,3,5},{1,4,6},{2,3,6},{2,4,5}
 };
 
 /* ConfigMatrix: incidence from Fano point to shape family base in SHAPE_DB */
@@ -1488,6 +1488,128 @@ static void serve_http(int port) {
 }
 
 /* ─── Main ─── */
+/* ─── Incidence self-check ─── */
+static int check_incidence(void) {
+    int ok = 1;
+    int errors = 0;
+
+    /* 1. Fano plane consistency: every point appears in exactly 3 lines */
+    for (int pt = 0; pt < 7; pt++) {
+        int count = 0;
+        int lines[3];
+        for (int li = 0; li < 7; li++)
+            if (FANO_LINES[li][0] == pt || FANO_LINES[li][1] == pt || FANO_LINES[li][2] == pt)
+                { if (count < 3) lines[count] = li; count++; }
+        if (count != 3) {
+            printf("FAIL: FANO: point %d appears in %d lines (expected 3)\n", pt, count);
+            ok = 0; errors++;
+        } else {
+            for (int i = 0; i < 3; i++)
+                if (lines[i] != FANO_PT_LINES[pt][i]) {
+                    printf("FAIL: FANO: point %d line mismatch: got %d expected %d\n",
+                        pt, lines[i], FANO_PT_LINES[pt][i]);
+                    ok = 0; errors++;
+                }
+        }
+    }
+
+    /* 2. CONFIG_MATRIX / SHAPE_DB consistency */
+    for (int f = 0; f < 7; f++) {
+        int base = CONFIG_MATRIX[f];
+        if (base < 0 || base >= (int)SHAPE_DB_N) {
+            printf("FAIL: CONFIG_MATRIX[%d]=%d out of range (SHAPE_DB_N=%zu)\n", f, base, SHAPE_DB_N);
+            ok = 0; errors++; continue;
+        }
+        /* family_seq 0 at base should have this fano_root */
+        if (SHAPE_DB[base].fano_root != f) {
+            printf("FAIL: CONFIG_MATRIX[%d] -> SHAPE_DB[%d].fano_root=%d (expected %d)\n",
+                f, base, SHAPE_DB[base].fano_root, f);
+            ok = 0; errors++;
+        }
+        if (SHAPE_DB[base].family_seq != 0) {
+            printf("FAIL: CONFIG_MATRIX[%d] -> SHAPE_DB[%d].family_seq=%d (expected 0)\n",
+                f, base, SHAPE_DB[base].family_seq);
+            ok = 0; errors++;
+        }
+        /* All 3 family members should share fano_root */
+        for (int k = 0; k < CONFIG_FAMILY_SIZE; k++) {
+            int idx = base + k;
+            if (idx >= (int)SHAPE_DB_N) {
+                printf("FAIL: CONFIG_MATRIX[%d]+%d=%d exceeds SHAPE_DB_N\n", f, k, idx);
+                ok = 0; errors++; continue;
+            }
+            if (SHAPE_DB[idx].fano_root != f) {
+                printf("FAIL: SHAPE_DB[%d].fano_root=%d (expected %d from CONFIG_MATRIX[%d])\n",
+                    idx, SHAPE_DB[idx].fano_root, f, f);
+                ok = 0; errors++;
+            }
+            if (SHAPE_DB[idx].family_seq != k) {
+                printf("FAIL: SHAPE_DB[%d].family_seq=%d (expected %d)\n",
+                    idx, SHAPE_DB[idx].family_seq, k);
+                ok = 0; errors++;
+            }
+        }
+    }
+
+    /* 3. SHAPE_DB integrity: edges, vertex ranges, no duplicates */
+    for (int i = 0; i < (int)SHAPE_DB_N; i++) {
+        const ShapeDef *s = &SHAPE_DB[i];
+        if (s->nverts <= 0) {
+            printf("FAIL: SHAPE_DB[%d] %s nverts=%d (must be >0)\n", i, s->name, s->nverts);
+            ok = 0; errors++;
+        }
+        if (s->nedges <= 0) {
+            printf("FAIL: SHAPE_DB[%d] %s nedges=%d (must be >0)\n", i, s->name, s->nedges);
+            ok = 0; errors++;
+        }
+        if (!s->edges) {
+            printf("FAIL: SHAPE_DB[%d] %s edges is NULL\n", i, s->name);
+            ok = 0; errors++;
+            continue;
+        }
+        /* Check vertex indices in range */
+        int dupes = 0;
+        for (int e = 0; e < s->nedges; e++) {
+            int a = s->edges[e].a, b = s->edges[e].b;
+            if (a < 0 || a >= s->nverts || b < 0 || b >= s->nverts) {
+                printf("FAIL: SHAPE_DB[%d] %s edge[%d]=(%d,%d) vertex out of range [0,%d)\n",
+                    i, s->name, e, a, b, s->nverts);
+                ok = 0; errors++;
+            }
+        }
+        /* Check for duplicate edges */
+        for (int e = 0; e < s->nedges; e++)
+            for (int f = e+1; f < s->nedges; f++)
+                if ((s->edges[e].a == s->edges[f].a && s->edges[e].b == s->edges[f].b) ||
+                    (s->edges[e].a == s->edges[f].b && s->edges[e].b == s->edges[f].a)) {
+                    dupes++;
+                    if (dupes <= 3)
+                        printf("FAIL: SHAPE_DB[%d] %s duplicate edge: (%d,%d) at [%d] and [%d]\n",
+                            i, s->name, s->edges[e].a, s->edges[e].b, e, f);
+                }
+        if (dupes) { ok = 0; errors += dupes; }
+
+        /* Schläfli basic validation */
+        if (s->schlafli_p < 3 || s->schlafli_q < 3) {
+            printf("WARN: SHAPE_DB[%d] %s unusual Schläfli {%d,%d}\n",
+                i, s->name, s->schlafli_p, s->schlafli_q);
+        }
+    }
+
+    /* 4. solid_lookup / find_solid_with_data reachability */
+    for (int f = 0; f < 7; f++)
+        for (int r = 0; r < CONFIG_FAMILY_SIZE; r++) {
+            const ShapeDef *s = solid_lookup(f, r);
+            if (!s) {
+                printf("FAIL: solid_lookup(%d,%d) returned NULL\n", f, r);
+                ok = 0; errors++;
+            }
+        }
+
+    printf("incidence self-check: %s (%d errors)\n", ok ? "PASS" : "FAIL", errors);
+    return ok ? 0 : 1;
+}
+
 int main(int argc, char **argv) {
     signal(SIGINT,handle_signal); signal(SIGTERM,handle_signal);
     ring_load();
@@ -1669,6 +1791,7 @@ int main(int argc, char **argv) {
             int port = (argc > 2) ? atoi(argv[2]) : SERVE_PORT;
             serve_http(port); return 0;
         }
+        if(strcmp(argv[1],"--check")==0){return check_incidence();}
         if(strcmp(argv[1],"--help")==0||strcmp(argv[1],"-h")==0){
             printf("OPENCORE v2 \342\200\224 deterministic autonomous AGI seed\n");
             printf("Usage: opencode.bin [mode] [args]\n");
@@ -1690,6 +1813,7 @@ int main(int argc, char **argv) {
             printf("  --render-ppm    output Polybius grid as PPM image\n");
             printf("  --smith         output Smith chart as SVG\n");
             printf("  --serve [port]  HTTP server for WebGL viewer (default 8080)\n");
+            printf("  --check       run incidence self-checks\n");
             printf("  --help        this message\n");
             return 0;
         }
