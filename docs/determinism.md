@@ -25,6 +25,10 @@ Computation must be derived from accepted input and deterministic state transiti
 - Ring slot selection from `g_cycle % 5040`.
 - Ring folds.
 - Fano routing.
+- Fano incidence self-checks and point-line dual validation.
+- CONFIG_MATRIX / SHAPE_DB mapping validation.
+- Shape edge-incidence, handshake, Euler, and reachability checks.
+- Geometry-derived φ through deterministic recurrence.
 - BQF calculation.
 - 5040-slot geometry mapping.
 - Polybius cell mapping.

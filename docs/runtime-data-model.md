@@ -97,3 +97,18 @@ input string
 ```
 
 Autonomous mode loops through the same flow, except it derives the next OMI frame from ring folds and Fano routing rather than from a new external expression.
+
+
+## Geometry validation tables
+
+The deterministic geometry layer validates finite tables rather than trusting them by inspection:
+
+```text
+FANO_LINES      point triples for seven Fano lines
+FANO_PT_LINES   dual point-to-line incidence lookup
+CONFIG_MATRIX   configuration-to-shape mapping data
+SHAPE_DB        solid definitions, vertices, faces, and OmiRelEdge edges
+solid_lookup    reachability table for solid selection
+```
+
+`OmiRelEdge` stores edge endpoints as citations, making shape edges relation records rather than anonymous integer pairs.

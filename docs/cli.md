@@ -118,3 +118,12 @@ Serve the browser viewer and JSON endpoints:
 ```bash
 ./opencode.bin --serve 8080
 ```
+
+
+## Deterministic geometry checks
+
+```bash
+./opencode.bin --check
+```
+
+Runs finite self-checks for Fano incidence, CONFIG_MATRIX / SHAPE_DB mapping, SHAPE_DB edge and vertex integrity, and solid_lookup reachability.

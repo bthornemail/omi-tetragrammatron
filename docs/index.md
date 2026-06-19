@@ -15,6 +15,7 @@ do not encode nondeterminism
 - [Architecture](architecture.md): deterministic core, carrier behavior, and repository layout.
 - [Command reference](cli.md): all `opencode.bin` modes and their expected outputs.
 - [Geometry and ring](geometry-and-ring.md): receipt ring, Fano routing, BQF, Polybius, and Hopf projection.
+- [Deterministic geometry validation](deterministic-geometry.md): `--check`, Fano incidence, shape integrity, dodecahedron edges, and φ derivation.
 - [Tetrahedral π carry](tetrahedral-pi.md): π as an internal geometry-of-motion carry between discrete OMI states and smooth projection.
 - [Viewer](viewer.md): WebGL digital twin viewer and HTTP endpoints.
 - [S-expressions and OMI frames](sexpr-and-omi.md): accepted input shapes, receipts, lanes, and address execution.
