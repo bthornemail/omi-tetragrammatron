@@ -53,20 +53,25 @@ class TwinViewer {
     this.fanoGroup = new THREE.Group();
     this.hopfGroup = new THREE.Group();
     this.spiralGroup = new THREE.Group();
+    this.solidGroup = new THREE.Group();
     this.infoSprites = [];
     this.scene.add(this.polybiusGroup);
     this.scene.add(this.fanoGroup);
     this.scene.add(this.hopfGroup);
     this.scene.add(this.spiralGroup);
+    this.scene.add(this.solidGroup);
 
     this.animTime = 0;
     this.frameData = null;
+    this.currentSolidId = -1;
+    this.solidMesh = null;
 
     this.buildPolybiusGrid();
     this.buildFanoPlane();
     this.buildSpiralPath();
     this.buildAxes();
     this.buildSmithChart();
+    this.buildSolidGeometry(5); /* Start with Icosahedron */
 
     window.addEventListener('resize', () => this.onResize());
   }
@@ -350,6 +355,129 @@ class TwinViewer {
     }
   }
 
+  buildSolidGeometry(solidId) {
+    /* Remove old solid mesh */
+    while (this.solidGroup.children.length > 0) {
+      const c = this.solidGroup.children[0];
+      this.solidGroup.remove(c);
+      if (c.geometry) c.geometry.dispose();
+      if (c.material) c.material.dispose();
+    }
+
+    const solid = getSolidGeometry(solidId);
+    if (!solid || !solid.verts || !solid.edges) return;
+    this.currentSolidId = solidId;
+
+    /* Scale to fit in scene (normalize) */
+    const verts = solid.verts;
+    let maxR = 0;
+    for (const v of verts) {
+      const r = Math.hypot(v.x, v.y, v.z);
+      if (r > maxR) maxR = r;
+    }
+    const scale = maxR > 0 ? 1.2 / maxR : 1;
+
+    /* Edge lines */
+    const edgePositions = [];
+    for (const e of solid.edges) {
+      const va = verts[e.a];
+      const vb = verts[e.b];
+      edgePositions.push(va.x * scale, va.y * scale, va.z * scale);
+      edgePositions.push(vb.x * scale, vb.y * scale, vb.z * scale);
+    }
+    const edgeGeo = new THREE.BufferGeometry();
+    edgeGeo.setAttribute('position', new THREE.Float32BufferAttribute(edgePositions, 3));
+    const edgeMat = new THREE.LineBasicMaterial({ color: 0x4488cc, transparent: true, opacity: 0.6 });
+    const edgeLines = new THREE.LineSegments(edgeGeo, edgeMat);
+    this.solidGroup.add(edgeLines);
+
+    /* Vertex spheres */
+    this.solidVerts = [];
+    for (let i = 0; i < verts.length; i++) {
+      const v = verts[i];
+      const geo = new THREE.SphereGeometry(0.06, 8, 8);
+      const mat = new THREE.MeshStandardMaterial({ color: 0x88ccff, emissive: 0x4488ff, emissiveIntensity: 0.2 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(v.x * scale, v.y * scale, v.z * scale);
+      mesh.userData = { solidVertIdx: i };
+      this.solidGroup.add(mesh);
+      this.solidVerts.push(mesh);
+    }
+
+    /* Highlight vertex and edge markers */
+    this.highlightVert = new THREE.Mesh(
+      new THREE.SphereGeometry(0.12, 12, 12),
+      new THREE.MeshStandardMaterial({ color: 0xff4444, emissive: 0xff4444, emissiveIntensity: 0.5 })
+    );
+    this.highlightVert.visible = false;
+    this.solidGroup.add(this.highlightVert);
+
+    this.highlightEdge = new THREE.Mesh(
+      new THREE.SphereGeometry(0.1, 8, 8),
+      new THREE.MeshStandardMaterial({ color: 0xffff44, emissive: 0xffff44, emissiveIntensity: 0.3 })
+    );
+    this.highlightEdge.visible = false;
+    this.solidGroup.add(this.highlightEdge);
+
+    /* Label sprite */
+    const canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#88aacc';
+    ctx.font = '24px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(solid.name, 128, 32);
+    const tex = new THREE.CanvasTexture(canvas);
+    const spriteMat = new THREE.SpriteMaterial({ map: tex, depthTest: false });
+    const label = new THREE.Sprite(spriteMat);
+    label.position.set(0, 2.0, 0);
+    label.scale.set(2.5, 0.6, 1);
+    this.solidGroup.add(label);
+
+    this.solidGroup.position.set(-3, 1.5, -2);
+  }
+
+  updateSolidGeometry(solidId, hv, he) {
+    if (solidId !== this.currentSolidId) {
+      this.buildSolidGeometry(solidId);
+    }
+    if (!this.solidVerts || !this.solidVerts.length) return;
+
+    /* Highlight vertex */
+    if (this.highlightVert && hv >= 0 && hv < this.solidVerts.length) {
+      this.highlightVert.position.copy(this.solidVerts[hv].position);
+      this.highlightVert.visible = true;
+    } else if (this.highlightVert) {
+      this.highlightVert.visible = false;
+    }
+
+    /* Highlight edge — place marker at midpoint */
+    if (this.highlightEdge) {
+      const solid = getSolidGeometry(solidId);
+      if (solid && he >= 0 && he < solid.edges.length) {
+        const e = solid.edges[he];
+        const va = solid.verts[e.a];
+        const vb = solid.verts[e.b];
+        let maxR = 0;
+        for (const v of solid.verts) { const r = Math.hypot(v.x, v.y, v.z); if (r > maxR) maxR = r; }
+        const s = maxR > 0 ? 1.2 / maxR : 1;
+        this.highlightEdge.position.set(
+          (va.x + vb.x) * 0.5 * s,
+          (va.y + vb.y) * 0.5 * s,
+          (va.z + vb.z) * 0.5 * s
+        );
+        this.highlightEdge.visible = true;
+      } else {
+        this.highlightEdge.visible = false;
+      }
+    }
+
+    /* Gentle rotation */
+    this.solidGroup.rotation.x = Math.sin(this.animTime * 0.3) * 0.3;
+    this.solidGroup.rotation.y = this.animTime * 0.5;
+  }
+
   buildSmithChart() {
     this.smithCanvas = document.getElementById('smith-canvas');
     this.smithTooltip = document.getElementById('smith-tooltip');
@@ -359,6 +487,7 @@ class TwinViewer {
     this.smithScale = S;
     this.smithCx = this.smithCanvas.width / 2;
     this.smithCy = this.smithCanvas.height / 2;
+    this.smithMode = 'Z'; /* 'Z' = impedance, 'Y' = admittance */
 
     const ctx = this.smithCtx;
     ctx.clearRect(0, 0, this.smithCanvas.width, this.smithCanvas.height);
@@ -427,6 +556,11 @@ class TwinViewer {
       this.smithTooltip.style.display = 'none';
       this.drawSmithPoints();
     });
+
+    document.addEventListener('smith-toggle', () => {
+      this.smithMode = this.smithMode === 'Z' ? 'Y' : 'Z';
+      this.drawSmithPoints();
+    });
   }
 
   onSmithHover(e) {
@@ -440,10 +574,11 @@ class TwinViewer {
     const cy = my * scaleY;
 
     let closest = -1;
-    let minDist = 20; /* hover radius in canvas pixels */
+    let minDist = 20;
     for (let i = 0; i < this.smithPoints.length; i++) {
       const p = this.smithPoints[i];
-      const d = Math.hypot(cx - p.x, cy - p.y);
+      const d = Math.hypot(cx - this.smithCx - (this.smithMode === 'Y' ? -p.gr : p.gr) * this.smithScale,
+                           cy - this.smithCy - (this.smithMode === 'Y' ? p.gi : -p.gi) * this.smithScale);
       if (d < minDist) { minDist = d; closest = i; }
     }
     if (closest !== this.smithHoverIdx) {
@@ -455,10 +590,12 @@ class TwinViewer {
         this.smithTooltip.style.left = (e.clientX + 12) + 'px';
         this.smithTooltip.style.top = (e.clientY - 10) + 'px';
         const fi = ['US','GS','RS','FS'][p.fi] || '?';
+        const vertex = `S${p.fi}`;
+        const isY = this.smithMode === 'Y';
         this.smithTooltip.innerHTML =
-          `<b>${fi}</b> cy=${p.cy} slot=${p.slot} ` +
+          `<b>${fi}</b> <b>${vertex}</b> cy=${p.cy} slot=${p.slot} ` +
           `Γ=(${p.gr.toFixed(3)},${p.gi.toFixed(3)}) ` +
-          `z=(${p.zr.toFixed(2)},${p.zi.toFixed(2)}) ` +
+          `${isY?'y':'z'}=(${(isY?p.yr:p.zr).toFixed(2)},${(isY?p.yi:p.zi).toFixed(2)}) ` +
           `ρ=${p.rho.toFixed(3)} θ=${(p.theta * 180 / Math.PI).toFixed(1)}°`;
       } else {
         this.smithTooltip.style.display = 'none';
@@ -472,22 +609,20 @@ class TwinViewer {
     const cx = this.smithCx;
     const cy = this.smithCy;
     const colors = ['#ff4444','#44ff44','#4444ff','#44ffff'];
+    const vertexLabels = ['S0','S1','S2','S3'];
     if (!ctx) return;
 
-    /* Redraw grid background (simple clear + static re-draw would be expensive;
-       just clear and redraw the whole thing. For efficiency, draw on overlay canvas. */
-    /* Clear bottom layer — but we don't want to erase the grid! Use a second canvas for points. */
-    /* Instead, draw points directly over the grid and use copy for hover later. */
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, scale, 0, 2 * Math.PI);
     ctx.clip();
 
-    /* Draw all points */
+    /* Draw all points, flipping gamma for Y mode (180° rotation) */
     for (let i = 0; i < this.smithPoints.length; i++) {
       const p = this.smithPoints[i];
-      const px = cx + p.gr * scale;
-      const py = cy - p.gi * scale; /* SVG y-flip */
+      const flip = this.smithMode === 'Y' ? -1 : 1;
+      const px = cx + p.gr * scale * (this.smithMode === 'Y' ? -1 : 1);
+      const py = cy - p.gi * scale * flip;
       const isHover = (i === this.smithHoverIdx);
       const radius = isHover ? 5 : 2.5;
       ctx.beginPath();
@@ -501,8 +636,45 @@ class TwinViewer {
         ctx.stroke();
       }
     }
+
+    /* Tetrahedron vertex labels: compute centroids per frame type */
+    const sums = [{x:0,y:0,n:0},{x:0,y:0,n:0},{x:0,y:0,n:0},{x:0,y:0,n:0}];
+    for (const p of this.smithPoints) {
+      const fi = p.fi;
+      const flip = this.smithMode === 'Y' ? -1 : 1;
+      sums[fi].x += p.gr * flip;
+      sums[fi].y += -p.gi * flip;
+      sums[fi].n++;
+    }
+    for (let f = 0; f < 4; f++) {
+      if (sums[f].n > 0) {
+        const mx = sums[f].x / sums[f].n;
+        const my = sums[f].y / sums[f].n;
+        const px = cx + mx * scale;
+        const py = cy + my * scale;
+        ctx.beginPath();
+        ctx.arc(px, py, 8, 0, 2 * Math.PI);
+        ctx.fillStyle = colors[f];
+        ctx.globalAlpha = 0.9;
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.globalAlpha = 1.0;
+        ctx.fillText(vertexLabels[f], px, py);
+      }
+    }
+
     ctx.restore();
     ctx.globalAlpha = 1.0;
+
+    /* Mode label */
+    ctx.fillStyle = '#667';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(this.smithMode === 'Z' ? 'IMPEDANCE (Z)' : 'ADMITTANCE (Y)', this.smithCanvas.width - 8, this.smithCanvas.height - 8);
   }
 
   updateSmithChart(receipts) {
@@ -514,6 +686,7 @@ class TwinViewer {
       this.smithPoints.push({
         gr: sm.gamma[0], gi: sm.gamma[1],
         zr: sm.z[0], zi: sm.z[1],
+        yr: sm.y[0], yi: sm.y[1],
         rho: sm.rho, theta: sm.theta,
         fi: r.twin.frame === 'US' ? 0 : r.twin.frame === 'GS' ? 1 : r.twin.frame === 'RS' ? 2 : 3,
         cy: r.cy, slot: r.twin.slot

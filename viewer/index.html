@@ -38,6 +38,14 @@
     position: fixed; bottom: 44px; right: 12px;
     color: #445; font-size: 10px; z-index: 10; text-align: right;
   }
+  #smith-toggle {
+    position: fixed; bottom: 340px; left: 192px;
+    background: rgba(10,10,20,0.85); border: 1px solid #334;
+    color: #88aacc; font-family: 'Courier New', monospace;
+    font-size: 10px; padding: 3px 8px; border-radius: 4px;
+    cursor: pointer; z-index: 10;
+  }
+  #smith-toggle:hover { background: rgba(30,30,60,0.9); border-color: #557; }
   #smith-canvas {
     position: fixed; bottom: 50px; left: 12px;
     width: 280px; height: 280px;
@@ -64,6 +72,7 @@
 <div id="controls-hint">drag to orbit · scroll to zoom</div>
 <canvas id="smith-canvas" width="560" height="560"></canvas>
 <div id="smith-tooltip"></div>
+<button id="smith-toggle">Z→Y</button>
 
 <script type="importmap">
 {
@@ -108,6 +117,13 @@ window.THREE.OrbitControls = OrbitControls;
     loader.pollFrame(2000);
   }
   init();
+
+  /* Z/Y toggle */
+  document.getElementById('smith-toggle').addEventListener('click', () => {
+    document.dispatchEvent(new CustomEvent('smith-toggle'));
+    const btn = document.getElementById('smith-toggle');
+    btn.textContent = btn.textContent === 'Z→Y' ? 'Y→Z' : 'Z→Y';
+  });
 })();
 </script>
 </body>
