@@ -1696,16 +1696,25 @@ static const char *INCIDENCE_CORE[21] = {
     "m{3,5}",         /* 20 Disdyakis Triacontahedron */
 };
 
+/* BQF branch terms indexed by Fano root (0-6): select monomial from 60x² + 16xy + 4y² */
+static const int BRANCH_TERM[7] = {4, 4, 16, 16, 60, 60, 60};
+static const char *BQF_BRANCH[7] = {"4y^2","4y^2","16xy","16xy","60x^2","60x^2","60x^2"};
+
 /* ─── /incidence endpoint: deterministic incidence data, no projection geometry ─── */
 static void serve_incidence_json(int fd, int id) {
     if (id < 0 || id >= (int)SHAPE_DB_N) { http_404(fd); return; }
     const ShapeDef *s = &SHAPE_DB[id];
-    Buffer b = {0}; char tmp[256];
+    Buffer b = {0}; char tmp[512];
     int chi = s->nverts - s->nedges + s->nfaces;
     int graph_b1 = s->nedges - s->nverts + 1;
     int surface_b1 = (chi == 2) ? 0 : (chi > 2 ? 0 : 2 - chi);
     const char *wyth = (id < 21) ? INCIDENCE_WYTHOFF[id] : "";
     const char *core = (id < 21) ? INCIDENCE_CORE[id] : "";
+    int fr = s->fano_root;
+    if (fr < 0) fr = 0; if (fr > 6) fr = 0;
+    int bt = BRANCH_TERM[fr];
+    const char *bqf = BQF_BRANCH[fr];
+    const char *topo = (id == 1) ? "projected_compound" : "convex_sphere";
     int valid = (s->nverts > 0 && s->nedges > 0 && s->edges != NULL) ? 1 : 0;
 
     snprintf(tmp, sizeof(tmp),
@@ -1714,7 +1723,9 @@ static void serve_incidence_json(int fd, int id) {
     snprintf(tmp, sizeof(tmp),
         "\",\"schlafli\":[%d,%d],"
         "\"wythoff\":\"%s\",\"core\":\"%s\","
-        "\"branch\":\"%dx%dy\","
+        "\"incidence_product\":\"%dx%dy\","
+        "\"bqf_branch\":\"%s\",\"branch_term\":%d,"
+        "\"topology_model\":\"%s\","
         "\"fano\":%d,\"role\":%d,"
         "\"verts\":%d,\"edges\":%d,\"faces\":%d,"
         "\"graph_beta\":[1,%d],"
@@ -1723,7 +1734,8 @@ static void serve_incidence_json(int fd, int id) {
         s->schlafli_p, s->schlafli_q,
         wyth, core,
         s->schlafli_p, s->schlafli_q,
-        s->fano_root, s->family_seq,
+        bqf, bt, topo,
+        fr, s->family_seq,
         s->nverts, s->nedges, s->nfaces,
         graph_b1, surface_b1,
         valid ? "true" : "false");
