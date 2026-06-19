@@ -1644,6 +1644,94 @@ static void serve_solid_json(int fd, const char *path) {
     bfree(&b);
 }
 
+/* ─── Incidence metadata tables ─── */
+
+/* Wythoff symbols for each SHAPE_DB entry (empty string if unknown) */
+static const char *INCIDENCE_WYTHOFF[21] = {
+    "3 | 2 3",        /* 0 Tetrahedron */
+    "3/2 | 2 3",      /* 1 Stellated Tetrahedron */
+    "4 | 2 3",        /* 2 Octahedron */
+    "4 | 2 3",        /* 3 Octahedron */
+    "2 4 | 3",        /* 4 Truncated Octahedron */
+    "4 | 2 3",        /* 5 Tetrakis Hexahedron */
+    "3 | 2 4",        /* 6 Cube */
+    "2 3 | 4",        /* 7 Truncated Cube */
+    "4 | 2 3",        /* 8 Triakis Octahedron */
+    "2 | 3 4",        /* 9 Cuboctahedron */
+    "2 | 3 4",        /* 10 Cuboctahedron */
+    "2 | 3 4",        /* 11 Rhombic Dodecahedron */
+    "5 | 2 3",        /* 12 Icosahedron */
+    "2 5 | 3",        /* 13 Truncated Icosahedron */
+    "5 | 2 3",        /* 14 Pentakis Dodecahedron */
+    "3 | 2 5",        /* 15 Dodecahedron */
+    "2 3 | 5",        /* 16 Truncated Dodecahedron */
+    "5 | 2 3",        /* 17 Triakis Icosahedron */
+    "2 | 3 5",        /* 18 Icosidodecahedron */
+    "2 3 5 |",        /* 19 Truncated Icosidodecahedron */
+    "2 3 | 5",        /* 20 Disdyakis Triacontahedron */
+};
+
+/* Coxeter core notation (seed → truncation → rectification → dual) */
+static const char *INCIDENCE_CORE[21] = {
+    "{3,3}",          /* 0 Tetrahedron */
+    "*{3,3}",         /* 1 Stellated Tetrahedron (compound) */
+    "{3,4}",          /* 2 Octahedron */
+    "{3,4}",          /* 3 Octahedron */
+    "t{3,4}",         /* 4 Truncated Octahedron */
+    "k{4,3}",         /* 5 Tetrakis Hexahedron */
+    "{4,3}",          /* 6 Cube */
+    "t{4,3}",         /* 7 Truncated Cube */
+    "k{3,4}",         /* 8 Triakis Octahedron */
+    "r{3,4}",         /* 9 Cuboctahedron */
+    "r{3,4}",         /* 10 Cuboctahedron */
+    "j{3,4}",         /* 11 Rhombic Dodecahedron */
+    "{3,5}",          /* 12 Icosahedron */
+    "t{3,5}",         /* 13 Truncated Icosahedron */
+    "k{5,3}",         /* 14 Pentakis Dodecahedron */
+    "{5,3}",          /* 15 Dodecahedron */
+    "t{5,3}",         /* 16 Truncated Dodecahedron */
+    "k{3,5}",         /* 17 Triakis Icosahedron */
+    "r{3,5}",         /* 18 Icosidodecahedron */
+    "tr{3,5}",        /* 19 Truncated Icosidodecahedron */
+    "m{3,5}",         /* 20 Disdyakis Triacontahedron */
+};
+
+/* ─── /incidence endpoint: deterministic incidence data, no projection geometry ─── */
+static void serve_incidence_json(int fd, int id) {
+    if (id < 0 || id >= (int)SHAPE_DB_N) { http_404(fd); return; }
+    const ShapeDef *s = &SHAPE_DB[id];
+    Buffer b = {0}; char tmp[256];
+    int chi = s->nverts - s->nedges + s->nfaces;
+    int graph_b1 = s->nedges - s->nverts + 1;
+    int surface_b1 = (chi == 2) ? 0 : (chi > 2 ? 0 : 2 - chi);
+    const char *wyth = (id < 21) ? INCIDENCE_WYTHOFF[id] : "";
+    const char *core = (id < 21) ? INCIDENCE_CORE[id] : "";
+    int valid = (s->nverts > 0 && s->nedges > 0 && s->edges != NULL) ? 1 : 0;
+
+    snprintf(tmp, sizeof(tmp),
+        "{\"id\":%d,\"name\":\"", id);
+    bappend(&b, tmp); jesc(&b, s->name);
+    snprintf(tmp, sizeof(tmp),
+        "\",\"schlafli\":[%d,%d],"
+        "\"wythoff\":\"%s\",\"core\":\"%s\","
+        "\"branch\":\"%dx%dy\","
+        "\"fano\":%d,\"role\":%d,"
+        "\"verts\":%d,\"edges\":%d,\"faces\":%d,"
+        "\"graph_beta\":[1,%d],"
+        "\"surface_beta\":[1,%d,1],"
+        "\"valid\":%s}",
+        s->schlafli_p, s->schlafli_q,
+        wyth, core,
+        s->schlafli_p, s->schlafli_q,
+        s->fano_root, s->family_seq,
+        s->nverts, s->nedges, s->nfaces,
+        graph_b1, surface_b1,
+        valid ? "true" : "false");
+    bappend(&b, tmp);
+    http_ok(fd, "application/json;charset=utf-8", b.data, b.len);
+    bfree(&b);
+}
+
 /* ─── SSE endpoint: text/event-stream, periodic frame pushes ─── */
 static void serve_sse(int fd) {
     const char *hdr = "HTTP/1.1 200 OK\r\n"
@@ -1699,6 +1787,7 @@ static void serve_http(int port) {
     fprintf(stderr, "  /frame   — deterministic JSON frame\n");
     fprintf(stderr, "  /ring    — full ring dump\n");
     fprintf(stderr, "  /solid   — solid geometry (e.g. /solid?id=5)\n");
+    fprintf(stderr, "  /incidence — incidence data (e.g. /incidence?id=9)\n");
     fprintf(stderr, "  /events  — SSE frame stream\n");
     fprintf(stderr, "  /ws      — WebSocket frame stream\n");
     fprintf(stderr, "  /        — WebGL viewer (index.html)\n");
@@ -1751,6 +1840,10 @@ static void serve_http(int port) {
                         serve_sse(c); /* keeps fd open */
                     } else if (strcmp(path, "/ws") == 0) {
                         serve_ws(c, req); /* keeps fd open */
+                    } else if (strncmp(path, "/incidence", 10) == 0) {
+                        const char *iq = strchr(path, '=');
+                        int iid = iq ? atoi(iq + 1) : 0;
+                        serve_incidence_json(c, iid); close(c);
                     } else if (strncmp(path, "/solid", 6) == 0) {
                         serve_solid_json(c, path); close(c);
                     } else {
