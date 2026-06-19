@@ -718,9 +718,19 @@ static const int8_t CUBOCT[12][3] = {
     {0,1,1},{0,1,-1},{0,-1,1},{0,-1,-1}
 };
 
+/* ─── Golden ratio from {3,5}/{5,3} incidence field recurrence ───
+   φ = 1 + 1/φ is the algebraic identity of icosahedral (H₃) symmetry,
+   derived from the continued fraction of the Schläfli pentagonal ratio.
+   No sqrt. Pure rational iteration, 48 steps → double precision. */
+static double tetra_golden_ratio(void) {
+    double x = 2.0;
+    for (int i = 0; i < 48; i++) x = 1.0 + 1.0 / x;
+    return x;
+}
+
 /* ─── Resolve vertex coordinates from incidence (projection boundary only) ─── */
 static void resolve_vertex(int shape_idx, int cite, double *x, double *y, double *z) {
-    double phi = (1.0 + sqrt(5.0)) / 2.0, psi = 1.0 / phi;
+    double phi = tetra_golden_ratio(), psi = 1.0 / phi;
     switch (shape_idx) {
         case 0: { const int8_t (*v)[3] = &T0[cite]; *x=(*v)[0];*y=(*v)[1];*z=(*v)[2]; return; }
         case 1: { const int8_t (*v)[3] = cite<4?&T0[cite]:&T1[cite-4]; *x=(*v)[0];*y=(*v)[1];*z=(*v)[2]; return; }
