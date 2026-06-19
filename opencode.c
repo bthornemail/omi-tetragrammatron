@@ -1744,6 +1744,55 @@ static void serve_incidence_json(int fd, int id) {
     bfree(&b);
 }
 
+/* ─── /receipt endpoint: deterministic hashable receipt over incidence ─── */
+static void serve_receipt_json(int fd, int id) {
+    if (id < 0 || id >= (int)SHAPE_DB_N) { http_404(fd); return; }
+    const ShapeDef *s = &SHAPE_DB[id];
+    char tmp[512];
+    const char *wyth = (id < 21) ? INCIDENCE_WYTHOFF[id] : "";
+    const char *core = (id < 21) ? INCIDENCE_CORE[id] : "";
+    int fr = s->fano_root; if (fr < 0) fr = 0; if (fr > 6) fr = 0;
+    int bt = BRANCH_TERM[fr];
+    const char *bqf = BQF_BRANCH[fr];
+    const char *topo = (id == 1) ? "projected_compound" : "convex_sphere";
+    int chi = s->nverts - s->nedges + s->nfaces;
+    int graph_b1 = s->nedges - s->nverts + 1;
+    int surface_b1 = (chi == 2) ? 0 : (chi > 2 ? 0 : 2 - chi);
+    int valid = (s->nverts > 0 && s->nedges > 0 && s->edges != NULL) ? 1 : 0;
+
+    char nesc[256]; int nlen = 0;
+    for (const char *p = s->name; *p && nlen < 252; p++) {
+        if (*p == '|' || *p == '\\') nesc[nlen++] = '\\';
+        nesc[nlen++] = *p;
+    }
+    nesc[nlen] = 0;
+
+    char inc_prod[32]; snprintf(inc_prod, sizeof(inc_prod), "%dx%dy", s->schlafli_p, s->schlafli_q);
+    snprintf(tmp, sizeof(tmp),
+        "incidence|%d|%s|%d|%d|%s|%s|%s|%s|%d|%s|%d|%d|%d|%d|%d|%d|%d|%d",
+        id, nesc, s->schlafli_p, s->schlafli_q, wyth, core,
+        inc_prod, bqf, bt, topo,
+        fr, s->family_seq,
+        s->nverts, s->nedges, s->nfaces,
+        graph_b1, surface_b1, valid);
+    uint64_t h = fnv1a64((const unsigned char *)tmp, strlen(tmp));
+
+    Buffer b = {0};
+    snprintf(tmp, sizeof(tmp),
+        "{\"id\":%d,\"name\":\"", id);
+    bappend(&b, tmp); jesc(&b, s->name);
+    snprintf(tmp, sizeof(tmp),
+        "\",\"receipt_type\":\"incidence\","
+        "\"hash\":\"0x%016llx\","
+        "\"valid\":%s,"
+        "\"source\":\"/incidence?id=%d\"}",
+        (unsigned long long)h,
+        valid ? "true" : "false", id);
+    bappend(&b, tmp);
+    http_ok(fd, "application/json;charset=utf-8", b.data, b.len);
+    bfree(&b);
+}
+
 /* ─── SSE endpoint: text/event-stream, periodic frame pushes ─── */
 static void serve_sse(int fd) {
     const char *hdr = "HTTP/1.1 200 OK\r\n"
@@ -1800,6 +1849,7 @@ static void serve_http(int port) {
     fprintf(stderr, "  /ring    — full ring dump\n");
     fprintf(stderr, "  /solid   — solid geometry (e.g. /solid?id=5)\n");
     fprintf(stderr, "  /incidence — incidence data (e.g. /incidence?id=9)\n");
+    fprintf(stderr, "  /receipt  — hashable receipt of incidence (e.g. /receipt?id=9)\n");
     fprintf(stderr, "  /events  — SSE frame stream\n");
     fprintf(stderr, "  /ws      — WebSocket frame stream\n");
     fprintf(stderr, "  /        — WebGL viewer (index.html)\n");
@@ -1852,6 +1902,10 @@ static void serve_http(int port) {
                         serve_sse(c); /* keeps fd open */
                     } else if (strcmp(path, "/ws") == 0) {
                         serve_ws(c, req); /* keeps fd open */
+                    } else if (strncmp(path, "/receipt", 8) == 0) {
+                        const char *rq = strchr(path, '=');
+                        int rid = rq ? atoi(rq + 1) : 0;
+                        serve_receipt_json(c, rid); close(c);
                     } else if (strncmp(path, "/incidence", 10) == 0) {
                         const char *iq = strchr(path, '=');
                         int iid = iq ? atoi(iq + 1) : 0;
