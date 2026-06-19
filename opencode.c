@@ -446,45 +446,32 @@ static double tetra_derive_constant(const char *name, int steps) {
     return 1.0;
 }
 
-/* ─── Tetrahedron-derived π (the carry constant) ─── */
-static double tetra_pi(void) {
-    return 3.14159265358979323846;   /* TODO: derive from tetra centroid + edge/face steps */
-}
+/* ─── Chiral diagonal resolution: π as D+ vs D- competition for 0x1E ───
+   D+ = {0,5,A,F} — posting/forward
+   D- = {3,6,9,C} — pulling/inverse
+   Both XOR→0, both SUM→0x1E (30).
+   Direction = which diagonal reaches 0x1E first under bounded digestion. */
+typedef enum { CHIRAL_BALANCED=0, CHIRAL_POSTING=1, CHIRAL_PULLING=-1, CHIRAL_INCOMPLETE=-2 } ChiralDir;
 
-#define OMI_PI tetra_pi()
-
-/* ─── OMI carry forward: π as transition between two addresses ─── */
-static double omi_carry_forward(uint16_t from, uint16_t to) {
-    double delta = (double)(to - from) / 0xFFFFu;
-    return OMI_PI * delta;
-}
-
-/* ─── Project / interpolate a tetrahedron edge or face step using π carry ─── */
-static void omi_carry_step(const V3 *from, const V3 *to, double t, V3 *out) {
-    double carry = OMI_PI * t;
-    out->x = from->x + carry * (to->x - from->x);
-    out->y = from->y + carry * (to->y - from->y);
-    out->z = from->z + carry * (to->z - from->z);
-}
-
-/* ─── Hopf quaternion modulated by π carry from ring state ─── */
-static void omi_hopf_quaternion(uint64_t cycle, double *qw, double *qx, double *qy, double *qz) {
-    double theta = ((cycle % 5040) * (2.0 * OMI_PI)) / 5040.0;
-    double phi   = (((cycle / 5040) % 4) * OMI_PI) / 2.0;
-    *qw = cos(theta / 2.0);
-    *qx = sin(theta / 2.0) * cos(phi);
-    *qy = sin(theta / 2.0) * sin(phi);
-    *qz = 0.0;
-}
-
-/* ─── Perspective projection using π carry ─── */
-static void omi_project_vertex(const V3 *v, double *sx, double *sy) {
-    double carry = OMI_PI * 0.25;
-    double x = v->x * cos(carry) - v->y * sin(carry);
-    double y = v->x * sin(carry) + v->y * cos(carry);
-    double z = v->z + 4.0;
-    *sx = 210.0 + 80.0 * x / z;
-    *sy = 240.0 + 80.0 * y / z;
+static ChiralDir tetra_chiral_pi(uint64_t hash) {
+    int dplus = 0, dminus = 0, dp = -1, dm = -1;
+    for (int i = 0; i < 16; i++) {
+        int n = (int)((hash >> (60 - 4*i)) & 0xF);
+        switch (n) {
+            case 0x0: dplus += 0;  if (dp < 0 && dplus >= 30) dp = i; break;
+            case 0x5: dplus += 5;  if (dp < 0 && dplus >= 30) dp = i; break;
+            case 0xA: dplus += 10; if (dp < 0 && dplus >= 30) dp = i; break;
+            case 0xF: dplus += 15; if (dp < 0 && dplus >= 30) dp = i; break;
+            case 0x3: dminus += 3; if (dm < 0 && dminus >= 30) dm = i; break;
+            case 0x6: dminus += 6; if (dm < 0 && dminus >= 30) dm = i; break;
+            case 0x9: dminus += 9; if (dm < 0 && dminus >= 30) dm = i; break;
+            case 0xC: dminus += 12; if (dm < 0 && dminus >= 30) dm = i; break;
+        }
+    }
+    if (dp >= 0 && (dm < 0 || dp < dm)) return CHIRAL_POSTING;
+    if (dm >= 0 && (dp < 0 || dm < dp)) return CHIRAL_PULLING;
+    if (dp >= 0 && dm >= 0 && dp == dm) return CHIRAL_BALANCED;
+    return CHIRAL_INCOMPLETE;
 }
 
 /* ─── Tetrahedron Seed Crystals ───
@@ -1269,7 +1256,7 @@ static const ShapeDef *solid_lookup(int fano7, int role3) {
     return (idx >= 0) ? &SHAPE_DB[idx] : &SHAPE_DB[0];
 }
 
-static SolidRenderState resolve_solid_geometry(uint16_t xf, uint16_t sf, uint16_t rf, int fano7, int role3, int local240) {
+static SolidRenderState resolve_solid_geometry(uint16_t xf, uint16_t sf, uint16_t rf, int fano7, int role3, int local240, uint64_t hash) {
     SolidRenderState s;
     memset(&s, 0, sizeof(s));
 
@@ -1281,9 +1268,11 @@ static SolidRenderState resolve_solid_geometry(uint16_t xf, uint16_t sf, uint16_
     if (s.shape && s.shape->nedges > 0)
         s.highlight_edge = (local240 / 3) % s.shape->nedges;
 
-    s.rotate_x = (double)(xf % 360) * OMI_PI / 180.0;
-    s.rotate_y = (double)(sf % 360) * OMI_PI / 180.0;
-    s.rotate_z = (double)(rf % 360) * OMI_PI / 180.0;
+    ChiralDir chi = tetra_chiral_pi(hash);
+    double chirality = (chi == CHIRAL_PULLING) ? -1.0 : 1.0;
+    s.rotate_x = chirality * (double)(xf % 360) * M_PI / 180.0;
+    s.rotate_y = chirality * (double)(sf % 360) * M_PI / 180.0;
+    s.rotate_z = chirality * (double)(rf % 360) * M_PI / 180.0;
     s.scale = 0.8;
     return s;
 }
@@ -1317,7 +1306,7 @@ static uint32_t fnv1a32_str(const char *s) {
     return fnv1a32_buf((const unsigned char *)s, strlen(s));
 }
 
-static TwinGeometry resolve_hopf_ququart_route(int chart11, int baseQ, int fiberQ, int fano7, int role3) {
+static TwinGeometry resolve_hopf_ququart_route(int chart11, int baseQ, int fiberQ, int fano7, int role3, uint64_t hash) {
     TwinGeometry g;
     memset(&g, 0, sizeof(g));
     g.chart11 = mod_pos(chart11, 11);
@@ -1330,8 +1319,10 @@ static TwinGeometry resolve_hopf_ququart_route(int chart11, int baseQ, int fiber
     g.local240 = (int)(g.qxy % 240);
     g.slot5040 = g.fano7 * 720 + g.role3 * 240 + g.local240;
 
-    double theta = ((x + 0.5) / 4.0) * OMI_PI;
-    double phi = ((y + 0.5) / 4.0) * 2.0 * OMI_PI;
+    ChiralDir chi = tetra_chiral_pi(hash);
+    double chirality = (chi == CHIRAL_PULLING) ? -1.0 : 1.0;
+    double theta = ((x + 0.5) / 4.0) * M_PI;
+    double phi = ((y + 0.5) / 4.0) * 2.0 * M_PI * chirality;
     double halfTheta = theta / 2.0;
     g.qw = cos(halfTheta);
     g.qx = sin(halfTheta) * cos(phi);
@@ -1351,7 +1342,7 @@ static TwinGeometry resolve_hopf_ququart_route(int chart11, int baseQ, int fiber
 
     g.frame_type = baseQ & 3;
     g.solid = resolve_solid_geometry((uint16_t)g.chart11, (uint16_t)g.baseQ,
-        (uint16_t)g.fiberQ, g.fano7, g.role3, g.local240);
+        (uint16_t)g.fiberQ, g.fano7, g.role3, g.local240, hash);
     return g;
 }
 
@@ -1389,7 +1380,7 @@ static TwinGeometry tetragrammatron_geometry_route(uint64_t cycle, uint16_t xf, 
     int role3 = (int)(roleSeed % 3);
     int fano7 = (int)((roleSeed + (unsigned)relationCount) % 7);
 
-    TwinGeometry g = resolve_hopf_ququart_route(chart11, baseQ, fiberQ, fano7, role3);
+    TwinGeometry g = resolve_hopf_ququart_route(chart11, baseQ, fiberQ, fano7, role3, ring[cycle % RING_SIZE].hash);
     g.cycle = cycle;
     g.result = result;
     g.xf = xf; g.sf = sf; g.rf = rf;
@@ -1468,7 +1459,8 @@ static void render_frame_json(void) {
             (int)(ring[i].hash % 4),
             (int)((ring[i].hash >> 8) % 4),
             (int)((ring[i].cycle + ring[i].hash) % 7),
-            (int)(ring[i].hash % 3));
+            (int)(ring[i].hash % 3),
+            ring[i].hash);
         if (g.frame_type >= 0 && g.frame_type < 4) {
             frame_counts[g.frame_type]++;
         }
@@ -1558,7 +1550,8 @@ static void render_smith_svg(void) {
             (int)(ring[i].cycle % 11), (int)(ring[i].hash % 4),
             (int)((ring[i].hash >> 8) % 4),
             (int)((ring[i].cycle + ring[i].hash) % 7),
-            (int)(ring[i].hash % 3));
+            (int)(ring[i].hash % 3),
+            ring[i].hash);
         SmithState sm = resolve_smith((uint32_t)g.slot5040, ring[i].hash);
         double px = sm.gr * S;
         double py = -sm.gi * S;
@@ -1617,7 +1610,8 @@ static void render_ppm(void) {
             (int)(ring[i].hash % 4),
             (int)((ring[i].hash >> 8) % 4),
             (int)((ring[i].cycle + ring[i].hash) % 7),
-            (int)(ring[i].hash % 3));
+            (int)(ring[i].hash % 3),
+            ring[i].hash);
         int col = g.polybius_col; /* 2..5 */
         int row = g.polybius_row;
         if (row < 1 || row > 5 || col < 1 || col > 5) continue;
@@ -2046,7 +2040,8 @@ int main(int argc, char **argv) {
                 SxResult pr=process_sexpr(line_buf,g_cycle);
                 TwinGeometry twin=resolve_hopf_ququart_route(
                     (int)(g_cycle%11), (int)(xf%4), (int)(rf%4),
-                    (int)((xf^rf)%7), (int)(sf%3));
+                    (int)((xf^rf)%7), (int)(sf%3),
+                    ring[g_cycle % RING_SIZE].hash);
                 twin.cycle=g_cycle; twin.result=result; twin.opcode=opc;
                 twin.xf=xf; twin.sf=sf; twin.rf=rf;
                 printf("AUTO cyc=%llu round=%llu op=0x%04x x=0x%04x y=0x%04x res=0x%04x xf=0x%04x sf=0x%04x rf=0x%04x\n",
@@ -2108,9 +2103,10 @@ int main(int argc, char **argv) {
         if(strcmp(argv[1],"--render-ppm")==0){render_ppm();return 0;}
         if(strcmp(argv[1],"--render-obj")==0){
             uint16_t xf=ring_xor_fold(), sf=ring_sum_fold(), rf=ring_rot_fold();
+            uint64_t rh = ring[g_cycle % RING_SIZE].hash;
             TwinGeometry g=resolve_hopf_ququart_route(
                 (int)(g_cycle%11), (int)(xf%4), (int)(rf%4),
-                (int)((xf^rf)%7), (int)(sf%3));
+                (int)((xf^rf)%7), (int)(sf%3), rh);
             g.cycle=g_cycle; g.xf=xf; g.sf=sf; g.rf=rf;
             render_obj(&g); return 0;
         }
@@ -2133,7 +2129,8 @@ int main(int argc, char **argv) {
                     (int)(ring[i].hash%4),
                     (int)((ring[i].hash>>8)%4),
                     (int)((ring[i].cycle+ring[i].hash)%7),
-                    (int)(ring[i].hash%3));
+                    (int)(ring[i].hash%3),
+                    ring[i].hash);
                 g.cycle=ring[i].cycle; g.result=result; g.opcode=opc;
                 g.xf=xf; g.sf=sf; g.rf=rf;
                 if(g.frame_type>=0&&g.frame_type<4)frame_counts[g.frame_type]++;
