@@ -486,6 +486,7 @@ typedef struct { double x, y, z; } V3;
 typedef struct { int a, b; } E2;
 typedef struct { int v[3]; } F3;
 typedef struct { double x, y, z, w; } V4;
+typedef uint16_t Citation;
 
 /* ─── Tetrahedron: seed of all shapes (4 vertices, 6 edges, 4 faces) ─── */
 static const V3 SEED_TETRA[] = {
@@ -1191,7 +1192,6 @@ typedef struct {
     int fano_root;           /* 0-6: originating Fano point */
     int family_seq;          /* sequence within family */
     int nverts, nedges, nfaces;
-    const V3 *verts;
     const E2 *edges;
     int schlafli_p, schlafli_q;  /* {p,q} Schläfli symbol */
 } ShapeDef;
@@ -1199,35 +1199,52 @@ typedef struct {
 /* Compact shape database: seed shapes + key derivatives */
 static const ShapeDef SHAPE_DB[] = {
     /* Fano 0: Tetrahedron family */
-    {"Tetrahedron", 0,0, 4,6,4, SEED_TETRA, SEED_TETRA_E, 3,3},
-    {"Stellated Tetrahedron", 0,1, 8,12,8, SEED_STELLATED, SEED_STELLATED_E, 3,3},
-    {"Octahedron", 0,2, 6,12,8, SEED_OCTA, SEED_OCTA_E, 3,4},
+    {"Tetrahedron", 0,0, 4,6,4, SEED_TETRA_E, 3,3},
+    {"Stellated Tetrahedron", 0,1, 8,12,8, SEED_STELLATED_E, 3,3},
+    {"Octahedron", 0,2, 6,12,8, SEED_OCTA_E, 3,4},
     /* Fano 1: Octahedron family */
-    {"Octahedron", 1,0, 6,12,8, SEED_OCTA, SEED_OCTA_E, 3,4},
-    {"Truncated Octahedron", 1,1, 24,36,14, SEED_TRUNCOCT, SEED_TRUNCOCT_E, 4,6},
-    {"Tetrakis Hexahedron", 1,2, 14,36,24, SEED_TETRAKISHEX, SEED_TETRAKISHEX_E, 4,6},
+    {"Octahedron", 1,0, 6,12,8, SEED_OCTA_E, 3,4},
+    {"Truncated Octahedron", 1,1, 24,36,14, SEED_TRUNCOCT_E, 4,6},
+    {"Tetrakis Hexahedron", 1,2, 14,36,24, SEED_TETRAKISHEX_E, 4,6},
     /* Fano 2: Cube family */
-    {"Cube", 2,0, 8,12,6, SEED_CUBE, SEED_CUBE_E, 4,3},
-    {"Truncated Cube", 2,1, 24,36,14, SEED_TRUNCCUBE, SEED_TRUNCCUBE_E, 3,8},
-    {"Triakis Octahedron", 2,2, 14,36,24, SEED_TRIAKISOCTA, SEED_TRIAKISOCTA_E, 3,8},
+    {"Cube", 2,0, 8,12,6, SEED_CUBE_E, 4,3},
+    {"Truncated Cube", 2,1, 24,36,14, SEED_TRUNCCUBE_E, 3,8},
+    {"Triakis Octahedron", 2,2, 14,36,24, SEED_TRIAKISOCTA_E, 3,8},
     /* Fano 3: Cuboctahedron family */
-    {"Cuboctahedron", 3,0, 12,24,14, SEED_CUBOCT, SEED_CUBOCT_E, 3,4},
-    {"Cuboctahedron", 3,1, 12,24,14, SEED_CUBOCT, SEED_CUBOCT_E, 3,4},
-    {"Rhombic Dodecahedron", 3,2, 14,24,12, SEED_RHOMBICDODEC, SEED_RHOMBICDODEC_E, 3,4},
+    {"Cuboctahedron", 3,0, 12,24,14, SEED_CUBOCT_E, 3,4},
+    {"Cuboctahedron", 3,1, 12,24,14, SEED_CUBOCT_E, 3,4},
+    {"Rhombic Dodecahedron", 3,2, 14,24,12, SEED_RHOMBICDODEC_E, 3,4},
     /* Fano 4: Icosahedron family */
-    {"Icosahedron", 4,0, 12,30,20, SEED_ICOSA, SEED_ICOSA_E, 3,5},
-    {"Truncated Icosahedron", 4,1, 60,90,32, SEED_TRUNCICOSA, SEED_TRUNCICOSA_E, 5,3},
-    {"Pentakis Dodecahedron", 4,2, 32,90,60, SEED_PENTAKISDODEC, SEED_PENTAKISDODEC_E, 5,3},
+    {"Icosahedron", 4,0, 12,30,20, SEED_ICOSA_E, 3,5},
+    {"Truncated Icosahedron", 4,1, 60,90,32, SEED_TRUNCICOSA_E, 5,3},
+    {"Pentakis Dodecahedron", 4,2, 32,90,60, SEED_PENTAKISDODEC_E, 5,3},
     /* Fano 5: Dodecahedron family */
-    {"Dodecahedron", 5,0, 20,30,12, SEED_DODEC, SEED_DODEC_E, 5,3},
-    {"Truncated Dodecahedron", 5,1, 60,90,32, SEED_TRUNCDODEC, SEED_TRUNCDODEC_E, 3,5},
-    {"Triakis Icosahedron", 5,2, 32,90,60, SEED_TRIAKISICOSA, SEED_TRIAKISICOSA_E, 3,5},
+    {"Dodecahedron", 5,0, 20,30,12, SEED_DODEC_E, 5,3},
+    {"Truncated Dodecahedron", 5,1, 60,90,32, SEED_TRUNCDODEC_E, 3,5},
+    {"Triakis Icosahedron", 5,2, 32,90,60, SEED_TRIAKISICOSA_E, 3,5},
     /* Fano 6: Icosidodecahedron family */
-    {"Icosidodecahedron", 6,0, 30,60,32, SEED_ICOSIDODEC, SEED_ICOSIDODEC_E, 3,5},
-    {"Truncated Icosidodecahedron", 6,1, 120,180,62, SEED_TRUNCICOSIDODEC, SEED_TRUNCICOSIDODEC_E, 4,6},
-    {"Disdyakis Triacontahedron", 6,2, 62,180,120, SEED_DISDYAKIS, SEED_DISDYAKIS_E, 4,6},
+    {"Icosidodecahedron", 6,0, 30,60,32, SEED_ICOSIDODEC_E, 3,5},
+    {"Truncated Icosidodecahedron", 6,1, 120,180,62, SEED_TRUNCICOSIDODEC_E, 4,6},
+    {"Disdyakis Triacontahedron", 6,2, 62,180,120, SEED_DISDYAKIS_E, 4,6},
 };
 #define SHAPE_DB_N (sizeof(SHAPE_DB)/sizeof(SHAPE_DB[0]))
+
+/* ─── Renderer vertex pool: parallel to SHAPE_DB, projection-boundary only ─── */
+static const V3 *SHAPE_VERTS[] = {
+    SEED_TETRA, SEED_STELLATED, SEED_OCTA,
+    SEED_OCTA, SEED_TRUNCOCT, SEED_TETRAKISHEX,
+    SEED_CUBE, SEED_TRUNCCUBE, SEED_TRIAKISOCTA,
+    SEED_CUBOCT, SEED_CUBOCT, SEED_RHOMBICDODEC,
+    SEED_ICOSA, SEED_TRUNCICOSA, SEED_PENTAKISDODEC,
+    SEED_DODEC, SEED_TRUNCDODEC, SEED_TRIAKISICOSA,
+    SEED_ICOSIDODEC, SEED_TRUNCICOSIDODEC, SEED_DISDYAKIS,
+};
+
+/* Citation → sphere: projection-boundary only. citation = vertex index within solid. */
+static void cite_to_sphere(int shape_idx, int cite, double *x, double *y, double *z) {
+    const V3 *v = &SHAPE_VERTS[shape_idx][cite];
+    *x = v->x; *y = v->y; *z = v->z;
+}
 
 /* ─── Deterministic solid selection from computation state ─── */
 typedef struct {
@@ -1701,7 +1718,7 @@ static void quat_to_rot(double qw, double qx, double qy, double qz, double rot[3
 static const ShapeDef *find_solid_with_data(int fano7, int role3) {
     for (int i = 0; i < (int)SHAPE_DB_N; i++) {
         if (SHAPE_DB[i].fano_root == fano7 && SHAPE_DB[i].family_seq == role3) {
-            if (SHAPE_DB[i].verts && SHAPE_DB[i].edges && SHAPE_DB[i].nverts > 0)
+            if (SHAPE_VERTS[i] && SHAPE_DB[i].edges && SHAPE_DB[i].nverts > 0)
                 return &SHAPE_DB[i];
         }
     }
@@ -1729,17 +1746,20 @@ static void ppm_draw_line(unsigned char *fb, int W, int H, int x0, int y0, int x
 /* ─── OBJ renderer: outputs solid wireframe as Wavefront OBJ ─── */
 static void render_obj(const TwinGeometry *g) {
     const ShapeDef *shape = g->solid.shape;
-    if (!shape || !shape->verts || !shape->edges || shape->nverts == 0) {
+    if (!shape || !shape->edges || shape->nverts == 0) {
         printf("# no solid data\n");
         return;
     }
+    int si = (int)(shape - SHAPE_DB);
+    if (si < 0 || si >= (int)SHAPE_DB_N) { printf("# invalid shape\n"); return; }
     int nv = shape->nverts, ne = shape->nedges;
     double rot[3][3];
     quat_to_rot(g->qw, g->qx, g->qy, g->qz, rot);
 
     printf("# OBJ wireframe: %s  v=%d e=%d\n", shape->name, nv, ne);
     for (int i = 0; i < nv; i++) {
-        double x = shape->verts[i].x, y = shape->verts[i].y, z = shape->verts[i].z;
+        double x, y, z;
+        cite_to_sphere(si, i, &x, &y, &z);
         double rx = rot[0][0]*x + rot[0][1]*y + rot[0][2]*z;
         double ry = rot[1][0]*x + rot[1][1]*y + rot[1][2]*z;
         double rz = rot[2][0]*x + rot[2][1]*y + rot[2][2]*z;
