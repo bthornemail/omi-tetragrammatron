@@ -1,0 +1,1068 @@
+#define _GNU_SOURCE
+#include <ctype.h>
+#include <errno.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/select.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <signal.h>
+#include <time.h>
+#include <math.h>
+
+#define OMI_FS 0x1cu
+#define OMI_GS 0x1du
+#define OMI_RS 0x1eu
+#define OMI_US 0x1fu
+
+#define STATE_CANONICAL 0x01u
+#define STATE_ALIST     0x02u
+#define RING_SIZE 5040u
+#define RING_FILE "/tmp/omi_receipt_ring.bin"
+#define MAX_RECEIPT 4096
+#define MEMORY_SIZE 65536u
+#define STACK_SIZE 512u
+#define OMI_FRAME 0x30000020u
+
+typedef enum { NODE_ATOM, NODE_STRING, NODE_LIST, NODE_PAIR } NodeKind;
+
+typedef struct Node Node;
+struct Node {
+    NodeKind kind;
+    char *text;
+    Node **items;
+    size_t count, cap;
+    Node *car, *cdr;
+};
+
+typedef struct { char *data; size_t len, cap; } Buffer;
+
+typedef struct { unsigned char lane; char *value; } Event;
+typedef struct { Event *items; size_t len, cap; } EventList;
+
+typedef struct {
+    const char *src;
+    size_t len, pos;
+    int line, col;
+    char error[256];
+} Parser;
+
+typedef struct {
+    Node *root;
+    char *normalized;
+    char shape[16];
+    unsigned char state;
+    EventList events;
+    Buffer tape;
+    uint64_t source_hash, normalized_hash, tape_hash;
+} Compilation;
+
+typedef struct {
+    uint16_t s0, s1, s2, s3;
+    uint16_t s4, s5, s6, s7;
+    uint32_t payload, mask, car, cdr;
+} OmiInst;
+
+typedef struct {
+    uint32_t pc, car_reg, cdr_reg, payload, mask, flags;
+    int halted;
+    uint64_t epoch;
+    uint32_t memory[MEMORY_SIZE];
+    uint32_t stack[STACK_SIZE];
+    int stack_ptr;
+} CpuState;
+
+typedef struct {
+    uint64_t cycle;
+    char receipt[MAX_RECEIPT];
+    uint64_t hash;
+    uint16_t result;
+} RingSlot;
+
+static RingSlot ring[RING_SIZE];
+static uint64_t g_cycle = 0;
+static volatile int g_running = 1;
+
+static void die(const char *msg) { fprintf(stderr, "FATAL: %s\n", msg); _exit(1); }
+
+static void *xmalloc(size_t n) { void *p = malloc(n ? n : 1); if (!p) die("malloc"); return p; }
+static void *xrealloc(void *p, size_t n) { p = realloc(p, n ? n : 1); if (!p) die("realloc"); return p; }
+static char *xstrdup(const char *s) { size_t n = strlen(s); char *p = (char *)xmalloc(n+1); memcpy(p,s,n+1); return p; }
+static char *xstrndup(const char *s, size_t n) { char *p = (char *)xmalloc(n+1); memcpy(p,s,n); p[n]=0; return p; }
+
+static void breserve(Buffer *b, size_t extra) {
+    size_t need = b->len+extra+1;
+    if (need <= b->cap) return;
+    size_t cap = b->cap ? b->cap : 128;
+    while (cap < need) cap *= 2;
+    b->data = (char *)xrealloc(b->data, cap);
+    b->cap = cap;
+}
+static void bputc(Buffer *b, unsigned char c) { breserve(b,1); b->data[b->len++]=(char)c; b->data[b->len]=0; }
+static void bappend(Buffer *b, const char *s) { size_t n = strlen(s); breserve(b,n); memcpy(b->data+b->len,s,n); b->len+=n; b->data[b->len]=0; }
+static void bappend_bytes(Buffer *b, const unsigned char *d, size_t n) { breserve(b,n); memcpy(b->data+b->len,d,n); b->len+=n; b->data[b->len]=0; }
+static void bfree(Buffer *b) { free(b->data); b->data=NULL; b->len=b->cap=0; }
+
+static uint64_t fnv1a64(const unsigned char *data, size_t len) {
+    uint64_t h = 1469598103934665603ull;
+    for (size_t i = 0; i < len; i++) { h ^= data[i]; h *= 1099511628211ull; }
+    return h;
+}
+
+static uint16_t u16(uint32_t x) { return (uint16_t)(x & 0xffffu); }
+static uint32_t rotl32(uint32_t x, int n) { n &= 31; return (x << n) | (x >> (32 - n)); }
+static uint32_t rotr32(uint32_t x, int n) { n &= 31; return (x >> n) | (x << (32 - n)); }
+static uint16_t rotl16(uint16_t x, uint16_t n) { n &= 15; if (!n) return x; return u16(((uint32_t)x << n) | ((uint32_t)x >> (16-n))); }
+static uint16_t rotr16(uint16_t x, uint16_t n) { n &= 15; if (!n) return x; return u16(((uint32_t)x >> n) | ((uint32_t)x << (16-n))); }
+static uint16_t delta16(uint16_t x, uint16_t c) { return u16(rotl16(x,1) ^ rotl16(x,3) ^ rotr16(x,2) ^ c); }
+
+static uint32_t bqf32(uint32_t x, uint32_t y) { return (60u * x * x) + (16u * x * y) + (4u * y * y); }
+
+static Node *nnew(NodeKind k) {
+    Node *n = (Node *)xmalloc(sizeof(Node));
+    n->kind = k; n->text = NULL; n->items = NULL; n->count = n->cap = 0; n->car = n->cdr = NULL;
+    return n;
+}
+static Node *natom(const char *t) { Node *n = nnew(NODE_ATOM); n->text = xstrdup(t); return n; }
+static Node *nstring(const char *t) { Node *n = nnew(NODE_STRING); n->text = xstrdup(t); return n; }
+static Node *npair(Node *a, Node *d) { Node *n = nnew(NODE_PAIR); n->car = a; n->cdr = d; return n; }
+
+static void npush(Node *l, Node *item) {
+    if (l->count == l->cap) {
+        size_t cap = l->cap ? l->cap*2 : 8;
+        l->items = (Node **)xrealloc(l->items, cap*sizeof(Node*));
+        l->cap = cap;
+    }
+    l->items[l->count++] = item;
+}
+
+static void nfree(Node *n) {
+    if (!n) return;
+    free(n->text);
+    if (n->kind == NODE_LIST) { for (size_t i = 0; i < n->count; i++) nfree(n->items[i]); free(n->items); }
+    else if (n->kind == NODE_PAIR) { nfree(n->car); nfree(n->cdr); }
+    free(n);
+}
+
+static Node *ncopy(Node *n) {
+    if (!n) return NULL;
+    if (n->kind == NODE_ATOM) return natom(n->text ? n->text : "");
+    if (n->kind == NODE_STRING) return nstring(n->text ? n->text : "");
+    if (n->kind == NODE_LIST) { Node *l = nnew(NODE_LIST); for (size_t i=0;i<n->count;i++) npush(l,ncopy(n->items[i])); return l; }
+    if (n->kind == NODE_PAIR) return npair(ncopy(n->car), ncopy(n->cdr));
+    return NULL;
+}
+
+static int perr(Parser *p, const char *msg) { snprintf(p->error,sizeof(p->error),"%s at line %d, col %d",msg,p->line,p->col); return 0; }
+static int pdone(Parser *p) { return p->pos >= p->len; }
+static char ppeek(Parser *p) { return pdone(p) ? '\0' : p->src[p->pos]; }
+static char pnext(Parser *p) { char c = pdone(p)?'\0':p->src[p->pos++]; if(c=='\n'){p->line++;p->col=1;}else p->col++; return c; }
+static void pskip(Parser *p) { while(!pdone(p)){char c=ppeek(p);if(c==' '||c=='\t'||c=='\r'||c=='\n'){pnext(p);}else if(c==';'){while(!pdone(p)&&ppeek(p)!='\n')pnext(p);}else break;} }
+static int isatomdelim(char c) { return c=='\0'||c=='('||c==')'||c=='"'||c==';'||isspace((unsigned char)c); }
+static int isdot(Parser *p) { if(ppeek(p)!='.') return 0; char n=(p->pos+1<p->len)?p->src[p->pos+1]:'\0'; return isatomdelim(n); }
+
+static Node *pexpr(Parser *p);
+static Node *pdotted(Node *l, Node *cdr) { Node *t=cdr; while(l->count>0) t=npair(l->items[--l->count],t); free(l->items); free(l); return t; }
+
+static Node *plist(Parser *p) {
+    pnext(p); Node *l=nnew(NODE_LIST);
+    while(!pdone(p)){pskip(p);if(ppeek(p)==')'){pnext(p);return l;}if(isdot(p)){if(l->count==0){nfree(l);perr(p,"dotted car missing");return NULL;}pnext(p);Node *cdr=pexpr(p);if(!cdr){nfree(l);return NULL;}pskip(p);if(ppeek(p)!=')'){nfree(l);nfree(cdr);perr(p,"dotted missing )");return NULL;}pnext(p);return pdotted(l,cdr);}Node *item=pexpr(p);if(!item){nfree(l);return NULL;}npush(l,item);}
+    nfree(l); perr(p,"unterminated list"); return NULL;
+}
+
+static Node *pstring(Parser *p) {
+    Buffer out={0}; pnext(p);
+    while(!pdone(p)&&ppeek(p)!='"'){char c=pnext(p);if(c=='\\'&&!pdone(p)){char e=pnext(p);if(e=='n')bputc(&out,'\n');else if(e=='t')bputc(&out,'\t');else if(e=='r')bputc(&out,'\r');else bputc(&out,(unsigned char)e);}else bputc(&out,(unsigned char)c);}
+    if(ppeek(p)!='"'){bfree(&out);perr(p,"unterminated string");return NULL;}pnext(p);Node *n=nstring(out.data?out.data:"");bfree(&out);return n;
+}
+
+static Node *patom(Parser *p) {
+    size_t start=p->pos; while(!pdone(p)&&!isatomdelim(ppeek(p))) pnext(p);
+    if(p->pos==start){perr(p,"empty atom");return NULL;}char *t=xstrndup(p->src+start,p->pos-start);Node *n=natom(t);free(t);return n;
+}
+
+static Node *pexpr(Parser *p) {
+    pskip(p); if(pdone(p)){perr(p,"missing expr");return NULL;}
+    if(ppeek(p)=='(') return plist(p); if(ppeek(p)==')'){perr(p,"unexpected )");return NULL;}
+    if(ppeek(p)=='"') return pstring(p); return patom(p);
+}
+
+static Node *parse_sexpr(const char *src, char *err, size_t errlen) {
+    Parser p; p.src=src; p.len=strlen(src); p.pos=0; p.line=1; p.col=1; p.error[0]=0;
+    Node *root=pexpr(&p); if(!root){snprintf(err,errlen,"%s",p.error);return NULL;} pskip(&p);
+    if(!pdone(&p)){nfree(root);perr(&p,"trailing");snprintf(err,errlen,"%s",p.error);return NULL;} return root;
+}
+
+static void jesc(Buffer *b, const char *s) {
+    for(const unsigned char *p=(const unsigned char*)s;*p;p++){unsigned char c=*p;if(c=='"'||c=='\\'){bputc(b,'\\');bputc(b,c);}else if(c=='\n')bappend(b,"\\n");else if(c=='\r')bappend(b,"\\r");else if(c=='\t')bappend(b,"\\t");else if(c<0x20){char tmp[8];snprintf(tmp,sizeof(tmp),"\\u%04x",c);bappend(b,tmp);}else bputc(b,c);}
+}
+
+static void ncanon(Node *n, Buffer *b) {
+    if(!n){bappend(b,"nil");return;}
+    if(n->kind==NODE_ATOM){bappend(b,n->text?n->text:"");}
+    else if(n->kind==NODE_STRING){bputc(b,'"');jesc(b,n->text?n->text:"");bputc(b,'"');}
+    else if(n->kind==NODE_LIST){bputc(b,'(');for(size_t i=0;i<n->count;i++){if(i)bputc(b,' ');ncanon(n->items[i],b);}bputc(b,')');}
+    else if(n->kind==NODE_PAIR){bputc(b,'(');ncanon(n->car,b);bappend(b," . ");ncanon(n->cdr,b);bputc(b,')');}
+}
+
+static int isatom(Node *n, const char *t) { return n && n->kind==NODE_ATOM && n->text && strcmp(n->text,t)==0; }
+
+static int lane_from_atom(Node *n, unsigned char *lane) {
+    if(!n||n->kind!=NODE_ATOM||!n->text) return 0;
+    if(strcmp(n->text,"FS")==0){*lane=OMI_FS;return 1;} if(strcmp(n->text,"GS")==0){*lane=OMI_GS;return 1;}
+    if(strcmp(n->text,"RS")==0){*lane=OMI_RS;return 1;} if(strcmp(n->text,"US")==0){*lane=OMI_US;return 1;} return 0;
+}
+
+static void epush(EventList *e, unsigned char lane, const char *val) {
+    if(e->len==e->cap){size_t cap=e->cap?e->cap*2:16;e->items=(Event*)xrealloc(e->items,cap*sizeof(Event));e->cap=cap;}
+    e->items[e->len].lane=lane; e->items[e->len].value=xstrdup(val); e->len++;
+}
+static void efree(EventList *e){for(size_t i=0;i<e->len;i++)free(e->items[i].value);free(e->items);e->items=NULL;e->len=e->cap=0;}
+
+static int is_canonical_root(Node *root) { return root && root->kind==NODE_LIST && root->count>0 && isatom(root->items[0],"omi"); }
+static int has_lane_pair(Node *n) { if(!n) return 0; if(n->kind==NODE_PAIR){unsigned char l;if(lane_from_atom(n->car,&l))return 1;return has_lane_pair(n->car)||has_lane_pair(n->cdr);} if(n->kind==NODE_LIST){for(size_t i=0;i<n->count;i++)if(has_lane_pair(n->items[i]))return 1;} return 0; }
+
+static void collect_canon(Node *n, EventList *e, int depth) {
+    if(!n)return; if(n->kind==NODE_LIST){if(n->count>0&&n->items[0]->kind==NODE_ATOM){if(depth>=2)epush(e,OMI_RS,n->items[0]->text);for(size_t i=1;i<n->count;i++)collect_canon(n->items[i],e,depth+1);return;}for(size_t i=0;i<n->count;i++)collect_canon(n->items[i],e,depth+1);}
+    else if(n->kind==NODE_PAIR){collect_canon(n->car,e,depth+1);collect_canon(n->cdr,e,depth+1);}else if(depth>=2){Buffer b={0};ncanon(n,&b);epush(e,OMI_US,b.data?b.data:"");bfree(&b);}
+}
+static void collect_canon_root(Node *root, EventList *e){epush(e,OMI_FS,"omi");for(size_t i=1;i<root->count;i++){Node *sec=root->items[i];if(sec&&sec->kind==NODE_LIST&&sec->count>0&&sec->items[0]->kind==NODE_ATOM){epush(e,OMI_GS,sec->items[0]->text);for(size_t j=1;j<sec->count;j++)collect_canon(sec->items[j],e,2);}else collect_canon(sec,e,1);}}
+static int try_alist_pair(Node *n, EventList *e) { unsigned char l; if(!n||n->kind!=NODE_PAIR)return 0; if(lane_from_atom(n->car,&l)){Buffer b={0};ncanon(n->cdr,&b);epush(e,l,b.data?b.data:"");bfree(&b);return 1;} return 0; }
+static void collect_alist(Node *n, EventList *e){if(!n)return;if(n->kind==NODE_PAIR){if(!try_alist_pair(n,e)){collect_alist(n->car,e);collect_alist(n->cdr,e);}}else if(n->kind==NODE_LIST){for(size_t i=0;i<n->count;i++)collect_alist(n->items[i],e);}}
+
+static void build_tape(Compilation *c, const char *src) {
+    unsigned char hdr[8]={0x00,0x1b,OMI_FS,OMI_GS,OMI_RS,OMI_US,src&&src[0]?(unsigned char)src[0]:0x00,c->state};
+    bappend_bytes(&c->tape,hdr,8);
+    for(size_t i=0;i<c->events.len;i++){const char *val=c->events.items[i].value;size_t n=strlen(val);if(n>65535u)die("record too large");bputc(&c->tape,c->events.items[i].lane);unsigned char lenb[2]={(unsigned char)((n>>8)&0xff),(unsigned char)(n&0xff)};bappend_bytes(&c->tape,lenb,2);bappend_bytes(&c->tape,(const unsigned char*)val,n);}
+}
+
+static int compile_omi(const char *src, Compilation *c, char *err, size_t errlen) {
+    Buffer norm={0}; memset(c,0,sizeof(*c));
+    c->root=parse_sexpr(src,err,errlen); if(!c->root) return 0;
+    ncanon(c->root,&norm); c->normalized=norm.data?norm.data:xstrdup("");
+    if(is_canonical_root(c->root)){snprintf(c->shape,sizeof(c->shape),"canonical");c->state=STATE_CANONICAL;collect_canon_root(c->root,&c->events);}
+    else if(has_lane_pair(c->root)){snprintf(c->shape,sizeof(c->shape),"alist");c->state=STATE_ALIST;collect_alist(c->root,&c->events);}
+    else{snprintf(err,errlen,"unsupported shape");return 0;}
+    if(c->events.len==0){snprintf(err,errlen,"no lane records");return 0;}
+    build_tape(c,src); c->source_hash=fnv1a64((const unsigned char*)src,strlen(src));
+    c->normalized_hash=fnv1a64((const unsigned char*)c->normalized,strlen(c->normalized));
+    c->tape_hash=fnv1a64((const unsigned char*)c->tape.data,c->tape.len); return 1;
+}
+static void cfree(Compilation*c){nfree(c->root);free(c->normalized);efree(&c->events);bfree(&c->tape);memset(c,0,sizeof(*c));}
+
+static Node *reduce(Node *expr) {
+    if(!expr) return NULL;
+    if(expr->kind==NODE_ATOM) return natom(expr->text?expr->text:"");
+    if(expr->kind==NODE_STRING) return nstring(expr->text?expr->text:"");
+    if(expr->kind==NODE_PAIR){return npair(reduce(expr->car),reduce(expr->cdr));}
+    if(expr->kind==NODE_LIST){
+        if(expr->count==0) return nnew(NODE_LIST);
+        Node *op=reduce(expr->items[0]); if(!op) return NULL;
+        if(op->kind==NODE_ATOM&&op->text){
+            if(strcmp(op->text,"cons")==0){Node*a=(expr->count>1)?reduce(expr->items[1]):natom("nil");Node*b=(expr->count>2)?reduce(expr->items[2]):natom("nil");nfree(op);return npair(a?a:natom("nil"),b?b:natom("nil"));}
+            if(strcmp(op->text,"car")==0){Node*arg=(expr->count>1)?reduce(expr->items[1]):NULL;nfree(op);if(!arg)return natom("nil");if(arg->kind==NODE_PAIR){Node*r=arg->car;arg->car=NULL;nfree(arg);return r;}if(arg->kind==NODE_LIST&&arg->count>0){Node*r=arg->items[0];arg->items[0]=NULL;nfree(arg);return r;}nfree(arg);return natom("nil");}
+            if(strcmp(op->text,"cdr")==0){Node*arg=(expr->count>1)?reduce(expr->items[1]):NULL;nfree(op);if(!arg)return nnew(NODE_LIST);if(arg->kind==NODE_PAIR){Node*r=arg->cdr;arg->cdr=NULL;nfree(arg);return r;}if(arg->kind==NODE_LIST){if(arg->count<=1){nfree(arg);return nnew(NODE_LIST);}Node*r=nnew(NODE_LIST);for(size_t i=1;i<arg->count;i++)npush(r,arg->items[i]);arg->count=0;nfree(arg);return r;}nfree(arg);return nnew(NODE_LIST);}
+            if(strcmp(op->text,"xor")==0){Node*a=(expr->count>1)?reduce(expr->items[1]):NULL;Node*b=(expr->count>2)?reduce(expr->items[2]):NULL;nfree(op);uint64_t va=0,vb=0;if(a&&a->text)va=strtoull(a->text,NULL,0);if(b&&b->text)vb=strtoull(b->text,NULL,0);nfree(a);nfree(b);char tmp[32];snprintf(tmp,sizeof(tmp),"0x%016llx",(unsigned long long)(va^vb));return natom(tmp);}
+            if(strcmp(op->text,"rot")==0){Node*x=(expr->count>1)?reduce(expr->items[1]):NULL;Node*n=(expr->count>2)?reduce(expr->items[2]):NULL;nfree(op);uint64_t vx=0,vn=0;if(x&&x->text)vx=strtoull(x->text,NULL,0);if(n&&n->text)vn=strtoull(n->text,NULL,0);vn&=63;uint64_t vr=(vx<<vn)|(vx>>(64-vn));nfree(x);nfree(n);char tmp[32];snprintf(tmp,sizeof(tmp),"0x%016llx",(unsigned long long)vr);return natom(tmp);}
+            if(strcmp(op->text,"mask")==0){Node*x=(expr->count>1)?reduce(expr->items[1]):NULL;Node*m=(expr->count>2)?reduce(expr->items[2]):NULL;nfree(op);uint64_t vx=0,vm=0;if(x&&x->text)vx=strtoull(x->text,NULL,0);if(m&&m->text)vm=strtoull(m->text,NULL,0);nfree(x);nfree(m);char tmp[32];snprintf(tmp,sizeof(tmp),"0x%016llx",(unsigned long long)(vx&vm));return natom(tmp);}
+            if(strcmp(op->text,"hash")==0){Node*arg=(expr->count>1)?reduce(expr->items[1]):NULL;nfree(op);Buffer b={0};ncanon(arg,&b);uint64_t h=fnv1a64((const unsigned char*)(b.data?b.data:""),b.len);nfree(arg);bfree(&b);char tmp[32];snprintf(tmp,sizeof(tmp),"0x%016llx",(unsigned long long)h);return natom(tmp);}
+            if(strcmp(op->text,"quote")==0){Node*arg=(expr->count>1)?expr->items[1]:NULL;nfree(op);return arg?ncopy(arg):natom("nil");}
+            if(strcmp(op->text,"normalize")==0){Node*arg=(expr->count>1)?reduce(expr->items[1]):NULL;nfree(op);Buffer b={0};ncanon(arg,&b);nfree(arg);Node*r=nstring(b.data?b.data:"");bfree(&b);return r;}
+            if(strcmp(op->text,"eval")==0||strcmp(op->text,"reduce")==0){Node*arg=(expr->count>1)?reduce(expr->items[1]):NULL;nfree(op);Node*r=reduce(arg);nfree(arg);return r;}
+            if(strcmp(op->text,"receipt")==0){Node*arg=(expr->count>1)?expr->items[1]:NULL;nfree(op);if(!arg)return nstring("{}");Buffer b={0};ncanon(arg,&b);Compilation c;char err[256];Buffer rj={0};if(compile_omi(b.data,&c,err,sizeof(err))){bappend(&rj,"{\"shape\":\"");bappend(&rj,c.shape);bappend(&rj,"\",\"events\":");char tmp[32];snprintf(tmp,sizeof(tmp),"%zu",c.events.len);bappend(&rj,tmp);bappend(&rj,"}");cfree(&c);}else{bappend(&rj,"{\"error\":\"");bappend(&rj,err);bappend(&rj,"\"}");}bfree(&b);Node*r=nstring(rj.data?rj.data:"{}");bfree(&rj);return r;}
+            if(strcmp(op->text,"list")==0){nfree(op);Node*r=nnew(NODE_LIST);for(size_t i=1;i<expr->count;i++){Node*ev=reduce(expr->items[i]);if(ev)npush(r,ev);}return r;}
+            {Node*r=nnew(NODE_LIST);npush(r,op);for(size_t i=1;i<expr->count;i++){Node*ev=reduce(expr->items[i]);if(ev)npush(r,ev);}return r;}
+        }
+        Node*r=nnew(NODE_LIST);npush(r,op);for(size_t i=1;i<expr->count;i++){Node*ev=reduce(expr->items[i]);if(ev)npush(r,ev);}return r;
+    }
+    return NULL;
+}
+
+static char *generate_receipt(const char *src, const char *result, uint64_t cycle) {
+    Buffer b={0}; bappend(&b,"{\"cy\":"); char tmp[32]; snprintf(tmp,sizeof(tmp),"%llu",(unsigned long long)cycle); bappend(&b,tmp);
+    bappend(&b,",\"s\":\""); jesc(&b,src?src:""); bappend(&b,"\",\"r\":\""); jesc(&b,result?result:"");
+    bappend(&b,"\",\"h\":\""); uint64_t h=fnv1a64((const unsigned char*)(result?result:""),result?strlen(result):0);
+    snprintf(tmp,sizeof(tmp),"0x%016llx",(unsigned long long)h); bappend(&b,tmp); bappend(&b,"\"}");
+    char *r=b.data; b.data=NULL; bfree(&b); return r;
+}
+
+static void ring_load(void) {
+    int fd=open(RING_FILE,O_RDONLY); if(fd>=0){ssize_t rv=read(fd,ring,sizeof(ring));(void)rv;close(fd);}
+}
+static void ring_save(void) {
+    int fd=open(RING_FILE,O_WRONLY|O_CREAT,0666); if(fd>=0){ssize_t wv=write(fd,ring,sizeof(ring));(void)wv;close(fd);}
+}
+static size_t ring_idx(void) { return g_cycle % RING_SIZE; }
+static void ring_store(uint64_t h, const char *receipt_str) {
+    size_t idx=ring_idx(); ring[idx].cycle=g_cycle; ring[idx].hash=h;
+    memset(ring[idx].receipt,0,MAX_RECEIPT); strncpy(ring[idx].receipt,receipt_str,MAX_RECEIPT-1);
+    ring_save();
+}
+static void ring_dump(void) {
+    for(size_t i=0;i<RING_SIZE;i++){if(ring[i].hash!=0||ring[i].receipt[0])printf("RING[%zu] cyc=%llu h=0x%016llx %s\n",i,(unsigned long long)ring[i].cycle,(unsigned long long)ring[i].hash,ring[i].receipt);}
+}
+
+static uint16_t ring_xor_fold(void) {
+    uint16_t fold=0; for(size_t i=0;i<RING_SIZE;i++) fold=u16(fold ^ (uint16_t)(ring[i].hash & 0xFFFF)); return fold;
+}
+static uint16_t ring_sum_fold(void) {
+    uint16_t fold=0; for(size_t i=0;i<RING_SIZE;i++) fold=u16(fold + (uint16_t)(ring[i].hash & 0xFFFF)); return fold;
+}
+static uint16_t ring_rot_fold(void) {
+    uint16_t fold=0; for(size_t i=0;i<RING_SIZE;i++) fold=u16(fold ^ rotl16((uint16_t)(ring[i].hash&0xFFFF),(uint16_t)(i&15))); return fold;
+}
+
+static int ring_has_receipt(uint16_t val) {
+    for(size_t i=0;i<RING_SIZE;i++) if((uint16_t)(ring[i].hash&0xFFFF)==val && ring[i].hash!=0) return 1; return 0;
+}
+
+static int parse_hex_field(const char *text, size_t len, uint32_t *out) {
+    uint32_t v=0; if(len<3||text[0]!='0'||text[1]!='x') return 0;
+    for(size_t i=2;i<len;i++){unsigned char c=(unsigned char)text[i];uint32_t d;if(c>='0'&&c<='9')d=(uint32_t)(c-'0');else if(c>='a'&&c<='f')d=10u+(uint32_t)(c-'a');else if(c>='A'&&c<='F')d=10u+(uint32_t)(c-'A');else return 0;v=(v<<4)|d;}
+    *out=v; return 1;
+}
+
+static int take_hex(const char **p, char delim, uint32_t *out) {
+    const char *start=*p; while(**p&&**p!=delim) (*p)++;
+    if(!parse_hex_field(start,(size_t)(*p-start),out)) return 0;
+    if(delim&&**p!=delim) return 0; if(delim)(*p)++; return 1;
+}
+
+static int parse_omi_addr(const char *line, OmiInst *inst) {
+    const char *p=line; uint32_t v; while(isspace((unsigned char)*p))p++;
+    if(!take_hex(&p,'-',&v))return 0; inst->s0=u16(v);
+    if(!take_hex(&p,'-',&v))return 0; inst->s1=u16(v);
+    if(!take_hex(&p,'-',&v))return 0; inst->s2=u16(v);
+    if(!take_hex(&p,'/',&v))return 0; inst->s3=u16(v);
+    if(!take_hex(&p,'/',&v))return 0; inst->s4=u16(v);
+    if(!take_hex(&p,'/',&v))return 0; inst->s5=u16(v);
+    if(!take_hex(&p,'/',&v))return 0; inst->s6=u16(v);
+    if(!take_hex(&p,'?',&v))return 0; inst->s7=u16(v);
+    if(!take_hex(&p,'?',&v))return 0; inst->payload=v;
+    if(!take_hex(&p,'@',&v))return 0; inst->mask=v;
+    if(!take_hex(&p,'@',&v))return 0; inst->car=v;
+    {const char *start=p; while(*p&&!isspace((unsigned char)*p))p++; if(!parse_hex_field(start,(size_t)(p-start),&v))return 0; inst->cdr=v;}
+    while(isspace((unsigned char)*p))p++; return *p=='\0';
+}
+
+static uint16_t execute_omi_op(const OmiInst *inst) {
+    switch(inst->s3){
+    case 0x0000: return 0;
+    case 0x0001: return u16(inst->s4 ^ inst->s5);
+    case 0x0002: return u16(~(inst->s4 ^ inst->s5));
+    case 0x0003: return u16(~(inst->s4 & inst->s5));
+    case 0x0004: return u16(inst->s4 & inst->s5);
+    case 0x0005: return u16(inst->s4 | inst->s5);
+    case 0x0006: return rotl16(inst->s4, inst->s5);
+    case 0x0007: return rotr16(inst->s4, inst->s5);
+    case 0x0008: return delta16(inst->s4, inst->s5);
+    case 0x0009: return u16(bqf32((inst->s4>>8)&0xffu, inst->s5&0xffu));
+    case 0x000a: return u16(inst->s4);
+    case 0x000b: return u16(inst->s4);
+    case 0x000c: return u16(inst->s4);
+    case 0x000d: return u16(inst->s4 ^ inst->s5 ^ inst->s6);
+    case 0x000e: return u16(inst->car ^ inst->cdr);
+    case 0x000f: return 0;
+    default: return u16(inst->s0^inst->s1^inst->s2^inst->s3^inst->s4^inst->s5^inst->s6^inst->s7^inst->payload^inst->mask^inst->car^inst->cdr);
+    }
+}
+
+static void cpu_exec(CpuState *cpu, uint8_t op) {
+    switch(op&0xF){
+    case 0x0: break;
+    case 0x1: cpu->car_reg=cpu->cdr_reg; cpu->cdr_reg=cpu->payload; break;
+    case 0x2: cpu->payload=cpu->car_reg; break;
+    case 0x3: cpu->payload=cpu->cdr_reg; break;
+    case 0x4: cpu->payload^=cpu->mask; break;
+    case 0x5: cpu->payload|=cpu->mask; break;
+    case 0x6: cpu->payload&=cpu->mask; break;
+    case 0x7: cpu->payload=rotl32(cpu->payload,1); break;
+    case 0x8: if(cpu->mask<MEMORY_SIZE)cpu->payload=cpu->memory[cpu->mask]; break;
+    case 0x9: if(cpu->mask<MEMORY_SIZE)cpu->memory[cpu->mask]=cpu->payload; break;
+    case 0xA: cpu->pc=cpu->mask&0xFFFF; break;
+    case 0xB: cpu->cdr_reg=cpu->pc; cpu->pc=cpu->mask&0xFFFF; break;
+    case 0xC: if(cpu->stack_ptr<STACK_SIZE)cpu->stack[cpu->stack_ptr++]=cpu->payload; break;
+    case 0xD: if(cpu->stack_ptr>0)cpu->payload=cpu->stack[--cpu->stack_ptr]; break;
+    case 0xE: cpu->flags=(cpu->payload==cpu->mask)?0xFFFFFFFF:0; break;
+    case 0xF: cpu->halted=1; break;
+    }
+    cpu->epoch++;
+}
+
+static void extract_nibbles(const OmiInst *inst, uint8_t *nibbles, int *count) {
+    *count=0; uint16_t segs[]={inst->s0,inst->s1,inst->s2,inst->s3};
+    for(int i=0;i<4;i++){nibbles[(*count)++]=(segs[i]>>12)&0xF;nibbles[(*count)++]=(segs[i]>>8)&0xF;nibbles[(*count)++]=(segs[i]>>4)&0xF;nibbles[(*count)++]=(segs[i]>>0)&0xF;}
+    uint16_t segs2[]={inst->s4,inst->s5,inst->s6,inst->s7};
+    for(int i=0;i<4;i++){nibbles[(*count)++]=(segs2[i]>>12)&0xF;nibbles[(*count)++]=(segs2[i]>>8)&0xF;nibbles[(*count)++]=(segs2[i]>>4)&0xF;nibbles[(*count)++]=(segs2[i]>>0)&0xF;}
+}
+
+static void cpu_run(CpuState *cpu, const OmiInst *inst) {
+    uint8_t nibbles[32]; int count=0; extract_nibbles(inst,nibbles,&count);
+    cpu->payload=inst->payload; cpu->mask=inst->mask; cpu->car_reg=inst->car; cpu->cdr_reg=inst->cdr;
+    for(int i=0;i<count&&!cpu->halted;i++) cpu_exec(cpu,nibbles[i]);
+}
+
+static void cpu_init(CpuState *cpu) { memset(cpu,0,sizeof(*cpu)); }
+
+/* ─── Polybius 5x5 + QuQuart Geometry ─── */
+
+static int polybius_origin_row(void) { return 1; }
+static int polybius_origin_col(void) { return 1; }
+static int polybius_get_low_ququart(int idx, int *row, int *col) { if(idx<0||idx>3)return 0; *row=1; *col=idx+2; return 1; }
+static int polybius_get_high_ququart(int idx, int *row, int *col) { if(idx<0||idx>3)return 0; *row=idx+2; *col=1; return 1; }
+static int polybius_get_interior(int x, int y, int *row, int *col) { if(x<0||x>3||y<0||y>3)return 0; *row=y+2; *col=x+2; return 1; }
+static int polybius_is_rail(int row, int col) { if(row<1||row>5||col<1||col>5)return 0; if(row==1&&col==1)return 0; return row==1||col==1; }
+static int polybius_is_interior(int row, int col) { if(row<1||row>5||col<1||col>5)return 0; if(row==1&&col==1)return 0; return row>1&&col>1; }
+
+/* ─── Fano Plane (7 points, 7 lines) ─── */
+static const uint16_t FANO_LINES[7][3] = {
+    {0,1,2},{0,3,4},{1,3,5},{1,4,6},{2,3,6},{2,4,5},{3,4,0}
+};
+
+/* ─── QuQuart Phase Map ─── */
+static const unsigned char QUQUART_PHASE[4] = {OMI_US, OMI_GS, OMI_RS, OMI_FS};
+
+/* ─── 5040 ring slot computation ─── */
+static uint32_t compute_slot5040(int fano7, int role3, int local240) {
+    return (uint32_t)(((fano7%7)*720u) + ((role3%3)*240u) + (uint32_t)(local240%240));
+}
+
+/* ─── Digital Twin Geometry: full Hopf/BQF/Fano/Polybius pipeline ─── */
+
+#define TWIN_PI 3.14159265358979323846
+
+typedef struct {
+    int chart11, baseQ, fiberQ, fano7, role3;
+    uint32_t qxy;
+    int local240, slot5040;
+    int a, b, c;            /* thrust direction (Hopf S3→S2 projection) */
+    double fiberPhase;
+    double qw, qx, qy, qz;  /* quaternion candidate */
+    int polybius_row, polybius_col;
+    int frame_type;          /* 0=US, 1=GS, 2=RS, 3=FS */
+    uint64_t cycle;
+    uint16_t result;
+    uint16_t xf, sf, rf;
+    uint16_t opcode;
+} TwinGeometry;
+
+static int mod_pos(int x, int m) { int r = x % m; return r < 0 ? r + m : r; }
+static double clamp_d(double n, double lo, double hi) { return n < lo ? lo : (n > hi ? hi : n); }
+
+static uint32_t fnv1a32_buf(const unsigned char *data, size_t len) {
+    uint32_t h = 0x811c9dc5;
+    for (size_t i = 0; i < len; i++) { h ^= data[i]; h *= 0x01000193; }
+    return h;
+}
+
+static uint32_t fnv1a32_str(const char *s) {
+    return fnv1a32_buf((const unsigned char *)s, strlen(s));
+}
+
+static TwinGeometry resolve_hopf_ququart_route(int chart11, int baseQ, int fiberQ, int fano7, int role3) {
+    TwinGeometry g;
+    memset(&g, 0, sizeof(g));
+    g.chart11 = mod_pos(chart11, 11);
+    g.baseQ = mod_pos(baseQ, 4);
+    g.fiberQ = mod_pos(fiberQ, 4);
+    g.fano7 = mod_pos(fano7, 7);
+    g.role3 = mod_pos(role3, 3);
+    int x = g.baseQ, y = g.fiberQ;
+    g.qxy = bqf32((uint32_t)x, (uint32_t)y);
+    g.local240 = (int)(g.qxy % 240);
+    g.slot5040 = g.fano7 * 720 + g.role3 * 240 + g.local240;
+
+    double theta = ((x + 0.5) / 4.0) * TWIN_PI;
+    double phi = ((y + 0.5) / 4.0) * 2.0 * TWIN_PI;
+    double halfTheta = theta / 2.0;
+    g.qw = cos(halfTheta);
+    g.qx = sin(halfTheta) * cos(phi);
+    g.qy = sin(halfTheta) * sin(phi);
+    g.qz = 0.0;
+    g.fiberPhase = phi;
+
+    double w = g.qw, qx = g.qx, qy = g.qy, qz = g.qz;
+    g.a = (int)round(2.0 * (qx * qz + w * qy));
+    g.b = (int)round(2.0 * (qy * qz - w * qx));
+    g.c = (int)round(1.0 - 2.0 * (qx * qx + qy * qy));
+
+    int local16 = g.local240 & 0x0f;
+    int px = local16 & 3;
+    int py = (local16 >> 2) & 3;
+    polybius_get_interior(px, py, &g.polybius_row, &g.polybius_col);
+
+    g.frame_type = baseQ & 3;
+    return g;
+}
+
+static int count_filled_ring_slots(void) {
+    int n = 0;
+    for (size_t i = 0; i < RING_SIZE; i++) { if (ring[i].hash != 0 || ring[i].receipt[0]) n++; }
+    return n;
+}
+
+/* Derive twin geometry from autonomous computation state */
+static TwinGeometry tetragrammatron_geometry_route(uint64_t cycle, uint16_t xf, uint16_t sf, uint16_t rf, uint16_t opcode, uint16_t result) {
+    int opcode_idx = -1;
+    static const uint16_t opcodes[] = {0x0001,0x0002,0x0003,0x0004,0x0005,0x0006,0x0007,0x0008,0x0009,0x000d,0x000e};
+    for (int i = 0; i < 11; i++) { if (opcode == opcodes[i]) { opcode_idx = i; break; } }
+    int channel = (opcode_idx >= 0) ? (opcode_idx % 4) : 0;
+    int baseQ = channel;
+
+    int relationCount = count_filled_ring_slots();
+    double stability = relationCount < 2 ? 0.0 : clamp_d((double)(rf ^ xf) / 65535.0, 0.0, 1.0);
+
+    char seed_buf[256];
+    snprintf(seed_buf, sizeof(seed_buf), "omi.tetragrammatron.geometry.fiber.v0|%llu|%d|%d|%d|%d",
+        (unsigned long long)cycle, relationCount, (int)xf, (int)sf, (int)rf);
+    uint32_t fiberSeed = fnv1a32_str(seed_buf);
+    int fiberQ = (int)((fiberSeed + (unsigned)(stability * 60.0) + (unsigned)relationCount) % 4);
+
+    snprintf(seed_buf, sizeof(seed_buf), "omi.tetragrammatron.geometry.chart.v0|%llu|%d|%d|%d",
+        (unsigned long long)cycle, (unsigned)result, channel, (int)xf);
+    uint32_t chartSeed = fnv1a32_str(seed_buf);
+    int chart11 = (int)(chartSeed % 11);
+
+    snprintf(seed_buf, sizeof(seed_buf), "omi.tetragrammatron.geometry.role.v0|%llu|%d|%d|%d",
+        (unsigned long long)cycle, baseQ, fiberQ, chart11);
+    uint32_t roleSeed = fnv1a32_str(seed_buf);
+    int role3 = (int)(roleSeed % 3);
+    int fano7 = (int)((roleSeed + (unsigned)relationCount) % 7);
+
+    TwinGeometry g = resolve_hopf_ququart_route(chart11, baseQ, fiberQ, fano7, role3);
+    g.cycle = cycle;
+    g.result = result;
+    g.xf = xf; g.sf = sf; g.rf = rf;
+    g.opcode = opcode;
+    return g;
+}
+
+static void print_twin_geometry(const TwinGeometry *g) {
+    printf("TWIN cyc=%llu res=0x%04x op=0x%04x",
+        (unsigned long long)g->cycle, g->result, g->opcode);
+    printf(" frame=%d chart11=%d baseQ=%d fiberQ=%d fano7=%d role3=%d",
+        g->frame_type, g->chart11, g->baseQ, g->fiberQ, g->fano7, g->role3);
+    printf(" bqf=%u local240=%d slot5040=%d",
+        (unsigned)g->qxy, g->local240, g->slot5040);
+    printf(" hopf=(%d,%d,%d) phase=%.4f", g->a, g->b, g->c, g->fiberPhase);
+    printf(" polybius=(%d,%d)", g->polybius_row, g->polybius_col);
+    printf(" quat=(%.4f,%.4f,%.4f,%.4f)", g->qw, g->qx, g->qy, g->qz);
+    printf("\n");
+}
+
+/* ─── Digital Twin Renderers ─── */
+
+static void render_frame_json(void) {
+    uint16_t xf = ring_xor_fold(), sf = ring_sum_fold(), rf = ring_rot_fold();
+    int filled = count_filled_ring_slots();
+    int frame_counts[4] = {0};
+    int hopf_counts[3] = {0};
+
+    printf("{\"twin\":{\"ring\":{\"size\":%u,\"filled\":%d,"
+           "\"xor\":\"0x%04x\",\"sum\":\"0x%04x\",\"rot\":\"0x%04x\"},"
+           "\"frames\":[",
+        (unsigned)RING_SIZE, filled, xf, sf, rf);
+    for (int f = 0; f < 4; f++) {
+        if (f) printf(",");
+        const char *names[] = {"US","GS","RS","FS"};
+        printf("{\"id\":%d,\"name\":\"%s\",\"count\":0}", f, names[f]);
+    }
+
+    printf("],\"receipts\":[");
+    int first = 1;
+    for (size_t i = 0; i < RING_SIZE; i++) {
+        if (!ring[i].hash && !ring[i].receipt[0]) continue;
+        TwinGeometry g = resolve_hopf_ququart_route(
+            (int)(ring[i].cycle % 11),
+            (int)(ring[i].hash % 4),
+            (int)((ring[i].hash >> 8) % 4),
+            (int)((ring[i].cycle + ring[i].hash) % 7),
+            (int)(ring[i].hash % 3));
+        if (g.frame_type >= 0 && g.frame_type < 4) {
+            frame_counts[g.frame_type]++;
+        }
+        hopf_counts[0] += g.a;
+        hopf_counts[1] += g.b;
+        hopf_counts[2] += g.c;
+
+        if (!first) printf(",");
+        first = 0;
+        const char *fnames[] = {"US","GS","RS","FS"};
+        printf("{\"cy\":%llu,\"h\":\"0x%016llx\","
+               "\"twin\":{\"chart\":%d,\"base\":%d,\"fiber\":%d,"
+               "\"fano\":%d,\"role\":%d,\"bqf\":%u,\"local\":%d,"
+               "\"slot\":%d,\"hopf\":[%d,%d,%d],\"phase\":%.4f,"
+               "\"cell\":[%d,%d],\"quat\":[%.4f,%.4f,%.4f,%.4f],"
+               "\"frame\":\"%s\"}}",
+            (unsigned long long)ring[i].cycle,
+            (unsigned long long)ring[i].hash,
+            g.chart11, g.baseQ, g.fiberQ,
+            g.fano7, g.role3, (unsigned)g.qxy, g.local240,
+            g.slot5040, g.a, g.b, g.c, g.fiberPhase,
+            g.polybius_row, g.polybius_col,
+            g.qw, g.qx, g.qy, g.qz,
+            fnames[g.frame_type & 3]);
+    }
+
+    printf("],\"summary\":{\"frame_counts\":[");
+    for (int f = 0; f < 4; f++) {
+        if (f) printf(",");
+        const char *names[] = {"US","GS","RS","FS"};
+        printf("{\"name\":\"%s\",\"count\":%d}", names[f], frame_counts[f]);
+    }
+    printf("],\"hopf_flux\":[%d,%d,%d],\"filled\":%d}}\n",
+        hopf_counts[0], hopf_counts[1], hopf_counts[2], filled);
+}
+
+static void render_ppm(void) {
+    int W = 420, H = 480;
+    unsigned char *fb = (unsigned char *)calloc((size_t)W * H * 3, 1);
+    if (!fb) { fprintf(stderr, "ppm: alloc fail\n"); return; }
+
+#define PPM_PTR(r,c) (&fb[((size_t)(r)*(size_t)W+(size_t)(c))*3])
+#define PPM_R(r,c) (*PPM_PTR(r,c))
+#define PPM_G(r,c) (*(PPM_PTR(r,c)+1))
+#define PPM_B(r,c) (*(PPM_PTR(r,c)+2))
+
+    /* background */
+    for (int y = 0; y < H; y++)
+        for (int x = 0; x < W; x++)
+            { PPM_R(y,x) = 15; PPM_G(y,x) = 15; PPM_B(y,x) = 20; }
+
+    /* Polybius 5x5 grid: 5 cells of 50px + 6 gaps of 5px = 280px */
+    int grid_x = 70, grid_y = 30, cell = 50, gap = 5, grid_px = cell * 5 + gap * 6;
+
+    /* Draw grid lines */
+    for (int i = 0; i <= 5; i++) {
+        int pos = i * (cell + gap);
+        for (int d = 0; d < gap; d++) {
+            int px = grid_x + pos + d;
+            for (int y = grid_y; y < grid_y + grid_px; y++)
+                if (px < W && y < H) { PPM_R(y,px) = 40; PPM_G(y,px) = 40; PPM_B(y,px) = 50; }
+            int py = grid_y + pos + d;
+            for (int x = grid_x; x < grid_x + grid_px; x++)
+                if (x < W && py < H) { PPM_R(py,x) = 40; PPM_G(py,x) = 40; PPM_B(py,x) = 50; }
+        }
+    }
+
+    /* Fill cells from ring receipts */
+    for (size_t i = 0; i < RING_SIZE; i++) {
+        if (!ring[i].hash && !ring[i].receipt[0]) continue;
+        TwinGeometry g = resolve_hopf_ququart_route(
+            (int)(ring[i].cycle % 11),
+            (int)(ring[i].hash % 4),
+            (int)((ring[i].hash >> 8) % 4),
+            (int)((ring[i].cycle + ring[i].hash) % 7),
+            (int)(ring[i].hash % 3));
+        int col = g.polybius_col; /* 2..5 */
+        int row = g.polybius_row;
+        if (row < 1 || row > 5 || col < 1 || col > 5) continue;
+
+        int cx = grid_x + (col - 1) * (cell + gap);
+        int cy = grid_y + (row - 1) * (cell + gap);
+        unsigned char r, gv, b;
+        switch (g.frame_type) {
+            case 0: r = 200; gv = 60;  b = 60;  break; /* US = red */
+            case 1: r = 60;  gv = 200; b = 60;  break; /* GS = green */
+            case 2: r = 60;  gv = 60;  b = 200; break; /* RS = blue */
+            case 3: r = 60;  gv = 200; b = 200; break; /* FS = cyan */
+            default: r = 100; gv = 100; b = 100;
+        }
+        for (int dy = 2; dy < cell - 2; dy++)
+            for (int dx = 2; dx < cell - 2; dx++) {
+                int px = cx + dx, py = cy + dy;
+                if (px < W && py < H) {
+                    unsigned char *p = fb + ((size_t)py * W + (size_t)px) * 3;
+                    /* blend */
+                    p[0] = (unsigned char)(((int)p[0] + (int)r) / 2);
+                    p[1] = (unsigned char)(((int)p[1] + (int)gv) / 2);
+                    p[2] = (unsigned char)(((int)p[2] + (int)b) / 2);
+                }
+            }
+    }
+
+    /* Mark origin (1,1) in white */
+    int ox = grid_x + 0 * (cell + gap);
+    int oy = grid_y + 0 * (cell + gap);
+    for (int dy = 0; dy < cell; dy++)
+        for (int dx = 0; dx < cell; dx++) {
+            int px = ox + dx, py = oy + dy;
+            if (px < W && py < H) { PPM_R(py,px) = 220; PPM_G(py,px) = 220; PPM_B(py,px) = 200; }
+        }
+
+    /* Ring occupancy bar at bottom */
+    int bar_y = 380, bar_h = 20;
+    for (size_t i = 0; i < RING_SIZE; i++) {
+        int bx = (int)((size_t)i * (W - 20) / RING_SIZE) + 10;
+        int filled = (ring[i].hash != 0 || ring[i].receipt[0]);
+        for (int dy = 0; dy < bar_h; dy++) {
+            int py = bar_y + dy;
+            if (py < H && bx < W) {
+                if (filled) { PPM_R(py,bx) = 100; PPM_G(py,bx) = 180; PPM_B(py,bx) = 255; }
+                else { PPM_R(py,bx) = 30; PPM_G(py,bx) = 30; PPM_B(py,bx) = 40; }
+            }
+        }
+    }
+
+    /* Frame type color legend */
+    unsigned char colors[4][3] = {{200,60,60},{60,200,60},{60,60,200},{60,200,200}};
+    int legend_y = 420;
+    for (int f = 0; f < 4; f++) {
+        int lx = 30 + f * 100;
+        for (int dy = 0; dy < 12; dy++)
+            for (int dx = 0; dx < 12; dx++) {
+                int px = lx + dx, py = legend_y + dy;
+                if (px < W && py < H) {
+                    PPM_R(py,px) = colors[f][0];
+                    PPM_G(py,px) = colors[f][1];
+                    PPM_B(py,px) = colors[f][2];
+                }
+            }
+    }
+
+    /* Output PPM */
+    printf("P6\n%d %d\n255\n", W, H);
+    fwrite(fb, 1, (size_t)W * H * 3, stdout);
+    free(fb);
+#undef PPM_PTR
+#undef PPM_R
+#undef PPM_G
+#undef PPM_B
+}
+
+/* ─── Boot ROM ─── */
+static const char *BOOT_ROM[] = {
+    "0x0000-0x0000-0x0000-0x0000/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x0003-0x0003-0x0003-0x0003/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x039F-0x0000-0x0000-0x0000/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x03BF-0x0000-0x0000-0x0000/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x5555-0x0000-0x0000-0x0000/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x55AA-0x0000-0x0000-0x0000/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0xAAAA-0x0000-0x0000-0x0000/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0xAA55-0x0000-0x0000-0x0000/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x30000020-0x0000-0x0000-0x0000/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x7C00-0x0000-0x0000-0x0000/0x0000/0x0000/0x0000/0xAA55?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x5A3C-0x0000-0x0000-0x0000/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x001C-0x001D-0x001E-0x001F/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x00F0-0x0000-0x0000-0x0000/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x13B0-0x0000-0x0000-0x0000/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x0000-0x0000-0x0000-0x0010/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x0000-0x0000-0x0000-0x0011/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x0000-0x0000-0x0000-0x0012/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x0000-0x0000-0x0000-0x0020/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x0000-0x0000-0x0000-0x0021/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0x0000-0x0000-0x0000-0x0022/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+    "0xFFFF-0x0000-0x0000-0x0000/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
+};
+static const int BOOT_COUNT = sizeof(BOOT_ROM)/sizeof(BOOT_ROM[0]);
+
+/* ─── Process S-expression ─── */
+typedef struct { char *receipt; char *result_canon; char *normalized; char shape[16]; size_t events; int accepted; } SxResult;
+static void sx_free(SxResult *pr){free(pr->receipt);free(pr->result_canon);free(pr->normalized);memset(pr,0,sizeof(*pr));}
+
+static SxResult process_sexpr(const char *line, uint64_t cycle) {
+    SxResult pr; memset(&pr,0,sizeof(pr)); char err[256]; Compilation c; Node *result=NULL; Buffer rb={0};
+    int has_omi=compile_omi(line,&c,err,sizeof(err));
+    if(has_omi){pr.normalized=xstrdup(c.normalized);snprintf(pr.shape,sizeof(pr.shape),"%s",c.shape);pr.events=c.events.len;}
+    if(!has_omi){Node *ast=parse_sexpr(line,err,sizeof(err));if(!ast){Buffer eb={0};bappend(&eb,"{\"e\":\"");jesc(&eb,err);bappend(&eb,"\"}");pr.receipt=generate_receipt(line,eb.data,cycle);pr.result_canon=xstrdup(eb.data?eb.data:"");bfree(&eb);return pr;}result=reduce(ast);ncanon(result,&rb);snprintf(pr.shape,sizeof(pr.shape),"sexpr");nfree(ast);}
+    else{result=reduce(c.root);ncanon(result,&rb);}
+    pr.accepted=1; pr.receipt=generate_receipt(line,rb.data,cycle); pr.result_canon=rb.data?xstrdup(rb.data):xstrdup(""); bfree(&rb); nfree(result); if(has_omi)cfree(&c);
+    uint64_t rh=fnv1a64((const unsigned char*)pr.result_canon,strlen(pr.result_canon)); ring_store(rh,pr.receipt); return pr;
+}
+
+static void handle_signal(int sig) { (void)sig; ring_save(); g_running=0; }
+
+/* ─── Write ring in OMIRING1 format ─── */
+static int write_ring_omi(const char *path) {
+    FILE *f=fopen(path,"wb"); if(!f)return 0;
+    fwrite("OMIRING1",1,8,f);
+    for(size_t i=0;i<8;i++){unsigned char z=0;fwrite(&z,1,1,f);}
+    for(size_t i=0;i<RING_SIZE;i++){uint64_t v=ring[i].hash;fwrite(&v,8,1,f);}
+    fclose(f); return 1;
+}
+
+/* ─── Main ─── */
+int main(int argc, char **argv) {
+    signal(SIGINT,handle_signal); signal(SIGTERM,handle_signal);
+    ring_load();
+
+    if(argc>1){
+        if(strcmp(argv[1],"--eval")==0&&argc>2){
+            SxResult pr=process_sexpr(argv[2],g_cycle); g_cycle++;
+            printf("%s\n",pr.receipt); int ok=pr.accepted; sx_free(&pr); return ok?0:1;
+        }
+        if(strcmp(argv[1],"--repl")==0){
+            printf("OPENCORE SEED v2\n"); char line[8192];
+            while(g_running&&fgets(line,sizeof(line),stdin)){size_t llen=strlen(line);if(llen>0&&line[llen-1]=='\n')line[llen-1]=0;if(strcmp(line,":quit")==0)break;if(strcmp(line,":ring")==0){ring_dump();continue;}if(line[0]==0)continue;g_cycle++;SxResult pr=process_sexpr(line,g_cycle);if(pr.accepted)printf("ACCEPT cyc=%llu shape=%s ev=%zu res=%s\n%s\n",(unsigned long long)g_cycle,pr.shape,pr.events,pr.result_canon,pr.receipt);else printf("REJECT cyc=%llu %s\n",(unsigned long long)g_cycle,pr.receipt);sx_free(&pr);}
+            ring_save(); return 0;
+        }
+        if(strcmp(argv[1],"--ring")==0){ring_dump();return 0;}
+        if(strcmp(argv[1],"--boot")==0){
+            CpuState cpu; cpu_init(&cpu);
+            for(int i=0;i<BOOT_COUNT;i++){OmiInst inst;if(!parse_omi_addr(BOOT_ROM[i],&inst)){printf("boot: parse fail at %d\n",i);return 1;}cpu_run(&cpu,&inst);printf("boot[%d] opcode=0x%04x pc=%u car=0x%08x cdr=0x%08x pay=0x%08x epoch=%llu\n",i,inst.s3,cpu.pc,cpu.car_reg,cpu.cdr_reg,cpu.payload,(unsigned long long)cpu.epoch);if(cpu.halted)break;}
+            printf("boot done pc=%u epoch=%llu\n",cpu.pc,(unsigned long long)cpu.epoch); return 0;
+        }
+        if(strcmp(argv[1],"--auto")==0){
+            printf("OPENCORE v2 — autonomous ring mode\n");
+            uint64_t rounds=0; uint16_t last=0; const char *stop="running";
+            CpuState cpu; cpu_init(&cpu);
+            for(int i=0;i<BOOT_COUNT;i++){OmiInst inst;if(!parse_omi_addr(BOOT_ROM[i],&inst)){stop="boot-fail";break;}cpu_run(&cpu,&inst);if(cpu.halted)break;}
+            printf("boot: pc=%u epoch=%llu\n",cpu.pc,(unsigned long long)cpu.epoch);
+            if(strcmp(stop,"boot-fail")==0){printf("boot failed\n");ring_save();return 1;}
+            stop="running"; cpu.halted=0;
+
+            /* Pre-fill ring from CPU state */
+            ring[ring_idx()].hash=cpu.payload;
+            ring[ring_idx()].cycle=g_cycle++;
+            ring_save();
+
+            while(g_running){
+                uint16_t xf=ring_xor_fold();
+                uint16_t sf=ring_sum_fold();
+                uint16_t rf=ring_rot_fold();
+                uint16_t base_x=u16(xf^rotl16(sf,(uint16_t)(g_cycle&15)));
+                uint16_t base_y=u16(rf^delta16(sf,xf));
+                /* Fano plane routing: derive point from ring folds, select opcode via incidence */
+                int fano_pt = u16(xf ^ sf) % 7;
+                int fano_line = 0;
+                for (int fi = 0; fi < 7; fi++) {
+                    if (FANO_LINES[fi][0] == fano_pt || FANO_LINES[fi][1] == fano_pt || FANO_LINES[fi][2] == fano_pt) {
+                        fano_line = fi; break;
+                    }
+                }
+                static const uint16_t opcodes[]={0x0001,0x0002,0x0003,0x0004,0x0005,0x0006,0x0007,0x0008,0x0009,0x000d,0x000e};
+                uint8_t opcode_idx = (uint8_t)(((unsigned)fano_line * 3u + (unsigned)(rf % 3u)) % 11u);
+                uint16_t opc=opcodes[opcode_idx];
+                uint16_t x=u16(base_x^rotl16(u16(g_cycle),opc));
+                uint16_t y=u16(base_y^rotr16(u16(g_cycle),opc));
+
+                OmiInst inst; memset(&inst,0,sizeof(inst));
+                inst.s0=u16(g_cycle); inst.s1=u16(rounds); inst.s2=u16(g_cycle%RING_SIZE); inst.s3=opc;
+                inst.s4=x; inst.s5=y; inst.s6=u16(x^y^opc); inst.s7=delta16(x,y);
+                inst.payload=((uint32_t)x<<16)|y;
+                inst.mask=((uint32_t)inst.s6<<16)|inst.s7;
+                inst.car=((uint32_t)inst.s0<<16)|inst.s1;
+                inst.cdr=((uint32_t)inst.s2<<16)|inst.s3;
+
+                uint16_t result=execute_omi_op(&inst);
+
+                char line_buf[256]; snprintf(line_buf,sizeof(line_buf),"0x%04x-0x%04x-0x%04x-0x%04x/0x%04x/0x%04x/0x%04x/0x%04x?0x%08x?0x%08x@0x%08x@0x%08x",
+                    inst.s0,inst.s1,inst.s2,inst.s3,inst.s4,inst.s5,inst.s6,inst.s7,inst.payload,inst.mask,inst.car,inst.cdr);
+
+                SxResult pr=process_sexpr(line_buf,g_cycle);
+                TwinGeometry twin=resolve_hopf_ququart_route(
+                    (int)(g_cycle%11), (int)(xf%4), (int)(rf%4),
+                    (int)((xf^rf)%7), (int)(sf%3));
+                twin.cycle=g_cycle; twin.result=result; twin.opcode=opc;
+                twin.xf=xf; twin.sf=sf; twin.rf=rf;
+                printf("AUTO cyc=%llu round=%llu op=0x%04x x=0x%04x y=0x%04x res=0x%04x xf=0x%04x sf=0x%04x rf=0x%04x\n",
+                    (unsigned long long)g_cycle,(unsigned long long)rounds,opc,x,y,result,xf,sf,rf);
+                printf("  twin: slot5040=%d frame=%d fano=%d role=%d cell=(%d,%d) hopf=(%d,%d,%d)\n",
+                    twin.slot5040, twin.frame_type, twin.fano7, twin.role3,
+                    twin.polybius_row, twin.polybius_col, twin.a, twin.b, twin.c);
+                printf("  %s\n",pr.receipt);
+                g_cycle++; rounds++; last=result; sx_free(&pr);
+
+                if(result==0){stop="zero";break;}
+                if(ring_has_receipt(result)){stop="repeat";break;}
+                if(g_cycle%RING_SIZE==0){stop="epoch";break;}
+
+                /* Check stdin non-blocking — physical carrier interrupt */
+                fd_set rfds; FD_ZERO(&rfds); FD_SET(0,&rfds);
+                struct timeval tv={0,0};
+                if(select(1,&rfds,NULL,NULL,&tv)>0){
+                    char buf[8192]; if(fgets(buf,sizeof(buf),stdin)){
+                        size_t llen=strlen(buf); if(llen>0&&buf[llen-1]=='\n')buf[llen-1]=0;
+                        if(strcmp(buf,":quit")==0)break;
+                        if(strcmp(buf,":ring")==0){ring_dump();continue;}
+                        if(buf[0]){SxResult sp=process_sexpr(buf,g_cycle);g_cycle++;if(sp.accepted)printf("EXT cyc=%llu %s\n%s\n",(unsigned long long)g_cycle,sp.result_canon,sp.receipt);else printf("EXT REJECT %s\n",sp.receipt);sx_free(&sp);}
+                    }
+                }
+            }
+            printf("auto stop=%s rounds=%llu cycles=%llu last=0x%04x\n",stop,(unsigned long long)rounds,(unsigned long long)g_cycle,last);
+            write_ring_omi("omi.auto.ring"); ring_save(); return 0;
+        }
+        if(strcmp(argv[1],"--run")==0&&argc>2){
+            FILE *f=fopen(argv[2],"rb"); if(!f){perror("open");return 1;}
+            char line[8192];
+            while(g_running&&fgets(line,sizeof(line),f)){char *p=line;while(isspace((unsigned char)*p))p++;if(*p==0||*p==';')continue;line[strcspn(line,"\r\n")]=0;g_cycle++;SxResult pr=process_sexpr(p,g_cycle);if(pr.accepted)printf("ACCEPT cyc=%llu shape=%s res=%s\n%s\n",(unsigned long long)g_cycle,pr.shape,pr.result_canon,pr.receipt);else printf("REJECT cyc=%llu %s\n",(unsigned long long)g_cycle,pr.receipt);sx_free(&pr);}
+            fclose(f); ring_save(); return 0;
+        }
+        if(strcmp(argv[1],"--cpu")==0&&argc>2){
+            OmiInst inst; if(!parse_omi_addr(argv[2],&inst)){fprintf(stderr,"parse fail\n");return 1;}
+            CpuState cpu; cpu_init(&cpu); cpu_run(&cpu,&inst);
+            printf("pc=%u car=0x%08x cdr=0x%08x pay=0x%08x mask=0x%08x flags=0x%08x halted=%d epoch=%llu\n",
+                cpu.pc,cpu.car_reg,cpu.cdr_reg,cpu.payload,cpu.mask,cpu.flags,cpu.halted,(unsigned long long)cpu.epoch);
+            return 0;
+        }
+        if(strcmp(argv[1],"--geom")==0){
+            printf("OPENCORE v2 — Geometry Frame\n");
+            printf("Polybius 5x5: origin at (1,1)\n");
+            for(int i=0;i<4;i++){int r,c;polybius_get_low_ququart(i,&r,&c);printf("  low ququart[%d]=(%d,%d)\n",i,r,c);}
+            for(int i=0;i<4;i++){int r,c;polybius_get_high_ququart(i,&r,&c);printf("  high ququart[%d]=(%d,%d)\n",i,r,c);}
+            printf("  interior 4x4: (2..5, 2..5)\n");
+            printf("Fano plane lines:\n");
+            for(int i=0;i<7;i++)printf("  line %d: {%d,%d,%d}\n",i,FANO_LINES[i][0],FANO_LINES[i][1],FANO_LINES[i][2]);
+            printf("BQF(1,1)=%u BQF(2,3)=%u\n",bqf32(1,1),bqf32(2,3));
+            printf("Frame constant: 0x%08x\n",OMI_FRAME);
+            printf("Delta(0x5A3C)=0x%04x\n",delta16(0x5A3C,0x5A3C));
+            printf("QuQuart phases: US=%02x GS=%02x RS=%02x FS=%02x\n",QUQUART_PHASE[0],QUQUART_PHASE[1],QUQUART_PHASE[2],QUQUART_PHASE[3]);
+            printf("5040 slot(fano=2,role=1,local=17)=%u\n",compute_slot5040(2,1,17));
+            return 0;
+        }
+        if(strcmp(argv[1],"--render-frame")==0){render_frame_json();return 0;}
+        if(strcmp(argv[1],"--render-ppm")==0){render_ppm();return 0;}
+        if(strcmp(argv[1],"--twin")==0){
+            printf("OPENCORE v2 \342\200\224 digital twin universe\n");
+            uint16_t xf=ring_xor_fold(), sf=ring_sum_fold(), rf=ring_rot_fold();
+            printf("ring: filled=%d xor=0x%04x sum=0x%04x rot=0x%04x\n",
+                count_filled_ring_slots(), xf, sf, rf);
+            int frame_counts[4]={0}; uint64_t total=0;
+            for(size_t i=0;i<RING_SIZE;i++){
+                if(!ring[i].hash&&!ring[i].receipt[0])continue;
+                total++;
+                int opcode_idx=(int)(ring[i].hash%11);
+                static const uint16_t opcodes[]={0x0001,0x0002,0x0003,0x0004,0x0005,0x0006,0x0007,0x0008,0x0009,0x000d,0x000e};
+                uint16_t opc=(opcode_idx<11)?opcodes[opcode_idx]:0;
+                uint16_t result=(uint16_t)(ring[i].hash&0xFFFF);
+                TwinGeometry g=resolve_hopf_ququart_route(
+                    (int)(ring[i].cycle%11),
+                    (int)(ring[i].hash%4),
+                    (int)((ring[i].hash>>8)%4),
+                    (int)((ring[i].cycle+ring[i].hash)%7),
+                    (int)(ring[i].hash%3));
+                g.cycle=ring[i].cycle; g.result=result; g.opcode=opc;
+                g.xf=xf; g.sf=sf; g.rf=rf;
+                if(g.frame_type>=0&&g.frame_type<4)frame_counts[g.frame_type]++;
+                if(total<=10||ring[i].cycle==g_cycle-1)print_twin_geometry(&g);
+            }
+            printf("twin: total=%llu frames: US=%d GS=%d RS=%d FS=%d\n",
+                (unsigned long long)total,frame_counts[0],frame_counts[1],frame_counts[2],frame_counts[3]);
+            printf("twin: hopf flux=(%d,%d,%d)\n",(int)(xf%7),(int)(sf%7),(int)(rf%7));
+            return 0;
+        }
+        if(strcmp(argv[1],"--seed")==0&&argc>2){
+            FILE *f=fopen(argv[2],"wb"); if(!f){perror("create");return 1;}
+            fwrite("OMIBIN1\0",1,8,f); uint32_t c32=(uint32_t)BOOT_COUNT; fwrite(&c32,4,1,f);
+            for(int i=0;i<BOOT_COUNT;i++){OmiInst inst;parse_omi_addr(BOOT_ROM[i],&inst);fwrite(&inst,32,1,f);}
+            fclose(f); printf("seed=%s instructions=%d\n",argv[2],BOOT_COUNT); return 0;
+        }
+        if(strcmp(argv[1],"--help")==0||strcmp(argv[1],"-h")==0){
+            printf("OPENCORE v2 \342\200\224 deterministic autonomous AGI seed\n");
+            printf("Usage: opencode.bin [mode] [args]\n");
+            printf("Modes:\n");
+            printf("  (no args)     autonomous: self-generates from ring + stdin\n");
+            printf("  --eval <s>    evaluate S-expression, print receipt\n");
+            printf("  --repl        interactive S-expression REPL\n");
+            printf("  --auto        autonomous ring mode (self-generating)\n");
+            printf("  --boot        run boot sequence (9-stage init)\n");
+            printf("  --run <file>  process OMI address lines from file\n");
+            printf("  --cpu <addr>  execute OMI address on nibble CPU\n");
+            printf("  --geom        print geometry frame (Polybius/Fano/BQF)\n");
+            printf("  --seed <path> write packed boot ROM binary\n");
+            printf("  --ring        dump persistent receipt ring\n");
+            printf("  --watch       monitor ring evolution live\n");
+            printf("  --twin        display digital twin universe geometry\n");
+            printf("  --render-frame  output twin geometry as JSON frame\n");
+            printf("  --render-ppm    output Polybius grid as PPM image\n");
+            printf("  --help        this message\n");
+            return 0;
+        }
+        if(strcmp(argv[1],"--watch")==0){
+            printf("OPENCORE v2 \342\200\224 ring watcher\n");
+            ring_dump();
+            RingSlot *prev=malloc(sizeof(ring)); if(!prev)return 1;
+            while(g_running){
+                memcpy(prev,ring,sizeof(ring));
+                fd_set rfds; FD_ZERO(&rfds); FD_SET(0,&rfds);
+                struct timeval tv={1,0};
+                if(select(1,&rfds,NULL,NULL,&tv)>0){
+                    char buf[256]; if(fgets(buf,sizeof(buf),stdin)){
+                        size_t llen=strlen(buf); if(llen>0&&buf[llen-1]=='\n')buf[llen-1]=0;
+                        if(strcmp(buf,":quit")==0)break;
+                        if(strcmp(buf,":ring")==0){ring_dump();continue;}
+                        printf("unknown command: %s\n",buf);
+                    }
+                }
+                int fd=open(RING_FILE,O_RDONLY); if(fd<0)continue;
+                ssize_t rv=read(fd,ring,sizeof(ring)); close(fd);
+                if(rv!=(ssize_t)sizeof(ring))continue;
+                int new_count=0;
+                for(size_t i=0;i<RING_SIZE;i++){
+                    if(ring[i].hash!=prev[i].hash||strcmp(ring[i].receipt,prev[i].receipt)){
+                        if(ring[i].hash||ring[i].receipt[0]){
+                            printf("NEW[%zu] cyc=%llu h=0x%016llx %s\n",i,
+                                (unsigned long long)ring[i].cycle,(unsigned long long)ring[i].hash,ring[i].receipt);
+                            new_count++;
+                        }
+                    }
+                }
+                size_t filled=0; uint64_t min_cyc=UINT64_MAX,max_cyc=0;
+                for(size_t i=0;i<RING_SIZE;i++){if(ring[i].hash||ring[i].receipt[0]){filled++;if(ring[i].cycle<min_cyc)min_cyc=ring[i].cycle;if(ring[i].cycle>max_cyc)max_cyc=ring[i].cycle;}}
+                if(new_count||filled)printf("watch: filled=%zu min=%llu max=%llu changes=%d\n",filled,
+                    (unsigned long long)(min_cyc==UINT64_MAX?0:min_cyc),(unsigned long long)max_cyc,new_count);
+            }
+            free(prev); return 0;
+        }
+        {SxResult pr=process_sexpr(argv[1],g_cycle);g_cycle++;printf("%s\n",pr.receipt);int ok=pr.accepted;sx_free(&pr);return ok?0:1;}
+    }
+
+    /* ─── Autonomous default mode: self-generate + stdin ─── */
+    printf("OPENCORE v2 \342\200\224 autonomous AGI seed\n");
+    printf("Self-generating from ring memory. External proposals accepted.\n");
+    CpuState cpu; cpu_init(&cpu);
+    for(int i=0;i<BOOT_COUNT;i++){OmiInst inst;if(parse_omi_addr(BOOT_ROM[i],&inst))cpu_run(&cpu,&inst);}
+    ring[ring_idx()].hash=OMI_FRAME; ring[ring_idx()].cycle=g_cycle++;
+
+    while(g_running){
+        uint16_t xf=ring_xor_fold();
+        uint16_t sf=ring_sum_fold();
+        uint16_t rf=ring_rot_fold();
+        uint16_t base_x=u16(xf^rotl16(sf,(uint16_t)(g_cycle&15)));
+        uint16_t base_y=u16(rf^delta16(sf,xf));
+        int fano_pt = u16(xf ^ sf) % 7;
+        int fano_line = 0;
+        for (int fi = 0; fi < 7; fi++) {
+            if (FANO_LINES[fi][0] == fano_pt || FANO_LINES[fi][1] == fano_pt || FANO_LINES[fi][2] == fano_pt) {
+                fano_line = fi; break;
+            }
+        }
+        static const uint16_t opcodes[]={0x0001,0x0002,0x0003,0x0004,0x0005,0x0006,0x0007,0x0008,0x0009,0x000d,0x000e};
+        uint8_t opcode_idx = (uint8_t)(((unsigned)fano_line * 3u + (unsigned)(rf % 3u)) % 11u);
+        uint16_t opc=opcodes[opcode_idx];
+        uint16_t x=u16(base_x^rotl16(u16(g_cycle),opc));
+        uint16_t y=u16(base_y^rotr16(u16(g_cycle),opc));
+        OmiInst inst; memset(&inst,0,sizeof(inst));
+        inst.s0=u16(g_cycle); inst.s1=0; inst.s2=u16(g_cycle%RING_SIZE); inst.s3=opc;
+        inst.s4=x; inst.s5=y; inst.s6=u16(x^y^opc); inst.s7=delta16(x,y);
+        inst.payload=((uint32_t)x<<16)|y; inst.mask=((uint32_t)inst.s6<<16)|inst.s7;
+        inst.car=((uint32_t)inst.s0<<16)|inst.s1; inst.cdr=((uint32_t)inst.s2<<16)|inst.s3;
+        uint16_t result=execute_omi_op(&inst);
+
+        char lb[256]; snprintf(lb,sizeof(lb),"0x%04x-0x%04x-0x%04x-0x%04x/0x%04x/0x%04x/0x%04x/0x%04x?0x%08x?0x%08x@0x%08x@0x%08x",
+            inst.s0,inst.s1,inst.s2,inst.s3,inst.s4,inst.s5,inst.s6,inst.s7,inst.payload,inst.mask,inst.car,inst.cdr);
+        SxResult pr=process_sexpr(lb,g_cycle);
+        printf("AGI cyc=%llu op=0x%04x res=0x%04x xf=0x%04x %s\n",
+            (unsigned long long)g_cycle,opc,result,xf,pr.result_canon);
+
+        g_cycle++;
+        if(result==0)break;
+        if(ring_has_receipt(result))break;
+        sx_free(&pr);
+
+        fd_set rfds; FD_ZERO(&rfds); FD_SET(0,&rfds);
+        struct timeval tv={0,0};
+        if(select(1,&rfds,NULL,NULL,&tv)>0){
+            char buf[8192]; if(fgets(buf,sizeof(buf),stdin)){
+                size_t llen=strlen(buf); if(llen>0&&buf[llen-1]=='\n')buf[llen-1]=0;
+                if(strcmp(buf,":quit")==0)break;
+                if(strcmp(buf,":ring")==0){ring_dump();continue;}
+                if(buf[0]){SxResult sp=process_sexpr(buf,g_cycle);g_cycle++;printf("EXT %s\n",sp.receipt);sx_free(&sp);}
+            }
+        }
+    }
+    write_ring_omi("omi.auto.ring"); ring_save(); return 0;
+}
