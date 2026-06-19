@@ -38,6 +38,7 @@ This matrix lists quick checks for the current runtime modes. Run from the repos
 | Check | Command | Expected result |
 | --- | --- | --- |
 | Geometry constants | `./opencode.bin --geom` | Prints Polybius/Fano/BQF constants |
+| Geometry checks | `./opencode.bin --check` | Validates incidence, shape tables, and solid lookup reachability |
 | Twin summary | `./opencode.bin --twin` | Prints ring folds and frame counts |
 | JSON frame | `./opencode.bin --render-frame > /tmp/frame.json` | Writes JSON frame |
 | PPM frame | `./opencode.bin --render-ppm > /tmp/frame.ppm` | Writes binary PPM image |
@@ -57,6 +58,7 @@ gcc -O2 -Wall -Wextra -Wno-misleading-indentation -o opencode.bin opencode.c -lm
 ./opencode.bin --help
 ./opencode.bin --eval '(cons 1 2)'
 ./opencode.bin --geom
+./opencode.bin --check
 ./opencode.bin --boot
 ./opencode.bin --twin
 ./opencode.bin --render-frame > /tmp/frame.json

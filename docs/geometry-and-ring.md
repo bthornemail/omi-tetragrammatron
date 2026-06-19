@@ -61,7 +61,7 @@ The Fano lines are:
 {1,4,6}
 {2,3,6}
 {2,4,5}
-{3,4,0}
+{0,5,6}
 ```
 
 ## BQF bridge
@@ -108,3 +108,13 @@ a = round(2(qxqz + qwqy))
 b = round(2(qyqz - qwqx))
 c = round(1 - 2(qx² + qy²))
 ```
+
+
+## Tetrahedral π carry
+
+The geometry model now documents π as a tetrahedron-derived carry between the discrete OMI address lattice and smooth sphere/Hopf projection. The current implementation still uses `TWIN_PI` for projection, but the intended model direction is to derive the carry from tetrahedral edge/face traversal and exact sexagesimal-friendly rational steps. See [Tetrahedral π carry](tetrahedral-pi.md).
+
+
+## Deterministic geometry checks
+
+The deterministic geometry update adds `--check` validation for Fano plane consistency, CONFIG_MATRIX to SHAPE_DB mapping, edge/vertex integrity, and solid lookup reachability. The corrected Fano line `{0,5,6}` completes the seven-line incidence system without duplicating `{0,3,4}`. See [Deterministic geometry validation](deterministic-geometry.md).

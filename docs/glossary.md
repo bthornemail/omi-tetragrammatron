@@ -59,6 +59,10 @@ FS
 
 A deterministic quaternion-derived projection used to produce a compact direction from base and fiber quadrants.
 
+## IMO
+
+A project term for the motion-projected or inverted perspective of an OMI address, where a discrete address is carried into smooth geometric projection.
+
 ## Nibble CPU
 
 A small CPU that interprets nibbles extracted from OMI address segments as 4-bit opcodes.
@@ -90,3 +94,24 @@ A geometry slot derived from Fano point, role, and local BQF value:
 ```text
 slot5040 = fano7 * 720 + role3 * 240 + local240
 ```
+
+
+## Tetrahedral π carry
+
+The project interpretation of π as a deterministic carry-forward process derived from tetrahedral edge/face traversal, bridging discrete OMI address states and smooth circular or spherical projection.
+
+## CONFIG_MATRIX
+
+A deterministic geometry table that maps configuration state into shape definitions and is validated against `SHAPE_DB` by `--check`.
+
+## OmiRelEdge
+
+A shape relation edge whose endpoints are citations. It replaces the older `E2` name to make edge records explicit in the OMI geometry model.
+
+## SHAPE_DB
+
+The deterministic shape database containing solid vertices, faces, and relation edges. Its integrity is checked with incidence, degree, and Euler-style validations.
+
+## tetra_golden_ratio
+
+A deterministic recurrence-derived φ calculation using repeated `x = 1 + 1 / x`, replacing direct import of the closed-form `sqrt(5)` expression in the geometry path.
