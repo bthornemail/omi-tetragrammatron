@@ -1,7 +1,7 @@
 /* Pure JS TwinGeometry decoder — deterministic, mirrors opencode.c */
 
 const FANO_LINES = [
-  [0,1,2],[0,3,4],[1,3,5],[1,4,6],[2,3,6],[2,4,5],[3,4,0]
+  [0,1,2],[0,3,4],[0,5,6],[1,3,5],[1,4,6],[2,3,6],[2,4,5]
 ];
 
 const QUQUART_PHASE = [0x1f, 0x1d, 0x1e, 0x1c];
@@ -9,7 +9,12 @@ const FRAME_NAMES = ['US','GS','RS','FS'];
 
 /* ─── Solid geometry (mirrors opencode.c seed shapes) ─── */
 
-const PHI = (1 + Math.sqrt(5)) / 2;
+function tetraGoldenRatio() {
+  let x = 2.0;
+  for (let i = 0; i < 48; i++) x = 1.0 + 1.0 / x;
+  return x;
+}
+const PHI = tetraGoldenRatio();
 const PSI = 1 / PHI;
 
 function v3(x,y,z) { return {x,y,z}; }
@@ -136,8 +141,32 @@ const SOLID_DB = {
   }
 };
 
+let solidCache = {};
+
 function getSolidGeometry(id) {
   return SOLID_DB[id] || SOLID_DB[0];
+}
+
+/* Fetch solid geometry from C --serve /solid endpoint */
+async function fetchSolid(id) {
+  if (solidCache[id]) return solidCache[id];
+  try {
+    const res = await fetch('/solid?id=' + id);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const verts = [];
+    for (let i = 0; i < data.verts.length; i += 3)
+      verts.push({x: data.verts[i], y: data.verts[i+1], z: data.verts[i+2]});
+    const edges = [];
+    for (let i = 0; i < data.edges.length; i += 2)
+      edges.push({a: data.edges[i], b: data.edges[i+1]});
+    const solid = {name: data.name, verts, edges};
+    solidCache[id] = solid;
+    return solid;
+  } catch (e) {
+    console.warn('fetchSolid(' + id + ') failed, falling back to SOLID_DB:', e);
+    return getSolidGeometry(id);
+  }
 }
 
 function getSolidId(name) {

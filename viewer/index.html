@@ -105,16 +105,16 @@ window.THREE.OrbitControls = OrbitControls;
 
   const loader = new RingLoader('');
 
-  /* Load initial frame, then poll */
+  /* Load initial frame, then stream via WS/SSE */
   async function init() {
     try {
       const frame = await loader.fetchFrame();
       viewer.update(frame);
     } catch (e) {
-      console.log('Initial fetch failed, will retry...');
+      console.log('Initial fetch failed, will retry via stream...');
     }
     loader.onUpdate(frame => viewer.update(frame));
-    loader.pollFrame(2000);
+    loader.connect();  /* auto-detect: WS → SSE → polling */
   }
   init();
 

@@ -71,7 +71,7 @@ class TwinViewer {
     this.buildSpiralPath();
     this.buildAxes();
     this.buildSmithChart();
-    this.buildSolidGeometry(5); /* Start with Icosahedron */
+    this.buildSolidGeometry(5).catch(e => console.warn('Initial solid load:', e));
 
     window.addEventListener('resize', () => this.onResize());
   }
@@ -355,7 +355,7 @@ class TwinViewer {
     }
   }
 
-  buildSolidGeometry(solidId) {
+  async buildSolidGeometry(solidId) {
     /* Remove old solid mesh */
     while (this.solidGroup.children.length > 0) {
       const c = this.solidGroup.children[0];
@@ -364,7 +364,7 @@ class TwinViewer {
       if (c.material) c.material.dispose();
     }
 
-    const solid = getSolidGeometry(solidId);
+    const solid = await fetchSolid(solidId);
     if (!solid || !solid.verts || !solid.edges) return;
     this.currentSolidId = solidId;
 
@@ -438,9 +438,9 @@ class TwinViewer {
     this.solidGroup.position.set(-3, 1.5, -2);
   }
 
-  updateSolidGeometry(solidId, hv, he) {
+  async updateSolidGeometry(solidId, hv, he) {
     if (solidId !== this.currentSolidId) {
-      this.buildSolidGeometry(solidId);
+      await this.buildSolidGeometry(solidId);
     }
     if (!this.solidVerts || !this.solidVerts.length) return;
 

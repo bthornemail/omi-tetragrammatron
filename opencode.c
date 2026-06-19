@@ -1277,6 +1277,119 @@ static void render_obj(const TwinGeometry *g) {
     }
 }
 
+/* ─── base64 encoder ─── */
+static void b64_encode(const unsigned char *in, size_t len, char *out) {
+    static const char *chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    size_t i;
+    for (i = 0; i < len; i += 3) {
+        unsigned v = (unsigned)in[i] << 16;
+        if (i+1 < len) v |= (unsigned)in[i+1] << 8;
+        if (i+2 < len) v |= (unsigned)in[i+2];
+        *out++ = chars[(v >> 18) & 0x3f];
+        *out++ = chars[(v >> 12) & 0x3f];
+        *out++ = i+1 < len ? chars[(v >> 6) & 0x3f] : '=';
+        *out++ = i+2 < len ? chars[v & 0x3f] : '=';
+    }
+    *out = 0;
+}
+
+/* ─── SHA-1 (FIPS 180-4) for WebSocket handshake ─── */
+static void sha1(const unsigned char *msg, size_t len, unsigned char out[20]) {
+    uint32_t h[5] = {0x67452301,0xEFCDAB89,0x98BADCFE,0x10325476,0xC3D2E1F0};
+    size_t blen = ((len + 9 + 63) / 64) * 64;
+    unsigned char *buf = (unsigned char *)xmalloc(blen);
+    if (!buf) return;
+    memset(buf, 0, blen); memcpy(buf, msg, len);
+    buf[len] = 0x80;
+    uint64_t bits = (uint64_t)len * 8;
+    for (int i = 0; i < 8; i++) buf[blen - 8 + i] = (unsigned char)(bits >> (56 - i * 8));
+    for (size_t off = 0; off < blen; off += 64) {
+        uint32_t w[80];
+        for (int i = 0; i < 16; i++)
+            w[i] = ((uint32_t)buf[off+i*4]<<24)|((uint32_t)buf[off+i*4+1]<<16)|((uint32_t)buf[off+i*4+2]<<8)|buf[off+i*4+3];
+        for (int i = 16; i < 80; i++) {
+            uint32_t t = w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16];
+            w[i] = (t << 1) | (t >> 31);
+        }
+        uint32_t a = h[0], b = h[1], c = h[2], d = h[3], e = h[4];
+        for (int i = 0; i < 80; i++) {
+            uint32_t f, k;
+            if (i < 20) { f = (b & c) | ((~b) & d); k = 0x5A827999; }
+            else if (i < 40) { f = b ^ c ^ d; k = 0x6ED9EBA1; }
+            else if (i < 60) { f = (b & c) | (b & d) | (c & d); k = 0x8F1BBCDC; }
+            else { f = b ^ c ^ d; k = 0xCA62C1D6; }
+            uint32_t temp = ((a << 5) | (a >> 27)) + f + e + k + w[i];
+            e = d; d = c; c = (b << 30) | (b >> 2); b = a; a = temp;
+        }
+        h[0] += a; h[1] += b; h[2] += c; h[3] += d; h[4] += e;
+    }
+    for (int i = 0; i < 5; i++) { out[i*4] = (unsigned char)(h[i]>>24); out[i*4+1]=(unsigned char)(h[i]>>16); out[i*4+2]=(unsigned char)(h[i]>>8); out[i*4+3]=(unsigned char)h[i]; }
+    free(buf);
+}
+
+/* ─── glTF 2.0 wireframe renderer ─── */
+static void render_gltf(void) {
+    uint16_t xf=ring_xor_fold(), sf=ring_sum_fold(), rf=ring_rot_fold();
+    uint64_t rh = ring[g_cycle % RING_SIZE].hash;
+    TwinGeometry tg = resolve_hopf_ququart_route(
+        (int)(g_cycle%11), (int)(xf%4), (int)(rf%4),
+        (int)((xf^rf)%7), (int)(sf%3), rh);
+    const ShapeDef *shape = tg.solid.shape;
+    if (!shape || !shape->edges || shape->nverts == 0) { printf("{}"); return; }
+    int si = (int)(shape - SHAPE_DB);
+    int nv = shape->nverts, ne = shape->nedges;
+    double rot[3][3];
+    quat_to_rot(tg.qw, tg.qx, tg.qy, tg.qz, rot);
+
+    int vlen = nv * 12, elen = ne * 4, blen = vlen + elen;
+    unsigned char *bin = (unsigned char *)xmalloc((size_t)blen);
+    uint16_t *ei = (uint16_t *)(bin + vlen);
+
+    double minv[3] = {1e9,1e9,1e9}, maxv[3] = {-1e9,-1e9,-1e9};
+    for (int i = 0; i < nv; i++) {
+        double x, y, z;
+        resolve_vertex(si, i, &x, &y, &z);
+        double rx = rot[0][0]*x + rot[0][1]*y + rot[0][2]*z;
+        double ry = rot[1][0]*x + rot[1][1]*y + rot[1][2]*z;
+        double rz = rot[2][0]*x + rot[2][1]*y + rot[2][2]*z;
+        float fv[3] = {(float)rx, (float)ry, (float)rz};
+        memcpy(bin + i*12, fv, 12);
+        for (int j = 0; j < 3; j++) {
+            if (fv[j] < minv[j]) minv[j] = fv[j];
+            if (fv[j] > maxv[j]) maxv[j] = fv[j];
+        }
+    }
+    for (int i = 0; i < ne; i++) {
+        ei[i*2] = (uint16_t)shape->edges[i].a;
+        ei[i*2+1] = (uint16_t)shape->edges[i].b;
+    }
+
+    size_t b64len = ((size_t)blen + 2) / 3 * 4 + 1;
+    char *b64 = (char *)xmalloc(b64len);
+    b64_encode(bin, (size_t)blen, b64);
+    free(bin);
+
+    printf("{\"asset\":{\"version\":\"2.0\",\"generator\":\"opencode\"},"
+           "\"scene\":0,\"scenes\":[{\"nodes\":[0]}],"
+           "\"nodes\":[{\"mesh\":0}],"
+           "\"meshes\":[{\"primitives\":[{\"mode\":1,"
+           "\"attributes\":{\"POSITION\":0},\"indices\":1}]}],"
+           "\"accessors\":["
+           "{\"bufferView\":0,\"componentType\":5126,\"count\":%d,"
+           "\"type\":\"VEC3\",\"min\":[%.6f,%.6f,%.6f],\"max\":[%.6f,%.6f,%.6f]},"
+           "{\"bufferView\":1,\"componentType\":5123,\"count\":%d,"
+           "\"type\":\"SCALAR\",\"min\":[0],\"max\":[%d]}"
+           "],"
+           "\"bufferViews\":["
+           "{\"buffer\":0,\"byteOffset\":0,\"byteLength\":%d},"
+           "{\"buffer\":0,\"byteOffset\":%d,\"byteLength\":%d}"
+           "],"
+           "\"buffers\":[{\"byteLength\":%d,\"uri\":\"data:application/octet-stream;base64,%s\"}]}\n",
+           nv, minv[0], minv[1], minv[2], maxv[0], maxv[1], maxv[2],
+           ne*2, nv-1, vlen, vlen, elen, blen, b64);
+    free(b64);
+}
+
 /* ─── Boot ROM ─── */
 static const char *BOOT_ROM[] = {
     "0x0000-0x0000-0x0000-0x0000/0x0000/0x0000/0x0000/0x0000?0x00000000?0x00000000@0x00000000@0x00000000",
@@ -1440,6 +1553,132 @@ static void serve_ring_json(int fd) {
     bfree(&b);
 }
 
+/* ─── Stream client management (SSE + WebSocket) ─── */
+#define MAX_STREAM_CLIENTS 16
+typedef struct { int fd; int type; } StreamClient;  /* type 0=SSE, 1=WS */
+static StreamClient stream_clients[MAX_STREAM_CLIENTS];
+static int stream_client_count = 0;
+
+static void add_stream_client(int fd, int type) {
+    if (stream_client_count >= MAX_STREAM_CLIENTS) { close(fd); return; }
+    stream_clients[stream_client_count].fd = fd;
+    stream_clients[stream_client_count].type = type;
+    stream_client_count++;
+}
+
+static void remove_stream_client(int idx) {
+    close(stream_clients[idx].fd);
+    stream_clients[idx] = stream_clients[--stream_client_count];
+}
+
+static void push_frame_to_clients(void) {
+    if (stream_client_count == 0) return;
+    static const char *tmp = "/tmp/omi_frame.json";
+    int saved = dup(STDOUT_FILENO);
+    int tf = open(tmp, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (tf < 0) { close(saved); return; }
+    dup2(tf, STDOUT_FILENO); close(tf);
+    render_frame_json();
+    fflush(stdout);
+    dup2(saved, STDOUT_FILENO); close(saved);
+    int rf = open(tmp, O_RDONLY);
+    if (rf < 0) return;
+    off_t flen = lseek(rf, 0, SEEK_END); lseek(rf, 0, SEEK_SET);
+    if (flen <= 0) { close(rf); return; }
+    char *buf = (char *)xmalloc((size_t)flen + 1);
+    ssize_t n = read(rf, buf, (size_t)flen); close(rf);
+    if (n <= 0) { free(buf); return; }
+    buf[n] = 0;
+    for (int i = stream_client_count - 1; i >= 0; i--) {
+        int fd = stream_clients[i].fd;
+        if (stream_clients[i].type == 0) {
+            char sse_buf[65536];
+            int slen = snprintf(sse_buf, sizeof(sse_buf), "data: %s\n\n", buf);
+            if (write(fd, sse_buf, (size_t)slen) < 0) remove_stream_client(i);
+        } else {
+            size_t plen = (size_t)n;
+            uint8_t ws_hdr[10]; size_t hdr_len;
+            if (plen < 126) {
+                ws_hdr[0] = 0x81; ws_hdr[1] = (uint8_t)plen; hdr_len = 2;
+            } else if (plen < 65536) {
+                ws_hdr[0] = 0x81; ws_hdr[1] = 126;
+                ws_hdr[2] = (uint8_t)(plen >> 8); ws_hdr[3] = (uint8_t)(plen & 0xFF); hdr_len = 4;
+            } else {
+                ws_hdr[0] = 0x81; ws_hdr[1] = 127; uint64_t pl64 = (uint64_t)plen;
+                for (int j = 0; j < 8; j++) ws_hdr[2+j] = (uint8_t)(pl64 >> (56 - j*8));
+                hdr_len = 10;
+            }
+            if (write(fd, ws_hdr, hdr_len) < 0 || write(fd, buf, plen) < 0) remove_stream_client(i);
+        }
+    }
+    free(buf);
+}
+
+/* ─── /solid endpoint: returns vertex/edge arrays for a SHAPE_DB entry ─── */
+static void serve_solid_json(int fd, const char *path) {
+    int id = 0;
+    const char *q = strchr(path, '=');
+    if (q) id = atoi(q + 1);
+    if (id < 0 || id >= (int)SHAPE_DB_N) { http_404(fd); return; }
+    const ShapeDef *s = &SHAPE_DB[id];
+    Buffer b = {0}; char tmp[128];
+    snprintf(tmp, sizeof(tmp), "{\"id\":%d,\"name\":\"", id);
+    bappend(&b, tmp); jesc(&b, s->name);
+    snprintf(tmp, sizeof(tmp), "\",\"nverts\":%d,\"nedges\":%d,\"nfaces\":%d,\"verts\":[", s->nverts, s->nedges, s->nfaces);
+    bappend(&b, tmp);
+    for (int i = 0; i < s->nverts; i++) {
+        if (i) bappend(&b, ",");
+        double x, y, z; resolve_vertex(id, i, &x, &y, &z);
+        snprintf(tmp, sizeof(tmp), "%.10f,%.10f,%.10f", x, y, z);
+        bappend(&b, tmp);
+    }
+    bappend(&b, "],\"edges\":[");
+    for (int i = 0; i < s->nedges; i++) {
+        if (i) bappend(&b, ",");
+        snprintf(tmp, sizeof(tmp), "%u,%u", (unsigned)s->edges[i].a, (unsigned)s->edges[i].b);
+        bappend(&b, tmp);
+    }
+    snprintf(tmp, sizeof(tmp), "],\"schlafli\":[%d,%d]}", s->schlafli_p, s->schlafli_q);
+    bappend(&b, tmp);
+    http_ok(fd, "application/json;charset=utf-8", b.data, b.len);
+    bfree(&b);
+}
+
+/* ─── SSE endpoint: text/event-stream, periodic frame pushes ─── */
+static void serve_sse(int fd) {
+    const char *hdr = "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/event-stream\r\n"
+        "Cache-Control: no-cache\r\n"
+        "Connection: keep-alive\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
+        "\r\n";
+    write(fd, hdr, strlen(hdr));
+    add_stream_client(fd, 0);
+}
+
+/* ─── WebSocket endpoint: upgrade, then framed text pushes ─── */
+static void serve_ws(int fd, const char *req) {
+    const char *key_hdr = strstr(req, "Sec-WebSocket-Key:");
+    if (!key_hdr) { http_404(fd); return; }
+    key_hdr += 18;
+    while (*key_hdr && (*key_hdr == ' ' || *key_hdr == '\t')) key_hdr++;
+    char key[256]; int ki = 0;
+    while (*key_hdr && *key_hdr != '\r' && *key_hdr != '\n' && ki < 255) key[ki++] = *key_hdr++;
+    key[ki] = 0;
+    char concat[320]; int clen = snprintf(concat, sizeof(concat), "%s258EAFA5-E914-47DA-95CA-5AB5DC11D7B5", key);
+    unsigned char hash[20]; sha1((unsigned char*)concat, (size_t)clen, hash);
+    char accept_b64[64]; b64_encode(hash, 20, accept_b64);
+    char resp[512]; int rlen = snprintf(resp, sizeof(resp),
+        "HTTP/1.1 101 Switching Protocols\r\n"
+        "Upgrade: websocket\r\n"
+        "Connection: Upgrade\r\n"
+        "Sec-WebSocket-Accept: %s\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
+        "\r\n", accept_b64);
+    write(fd, resp, (size_t)rlen);
+    add_stream_client(fd, 1);
+}
+
 static void serve_http(int port) {
     int s = socket(AF_INET, SOCK_STREAM, 0);
     if (s < 0) { perror("socket"); return; }
@@ -1459,38 +1698,67 @@ static void serve_http(int port) {
     fprintf(stderr, "OPENCORE v2 — HTTP serve on http://127.0.0.1:%d\n", port);
     fprintf(stderr, "  /frame   — deterministic JSON frame\n");
     fprintf(stderr, "  /ring    — full ring dump\n");
+    fprintf(stderr, "  /solid   — solid geometry (e.g. /solid?id=5)\n");
+    fprintf(stderr, "  /events  — SSE frame stream\n");
+    fprintf(stderr, "  /ws      — WebSocket frame stream\n");
     fprintf(stderr, "  /        — WebGL viewer (index.html)\n");
     fflush(stderr);
 
+    int push_counter = 0;
     while (g_running) {
         fd_set rfds; FD_ZERO(&rfds); FD_SET(s, &rfds);
+        int maxfd = s;
+        for (int i = 0; i < stream_client_count; i++) {
+            FD_SET(stream_clients[i].fd, &rfds);
+            if (stream_clients[i].fd > maxfd) maxfd = stream_clients[i].fd;
+        }
         struct timeval tv = {1, 0};
-        if (select(s + 1, &rfds, NULL, NULL, &tv) <= 0) continue;
+        int sel = select(maxfd + 1, &rfds, NULL, NULL, &tv);
+        if (sel < 0) continue;
 
-        struct sockaddr_in cli;
-        socklen_t clen = sizeof(cli);
-        int c = accept(s, (struct sockaddr*)&cli, &clen);
-        if (c < 0) continue;
-
-        char req[BUFLEN];
-        ssize_t n = read(c, req, sizeof(req) - 1);
-        if (n > 0) {
-            req[n] = 0;
-            /* parse GET path */
-            char method[16], path[512];
-            method[0] = path[0] = 0;
-            sscanf(req, "%15s %511s", method, path);
-            if (strcmp(method, "GET") == 0) {
-                if (strcmp(path, "/frame") == 0) {
-                    serve_frame_json(c);
-                } else if (strcmp(path, "/ring") == 0) {
-                    serve_ring_json(c);
-                } else {
-                    serve_file(c, path);
-                }
+        for (int i = stream_client_count - 1; i >= 0; i--) {
+            int fd = stream_clients[i].fd;
+            if (FD_ISSET(fd, &rfds)) {
+                char dummy[64];
+                if (read(fd, dummy, sizeof(dummy)) <= 0) remove_stream_client(i);
             }
         }
-        close(c);
+
+        if (stream_client_count > 0) {
+            push_counter++;
+            if (push_counter >= 1) { push_frame_to_clients(); push_counter = 0; }
+        }
+
+        if (FD_ISSET(s, &rfds)) {
+            struct sockaddr_in cli;
+            socklen_t clen = sizeof(cli);
+            int c = accept(s, (struct sockaddr*)&cli, &clen);
+            if (c < 0) continue;
+
+            char req[BUFLEN];
+            ssize_t n = read(c, req, sizeof(req) - 1);
+            if (n > 0) {
+                req[n] = 0;
+                char method[16], path[512];
+                method[0] = path[0] = 0;
+                sscanf(req, "%15s %511s", method, path);
+                if (strcmp(method, "GET") == 0) {
+                    if (strcmp(path, "/frame") == 0) {
+                        serve_frame_json(c); close(c);
+                    } else if (strcmp(path, "/ring") == 0) {
+                        serve_ring_json(c); close(c);
+                    } else if (strcmp(path, "/events") == 0) {
+                        serve_sse(c); /* keeps fd open */
+                    } else if (strcmp(path, "/ws") == 0) {
+                        serve_ws(c, req); /* keeps fd open */
+                    } else if (strncmp(path, "/solid", 6) == 0) {
+                        serve_solid_json(c, path); close(c);
+                    } else {
+                        serve_file(c, path); close(c);
+                    }
+                } else close(c);
+            } else close(c);
+        }
     }
     close(s);
     fprintf(stderr, "serve: stopped\n");
@@ -1812,6 +2080,7 @@ int main(int argc, char **argv) {
             g.cycle=g_cycle; g.xf=xf; g.sf=sf; g.rf=rf;
             render_obj(&g); return 0;
         }
+        if(strcmp(argv[1],"--render-gltf")==0){render_gltf();return 0;}
         if(strcmp(argv[1],"--smith")==0){render_smith_svg();return 0;}
         if(strcmp(argv[1],"--twin")==0){
             printf("OPENCORE v2 \342\200\224 digital twin universe\n");
@@ -1872,6 +2141,7 @@ int main(int argc, char **argv) {
             printf("  --twin        display digital twin universe geometry\n");
             printf("  --render-frame  output twin geometry as JSON frame\n");
             printf("  --render-obj    output solid wireframe as OBJ\n");
+            printf("  --render-gltf  output solid wireframe as glTF 2.0\n");
             printf("  --render-ppm    output Polybius grid as PPM image\n");
             printf("  --smith         output Smith chart as SVG\n");
             printf("  --serve [port]  HTTP server for WebGL viewer (default 8080)\n");
