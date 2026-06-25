@@ -1,0 +1,245 @@
+DIGEST 08ff7ef774ad4ade8a82a9ae5f36d80b
+Fphi_proof
+R767:777 Coq.Reals.Reals <> <> lib
+R804:816 Coq.micromega.Lra <> <> lib
+def 897:899 <> phi
+R903:903 Coq.Reals.Rdefinitions RbaseSymbolsImpl R defax
+R908:908 Coq.Reals.Rdefinitions <> ::R_scope:x_'/'_x not
+R919:922 Coq.Reals.Rdefinitions <> ::R_scope:x_'/'_x not
+R910:912 Coq.Reals.Rdefinitions <> ::R_scope:x_'+'_x not
+R913:916 Coq.Reals.R_sqrt <> sqrt def
+prf 939:946 <> sqrt5_sq
+R960:962 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R956:958 Coq.Reals.Rfunctions <> ::R_scope:x_'^'_x not
+R950:953 Coq.Reals.R_sqrt <> sqrt def
+R981:989 Coq.Reals.R_sqrt <> pow2_sqrt thm
+R981:989 Coq.Reals.R_sqrt <> pow2_sqrt thm
+prf 1011:1019 <> phi_sq_eq
+R1028:1030 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R1026:1026 Coq.Reals.Rfunctions <> ::R_scope:x_'^'_x not
+R1023:1025 phi_proof <> phi def
+R1034:1036 Coq.Reals.Rdefinitions <> ::R_scope:x_'+'_x not
+R1031:1033 phi_proof <> phi def
+R1056:1058 phi_proof <> phi def
+R1070:1083 Coq.Reals.RIneq <> Rmult_eq_reg_l thm
+R1070:1083 Coq.Reals.RIneq <> Rmult_eq_reg_l thm
+R1121:1128 phi_proof <> sqrt5_sq thm
+R1121:1128 phi_proof <> sqrt5_sq thm
+R1121:1128 phi_proof <> sqrt5_sq thm
+prf 1163:1169 <> phi_pos
+R1174:1176 Coq.Reals.Rdefinitions <> ::R_scope:x_'<'_x not
+R1177:1179 phi_proof <> phi def
+R1198:1200 phi_proof <> phi def
+R1212:1227 Coq.Reals.RIneq <> Rdiv_lt_0_compat thm
+R1231:1233 Coq.Reals.Rdefinitions <> ::R_scope:x_'+'_x not
+R1234:1237 Coq.Reals.R_sqrt <> sqrt def
+R1212:1227 Coq.Reals.RIneq <> Rdiv_lt_0_compat thm
+R1231:1233 Coq.Reals.Rdefinitions <> ::R_scope:x_'+'_x not
+R1234:1237 Coq.Reals.R_sqrt <> sqrt def
+R1256:1275 Coq.Reals.RIneq <> Rplus_lt_le_0_compat thm
+R1291:1298 Coq.Reals.R_sqrt <> sqrt_pos thm
+R1256:1275 Coq.Reals.RIneq <> Rplus_lt_le_0_compat thm
+R1291:1298 Coq.Reals.R_sqrt <> sqrt_pos thm
+prf 1330:1339 <> phi_gt_one
+R1344:1346 Coq.Reals.Rdefinitions <> ::R_scope:x_'<'_x not
+R1347:1349 phi_proof <> phi def
+R1379:1381 Coq.Reals.Rdefinitions <> ::R_scope:x_'>'_x not
+R1373:1376 Coq.Reals.R_sqrt <> sqrt def
+R1404:1409 Coq.Reals.R_sqrt <> sqrt_1 thm
+R1418:1426 Coq.Reals.R_sqrt <> sqrt_lt_1 thm
+R1379:1381 Coq.Reals.Rdefinitions <> ::R_scope:x_'>'_x not
+R1373:1376 Coq.Reals.R_sqrt <> sqrt def
+R1404:1409 Coq.Reals.R_sqrt <> sqrt_1 thm
+R1404:1409 Coq.Reals.R_sqrt <> sqrt_1 thm
+R1418:1426 Coq.Reals.R_sqrt <> sqrt_lt_1 thm
+R1444:1446 phi_proof <> phi def
+def 1530:1542 <> icosa_edge_sq
+R1549:1549 Coq.Reals.Rdefinitions RbaseSymbolsImpl R defax
+binder 1545:1545 <> x:1
+R1554:1554 Coq.Reals.Rdefinitions RbaseSymbolsImpl R defax
+R1633:1635 Coq.Reals.Rdefinitions <> ::R_scope:x_'+'_x not
+R1625:1627 Coq.Reals.Rdefinitions <> ::R_scope:x_'-'_x not
+R1619:1621 Coq.Reals.Rdefinitions <> ::R_scope:x_'*'_x not
+R1623:1623 Coq.Reals.Rfunctions <> ::R_scope:x_'^'_x not
+R1622:1622 phi_proof <> x:1 var
+R1629:1631 Coq.Reals.Rdefinitions <> ::R_scope:x_'*'_x not
+R1632:1632 phi_proof <> x:1 var
+prf 1648:1662 <> icosa_forced_eq
+R1677:1677 Coq.Reals.Rdefinitions RbaseSymbolsImpl R defax
+binder 1673:1673 <> x:2
+R1699:1702 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R1695:1697 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R1680:1692 phi_proof <> icosa_edge_sq def
+R1694:1694 phi_proof <> x:2 var
+R1714:1716 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R1710:1712 Coq.Reals.Rdefinitions <> ::R_scope:x_'-'_x not
+R1706:1708 Coq.Reals.Rdefinitions <> ::R_scope:x_'-'_x not
+R1704:1704 Coq.Reals.Rfunctions <> ::R_scope:x_'^'_x not
+R1703:1703 phi_proof <> x:2 var
+R1709:1709 phi_proof <> x:2 var
+R1750:1762 phi_proof <> icosa_edge_sq def
+prf 1870:1889 <> positive_root_is_phi
+R1904:1904 Coq.Reals.Rdefinitions RbaseSymbolsImpl R defax
+binder 1900:1900 <> x:3
+R1922:1925 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R1918:1920 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R1914:1916 Coq.Reals.Rdefinitions <> ::R_scope:x_'-'_x not
+R1910:1912 Coq.Reals.Rdefinitions <> ::R_scope:x_'-'_x not
+R1908:1908 Coq.Reals.Rfunctions <> ::R_scope:x_'^'_x not
+R1907:1907 phi_proof <> x:3 var
+R1913:1913 phi_proof <> x:3 var
+R1931:1934 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R1927:1929 Coq.Reals.Rdefinitions <> ::R_scope:x_'<'_x not
+R1930:1930 phi_proof <> x:3 var
+R1936:1938 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R1935:1935 phi_proof <> x:3 var
+R1939:1941 phi_proof <> phi def
+R1985:1985 Coq.Reals.Rdefinitions <> ::R_scope:x_'/'_x not
+R1996:1997 Coq.Reals.Rdefinitions <> ::R_scope:x_'/'_x not
+R1987:1989 Coq.Reals.Rdefinitions <> ::R_scope:x_'-'_x not
+R1990:1993 Coq.Reals.R_sqrt <> sqrt def
+R1985:1985 Coq.Reals.Rdefinitions <> ::R_scope:x_'/'_x not
+R1996:1997 Coq.Reals.Rdefinitions <> ::R_scope:x_'/'_x not
+R1987:1989 Coq.Reals.Rdefinitions <> ::R_scope:x_'-'_x not
+R1990:1993 Coq.Reals.R_sqrt <> sqrt def
+R2026:2028 Coq.Reals.Rdefinitions <> ::R_scope:x_'>'_x not
+R2020:2023 Coq.Reals.R_sqrt <> sqrt def
+R2051:2056 Coq.Reals.R_sqrt <> sqrt_1 thm
+R2065:2073 Coq.Reals.R_sqrt <> sqrt_lt_1 thm
+R2026:2028 Coq.Reals.Rdefinitions <> ::R_scope:x_'>'_x not
+R2020:2023 Coq.Reals.R_sqrt <> sqrt def
+R2051:2056 Coq.Reals.R_sqrt <> sqrt_1 thm
+R2051:2056 Coq.Reals.R_sqrt <> sqrt_1 thm
+R2065:2073 Coq.Reals.R_sqrt <> sqrt_lt_1 thm
+R2106:2108 Coq.Reals.Rdefinitions <> ::R_scope:x_'<'_x not
+R2106:2108 Coq.Reals.Rdefinitions <> ::R_scope:x_'<'_x not
+R2175:2177 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R2154:2154 Coq.Reals.Rdefinitions <> ::R_scope:x_'*'_x not
+R2162:2166 Coq.Reals.Rdefinitions <> ::R_scope:x_'*'_x not
+R2174:2174 Coq.Reals.Rdefinitions <> ::R_scope:x_'*'_x not
+R2156:2158 Coq.Reals.Rdefinitions <> ::R_scope:x_'-'_x not
+R2159:2161 phi_proof <> phi def
+R2168:2170 Coq.Reals.Rdefinitions <> ::R_scope:x_'-'_x not
+R2175:2177 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R2154:2154 Coq.Reals.Rdefinitions <> ::R_scope:x_'*'_x not
+R2162:2166 Coq.Reals.Rdefinitions <> ::R_scope:x_'*'_x not
+R2174:2174 Coq.Reals.Rdefinitions <> ::R_scope:x_'*'_x not
+R2156:2158 Coq.Reals.Rdefinitions <> ::R_scope:x_'-'_x not
+R2159:2161 phi_proof <> phi def
+R2168:2170 Coq.Reals.Rdefinitions <> ::R_scope:x_'-'_x not
+R2212:2214 phi_proof <> phi def
+R2254:2261 phi_proof <> sqrt5_sq thm
+R2254:2261 phi_proof <> sqrt5_sq thm
+R2254:2261 phi_proof <> sqrt5_sq thm
+R2285:2298 Coq.Reals.RIneq <> Rmult_integral thm
+R2285:2298 Coq.Reals.RIneq <> Rmult_integral thm
+prf 2368:2383 <> icosa_forces_phi
+R2401:2401 Coq.Reals.Rdefinitions RbaseSymbolsImpl R defax
+binder 2397:2397 <> x:4
+R2409:2409 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R2415:2423 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R2411:2413 Coq.Reals.Rdefinitions <> ::R_scope:x_'<'_x not
+R2414:2414 phi_proof <> x:4 var
+R2424:2424 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R2444:2452 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R2440:2442 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R2425:2437 phi_proof <> icosa_edge_sq def
+R2439:2439 phi_proof <> x:4 var
+R2454:2456 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R2453:2453 phi_proof <> x:4 var
+R2457:2459 phi_proof <> phi def
+R2500:2519 phi_proof <> positive_root_is_phi thm
+R2500:2519 phi_proof <> positive_root_is_phi thm
+R2535:2549 phi_proof <> icosa_forced_eq thm
+R2535:2549 phi_proof <> icosa_forced_eq thm
+def 2651:2652 <> pi
+R2656:2656 Coq.Reals.Rdefinitions RbaseSymbolsImpl R defax
+R2661:2662 Coq.Reals.Rtrigo1 <> PI def
+prf 2907:2917 <> pi_gt_three
+R2922:2924 Coq.Reals.Rdefinitions <> ::R_scope:x_'<'_x not
+R2925:2926 phi_proof <> pi def
+R2948:2954 Coq.Reals.Ratan <> PI_ineq thm
+R2948:2954 Coq.Reals.Ratan <> PI_ineq thm
+R2981:2992 Coq.Reals.RIneq <> Rlt_le_trans thm
+R2998:3000 Coq.Reals.Rdefinitions <> ::R_scope:x_'*'_x not
+R3001:3008 Coq.Reals.Rfunctions <> sum_f_R0 def
+R3011:3016 Coq.Reals.AltSeries <> tg_alt def
+R3018:3022 Coq.Reals.AltSeries <> PI_tg def
+R2981:2992 Coq.Reals.RIneq <> Rlt_le_trans thm
+R2998:3000 Coq.Reals.Rdefinitions <> ::R_scope:x_'*'_x not
+R3001:3008 Coq.Reals.Rfunctions <> sum_f_R0 def
+R3011:3016 Coq.Reals.AltSeries <> tg_alt def
+R3018:3022 Coq.Reals.AltSeries <> PI_tg def
+R3043:3050 Coq.Reals.Rfunctions <> sum_f_R0 def
+R3053:3058 Coq.Reals.AltSeries <> tg_alt def
+R3061:3065 Coq.Reals.AltSeries <> PI_tg def
+R3107:3123 Coq.Reals.RIneq <> Rmult_le_compat_l thm
+R3130:3130 Coq.Reals.Rdefinitions RbaseSymbolsImpl R defax
+R3107:3123 Coq.Reals.RIneq <> Rmult_le_compat_l thm
+R3130:3130 Coq.Reals.Rdefinitions RbaseSymbolsImpl R defax
+prf 3201:3210 <> pi_lt_four
+R3216:3218 Coq.Reals.Rdefinitions <> ::R_scope:x_'<'_x not
+R3214:3215 phi_proof <> pi def
+R3241:3247 Coq.Reals.Ratan <> PI_ineq thm
+R3241:3247 Coq.Reals.Ratan <> PI_ineq thm
+R3273:3284 Coq.Reals.RIneq <> Rle_lt_trans thm
+R3290:3292 Coq.Reals.Rdefinitions <> ::R_scope:x_'*'_x not
+R3293:3300 Coq.Reals.Rfunctions <> sum_f_R0 def
+R3303:3308 Coq.Reals.AltSeries <> tg_alt def
+R3310:3314 Coq.Reals.AltSeries <> PI_tg def
+R3273:3284 Coq.Reals.RIneq <> Rle_lt_trans thm
+R3290:3292 Coq.Reals.Rdefinitions <> ::R_scope:x_'*'_x not
+R3293:3300 Coq.Reals.Rfunctions <> sum_f_R0 def
+R3303:3308 Coq.Reals.AltSeries <> tg_alt def
+R3310:3314 Coq.Reals.AltSeries <> PI_tg def
+R3335:3351 Coq.Reals.RIneq <> Rmult_le_compat_l thm
+R3358:3358 Coq.Reals.Rdefinitions RbaseSymbolsImpl R defax
+R3335:3351 Coq.Reals.RIneq <> Rmult_le_compat_l thm
+R3358:3358 Coq.Reals.Rdefinitions RbaseSymbolsImpl R defax
+R3423:3430 Coq.Reals.Rfunctions <> sum_f_R0 def
+R3433:3438 Coq.Reals.AltSeries <> tg_alt def
+R3441:3445 Coq.Reals.AltSeries <> PI_tg def
+rec 3565:3572 <> Schlafli
+proj 3599:3607 <> face_size
+proj 3619:3628 <> vertex_deg
+R3612:3614 Coq.Init.Datatypes <> nat ind
+R3632:3634 Coq.Init.Datatypes <> nat ind
+def 3651:3661 <> icosahedral
+R3665:3672 phi_proof <> Schlafli rec
+R3677:3686 phi_proof <> mkSchlafli constr
+prf 4363:4384 <> icosahedral_forces_phi
+R4390:4390 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R4454:4460 Coq.Init.Logic <> ::type_scope:x_'->'_x not
+R4420:4423 Coq.Init.Logic <> ::type_scope:x_'/\'_x not
+R4412:4414 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R4391:4399 phi_proof <> face_size proj
+R4401:4411 phi_proof <> icosahedral def
+R4446:4448 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R4424:4433 phi_proof <> vertex_deg proj
+R4435:4445 phi_proof <> icosahedral def
+R4461:4467 Coq.Init.Logic <> ::type_scope:'exists'_x_'..'_x_','_x not
+R4473:4474 Coq.Init.Logic <> ::type_scope:'exists'_x_'..'_x_','_x not
+R4472:4472 Coq.Reals.Rdefinitions RbaseSymbolsImpl R defax
+binder 4468:4468 <> x:8
+R4490:4493 Coq.Init.Logic <> ::type_scope:x_'/\'_x not
+R4486:4488 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R4482:4484 Coq.Reals.Rdefinitions <> ::R_scope:x_'-'_x not
+R4478:4480 Coq.Reals.Rdefinitions <> ::R_scope:x_'-'_x not
+R4476:4476 Coq.Reals.Rfunctions <> ::R_scope:x_'^'_x not
+R4475:4475 phi_proof <> x:8 var
+R4481:4481 phi_proof <> x:8 var
+R4499:4502 Coq.Init.Logic <> ::type_scope:x_'/\'_x not
+R4495:4497 Coq.Reals.Rdefinitions <> ::R_scope:x_'<'_x not
+R4498:4498 phi_proof <> x:8 var
+R4504:4506 Coq.Init.Logic <> ::type_scope:x_'='_x not
+R4503:4503 phi_proof <> x:8 var
+R4507:4509 phi_proof <> phi def
+R4547:4554 Coq.Init.Logic <> ex_intro constr
+R4558:4560 phi_proof <> phi def
+R4547:4554 Coq.Init.Logic <> ex_intro constr
+R4558:4560 phi_proof <> phi def
+R4599:4607 phi_proof <> phi_sq_eq thm
+R4599:4607 phi_proof <> phi_sq_eq thm
+R4599:4607 phi_proof <> phi_sq_eq thm
+R4627:4633 phi_proof <> phi_pos thm
+R4627:4633 phi_proof <> phi_pos thm
