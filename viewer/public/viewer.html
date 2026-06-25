@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMI Tetragrammatron — Hardware Node Portal</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a14; color: #c8d0e0;
+    font-family: 'Courier New', monospace;
+    display: flex; flex-direction: column; height: 100vh;
+  }
+  #toolbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; background: #10101e;
+    border-bottom: 1px solid #222244;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  #toolbar button {
+    background: #1a1a2e; color: #88aacc;
+    border: 1px solid #334; border-radius: 4px;
+    padding: 6px 14px; font-family: 'Courier New', monospace;
+    font-size: 12px; cursor: pointer;
+  }
+  #toolbar button:hover { background: #222244; border-color: #557; }
+  #toolbar button:disabled { opacity: 0.4; cursor: default; }
+  #toolbar button.primary { background: #1a3366; border-color: #4488cc; color: #aaccff; }
+  #status {
+    margin-left: auto; font-size: 11px; color: #667;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block;
+  }
+  .status-dot.disconnected { background: #444; }
+  .status-dot.connected { background: #3cc83c; box-shadow: 0 0 6px #3cc83c; }
+  .status-dot.error { background: #c83c3c; box-shadow: 0 0 6px #c83c3c; }
+  #main {
+    display: flex; flex: 1; min-height: 0;
+  }
+  #sidebar {
+    width: 360px; min-width: 260px; resize: horizontal;
+    display: flex; flex-direction: column;
+    border-right: 1px solid #222244; background: #0e0e1a;
+  }
+  #log-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 10px; font-size: 10px; color: #556;
+    border-bottom: 1px solid #1a1a2e; flex-shrink: 0;
+  }
+  #log-header button {
+    background: none; border: 1px solid #334; color: #667;
+    font-family: 'Courier New', monospace; font-size: 10px;
+    border-radius: 3px; padding: 2px 6px; cursor: pointer;
+  }
+  #log {
+    flex: 1; overflow-y: auto; padding: 4px 0;
+    font-size: 11px; line-height: 1.5;
+  }
+  #log::-webkit-scrollbar { width: 4px; }
+  #log::-webkit-scrollbar-track { background: #0a0a14; }
+  #log::-webkit-scrollbar-thumb { background: #222244; border-radius: 2px; }
+  .log-entry { padding: 1px 10px; border-bottom: 1px solid #0e0e1a; word-break: break-all; }
+  .log-entry .ts { color: #445; margin-right: 6px; }
+  .log-entry.rx { color: #7ab8e0; }
+  .log-entry.tx { color: #e0c87a; }
+  .log-entry.info { color: #667; font-style: italic; }
+  .log-entry.error { color: #c83c3c; }
+  .log-entry.receipt { color: #88dd88; }
+  .log-entry.gpio { color: #cc88ff; }
+  #surface-area {
+    flex: 1; position: relative; overflow: hidden;
+    background: #0a0a14;
+  }
+  #surface-area .overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #334; font-size: 14px; pointer-events: none;
+  }
+  #surface-area .overlay span { background: rgba(10,10,20,0.7); padding: 8px 16px; border-radius: 4px; }
+  #cmd-input-area {
+    display: flex; padding: 6px 10px; gap: 6px;
+    border-top: 1px solid #1a1a2e; flex-shrink: 0;
+  }
+  #flash-panel {
+    border-top: 1px solid #1a1a2e; padding: 6px 10px;
+    flex-shrink: 0; font-size: 11px;
+  }
+  #flash-panel .fp-row {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 4px;
+  }
+  #flash-panel button {
+    background: #1a1a2e; color: #88aacc;
+    border: 1px solid #334; border-radius: 3px;
+    padding: 4px 10px; font-family: 'Courier New', monospace;
+    font-size: 10px; cursor: pointer;
+  }
+  #flash-panel button:hover { background: #222244; }
+  #flash-panel button:disabled { opacity:0.4; cursor:default; }
+  #flash-panel button.danger { background: #332222; border-color:#844; color:#d88; }
+  #flash-panel button.danger:hover { background: #442222; }
+  #flash-panel .fp-label { color: #556; min-width: 50px; }
+  #flash-panel .fp-val { color: #88aacc; word-break: break-all; }
+  #flash-panel progress { flex:1; height:6px; border:none; border-radius:3px; background:#1a1a2e; }
+  #flash-panel progress::-webkit-progress-bar { background:#1a1a2e; border-radius:3px; }
+  #flash-panel progress::-webkit-progress-value { background:#4488cc; border-radius:3px; }
+  #flash-panel .fp-toggle {
+    cursor:pointer; color:#445; font-size:10px; user-select:none;
+  }
+  #flash-panel .fp-toggle:hover { color:#667; }
+  #flash-panel .fp-body { margin-top:4px; }
+  #flash-panel .fp-hidden { display:none; }
+  #flash-panel .fp-tabs { display:flex; gap:2px; margin-left:8px; }
+  #flash-panel .fp-tab {
+    cursor:pointer; padding:2px 8px; border-radius:3px 3px 0 0;
+    color:#556; font-size:10px; border:1px solid transparent; border-bottom:none;
+  }
+  #flash-panel .fp-tab:hover { color:#88aacc; }
+  #flash-panel .fp-tab.active { color:#88aacc; border-color:#222244; background:#0a0a14; }
+  #flash-panel .fp-tab-content { display:none; }
+  #flash-panel .fp-tab-content.active { display:block; }
+  #flash-panel .fp-section { border-top:1px solid #16162a; padding:4px 0; margin-top:4px; }
+  #flash-panel .fp-section-title { font-size:9px; color:#445; margin-bottom:2px; }
+  #flash-panel .fp-warn { color:#d88; font-size:10px; }
+  #flash-panel .fp-ok { color:#8d8; font-size:10px; }
+  #flash-panel input[type=text].fp-offset {
+    background:#0a0a14; color:#c8d0e0; border:1px solid #222244;
+    border-radius:3px; padding:2px 6px; font-family:'Courier New',monospace;
+    font-size:11px; width:100px;
+  }
+  #flash-panel input[type=checkbox] { margin:0; }
+  #flash-panel label.fp-confirm { font-size:10px; color:#667; cursor:pointer; }
+  #flash-panel label.fp-confirm:hover { color:#88aacc; }
+  #cmd-input {
+    flex: 1; background: #0a0a14; color: #c8d0e0;
+    border: 1px solid #222244; border-radius: 4px;
+    padding: 6px 8px; font-family: 'Courier New', monospace;
+    font-size: 12px; outline: none;
+  }
+  #cmd-input:focus { border-color: #4488cc; }
+  #cmd-input::placeholder { color: #334; }
+  #cmd-send { flex-shrink: 0; }
+  @media (max-width: 700px) {
+    #main { flex-direction: column; }
+    #sidebar { width: 100% !important; min-width: 0; max-height: 40vh; border-right: none; border-bottom: 1px solid #222244; }
+  }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <button id="btn-connect" class="primary">Connect Serial</button>
+  <button id="btn-disconnect" disabled>Disconnect</button>
+  <button id="btn-sync" disabled>:sync</button>
+  <button id="btn-surface" disabled>Surface</button>
+  <span id="hw-info" style="font-size:10px;color:#445;"></span>
+  <div id="status">
+    <span class="status-dot disconnected" id="status-dot"></span>
+    <span id="status-text">disconnected</span>
+  </div>
+</div>
+
+<div id="main">
+  <div id="sidebar">
+    <div id="log-header">
+      <span>CONSOLE</span>
+      <span id="console-device-label" style="font-size:10px;color:#445;"></span>
+      <button id="btn-clear">clear</button>
+    </div>
+    <div id="log"></div>
+    <div id="cmd-input-area">
+      <input id="cmd-input" type="text" placeholder="send command…" disabled>
+      <button id="cmd-send" disabled>send</button>
+    </div>
+    <div id="flash-panel">
+      <div class="fp-row">
+        <span class="fp-toggle" id="fp-toggle">▼ TOOLBOX</span>
+        <span class="fp-tabs">
+          <span class="fp-tab active" data-tab="info">Info</span>
+          <span class="fp-tab" data-tab="parts">Parts</span>
+          <span class="fp-tab" data-tab="flash">Flash</span>
+          <span class="fp-tab" data-tab="jab">JAB</span>
+        </span>
+      </div>
+      <div class="fp-body" id="fp-body">
+        <!-- Info tab -->
+        <div class="fp-tab-content active" id="tab-info">
+          <div class="fp-row">
+            <button id="btn-inspect" disabled title="Read chip info via ROM bootloader">Inspect</button>
+            <button id="btn-reset" disabled class="danger" title="Reset chip">Reset</button>
+          </div>
+          <div class="fp-section">
+            <div class="fp-section-title">DEVICE INFO</div>
+            <div id="fp-info-rows"></div>
+          </div>
+        </div>
+        <!-- Parts tab -->
+        <div class="fp-tab-content" id="tab-parts">
+          <div class="fp-row">
+            <button id="btn-load-parts" disabled title="Load partition table">Load Parts</button>
+          </div>
+          <div class="fp-section">
+            <div class="fp-section-title">PARTITION TABLE</div>
+            <div id="fp-parts-rows"></div>
+          </div>
+        </div>
+        <!-- Flash tab -->
+        <div class="fp-tab-content" id="tab-flash">
+          <div class="fp-section">
+            <div class="fp-section-title">FIRMWARE</div>
+            <div class="fp-row">
+              <span class="fp-label">File:</span>
+              <input type="file" id="fp-file" accept=".bin" style="flex:1;font-size:10px;color:#667;">
+            </div>
+            <div class="fp-row">
+              <span class="fp-label">Offset:</span>
+              <input type="text" id="fp-offset" class="fp-offset" value="0x10000">
+              <span style="font-size:10px;color:#445;">(hex)</span>
+            </div>
+            <div class="fp-row" id="fp-target-info" style="font-size:10px;color:#556;"></div>
+            <div class="fp-row">
+              <label class="fp-confirm">
+                <input type="checkbox" id="fp-confirm" disabled>
+                I confirm the target device above
+              </label>
+            </div>
+            <div class="fp-row">
+              <button id="btn-flash-start" disabled class="danger" title="Write firmware to flash">Write Firmware</button>
+            </div>
+          </div>
+          <div class="fp-section">
+            <div class="fp-section-title">BACKUP</div>
+            <div class="fp-row">
+              <span class="fp-label">Offset:</span>
+              <input type="text" id="fp-backup-offset" class="fp-offset" value="0x0">
+              <span class="fp-label">Size:</span>
+              <input type="text" id="fp-backup-size" class="fp-offset" value="0x1000">
+            </div>
+            <div class="fp-row">
+              <button id="btn-backup" disabled>Read Region</button>
+              <button id="btn-erase" disabled class="danger">Erase Region</button>
+            </div>
+          </div>
+          <div class="fp-row" id="fp-progress-row" style="display:none">
+            <progress id="fp-progress" value="0" max="100"></progress>
+            <span id="fp-progress-label" style="color:#556;font-size:10px;width:80px;text-align:right;"></span>
+          </div>
+        <!-- JAB tab -->
+        <div class="fp-tab-content" id="tab-jab">
+          <div class="fp-section">
+            <div class="fp-section-title">JABCODE RS CARRIER</div>
+            <div class="fp-row">
+              <button id="btn-jab-export">Export JAB</button>
+              <button id="btn-jab-import">Import JAB</button>
+              <button id="btn-jab-validate">Validate Frame</button>
+            </div>
+            <div class="fp-row">
+              <input type="text" id="jab-pointer-input" style="flex:1;font-family:'Courier New',monospace;font-size:10px;background:#0a0a14;color:#c8d0e0;border:1px solid #222244;border-radius:3px;padding:4px 6px;" placeholder="omi-0100-03bf-7c00-2b01-2f01-1434-039f-01ff/48">
+            </div>
+            <div class="fp-row" id="jab-preview" style="flex-wrap:wrap;gap:4px;justify-content:center;"></div>
+            <div class="fp-row" id="jab-status"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="surface-area">
+    <div class="overlay"><span>connect to a device via Serial to begin</span></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* OrbitControls for r128 */
+THREE.OrbitControls = (function() {
+  var STATE = { NONE: -1, ROTATE: 0, DOLLY: 1, PAN: 2, TOUCH_ROTATE: 3, TOUCH_DOLLY: 4, TOUCH_PAN: 5 };
+  function OrbitControls(object, domElement) {
+    this.object = object;
+    this.domElement = domElement !== undefined ? domElement : document;
+    this.enabled = true;
+    this.target = new THREE.Vector3();
+    this.enableDamping = false;
+    this.dampingFactor = 0.05;
+    this.enableZoom = true;
+    this.zoomSpeed = 1.0;
+    this.enableRotate = true;
+    this.rotateSpeed = 1.0;
+    this.enablePan = true;
+    this.panSpeed = 1.0;
+    this.screenSpacePanning = false;
+    this.maxPolarAngle = Math.PI;
+    this.minPolarAngle = 0;
+    var scope = this;
+    var spherical = new THREE.Spherical();
+    var sphericalDelta = new THREE.Spherical();
+    var scale = 1;
+    var panOffset = new THREE.Vector3();
+    var rotateStart = new THREE.Vector2();
+    var rotateEnd = new THREE.Vector2();
+    var rotateDelta = new THREE.Vector2();
+    var dollyStart = new THREE.Vector2();
+    var dollyEnd = new THREE.Vector2();
+    var dollyDelta = new THREE.Vector2();
+    var panStart = new THREE.Vector2();
+    var panEnd = new THREE.Vector2();
+    var panDelta = new THREE.Vector2();
+    var state = STATE.NONE;
+    function getZoomScale() { return Math.pow(0.95, scope.zoomSpeed); }
+    function rotateLeft(angle) { sphericalDelta.theta -= angle; }
+    function rotateUp(angle) { sphericalDelta.phi -= angle; }
+    var panLeft = (function() {
+      var v = new THREE.Vector3();
+      return function panLeft(distance, objectMatrix) {
+        v.setFromMatrixColumn(objectMatrix, 0);
+        v.multiplyScalar(-distance);
+        panOffset.add(v);
+      };
+    })();
+    var panUp = (function() {
+      var v = new THREE.Vector3();
+      return function panUp(distance, objectMatrix) {
+        if (scope.screenSpacePanning === true) { v.setFromMatrixColumn(objectMatrix, 1); }
+        else { v.setFromMatrixColumn(objectMatrix, 0); v.crossVectors(scope.object.up, v); }
+        v.multiplyScalar(distance);
+        panOffset.add(v);
+      };
+    })();
+    function pan(deltaX, deltaY) {
+      var element = scope.domElement === document ? scope.domElement.body : scope.domElement;
+      if (scope.object.isPerspectiveCamera) {
+        var position = scope.object.position;
+        var offset = position.clone().sub(scope.target);
+        var targetDistance = offset.length();
+        targetDistance *= Math.tan((scope.object.fov / 2) * Math.PI / 180.0);
+        panLeft(2 * deltaX * targetDistance / element.clientHeight, scope.object.matrix);
+        panUp(2 * deltaY * targetDistance / element.clientHeight, scope.object.matrix);
+      } else if (scope.object.isOrthographicCamera) {
+        panLeft(deltaX * (scope.object.right - scope.object.left) / scope.object.zoom / element.clientWidth, scope.object.matrix);
+        panUp(deltaY * (scope.object.top - scope.object.bottom) / scope.object.zoom / element.clientHeight, scope.object.matrix);
+      }
+    }
+    function dollyIn(dollyScale) { if (scope.object.isPerspectiveCamera) { scale /= dollyScale; } else if (scope.object.isOrthographicCamera) { scope.object.zoom = Math.max(0.01, scope.object.zoom / dollyScale); scope.object.updateProjectionMatrix(); } }
+    function dollyOut(dollyScale) { if (scope.object.isPerspectiveCamera) { scale *= dollyScale; } else if (scope.object.isOrthographicCamera) { scope.object.zoom = Math.max(0.01, scope.object.zoom * dollyScale); scope.object.updateProjectionMatrix(); } }
+    this.update = function() {
+      var position = scope.object.position;
+      offset.copy(position).sub(scope.target);
+      offset.applyQuaternion(quat);
+      spherical.setFromVector3(offset);
+      spherical.theta += sphericalDelta.theta;
+      spherical.phi += sphericalDelta.phi;
+      spherical.phi = Math.max(scope.minPolarAngle, Math.min(scope.maxPolarAngle, spherical.phi));
+      spherical.makeSafe();
+      spherical.radius *= scale;
+      spherical.radius = Math.max(spherical.radius, 0.001);
+      scope.target.add(panOffset);
+      offset.setFromSpherical(spherical);
+      offset.applyQuaternion(quatInverse);
+      position.copy(scope.target).add(offset);
+      scope.object.lookAt(scope.target);
+      if (scope.enableDamping === true) { sphericalDelta.theta *= (1 - scope.dampingFactor); sphericalDelta.phi *= (1 - scope.dampingFactor); panOffset.multiplyScalar(1 - scope.dampingFactor); } else { sphericalDelta.set(0, 0, 0); panOffset.set(0, 0, 0); }
+      scale = 1;
+    };
+    var offset = new THREE.Vector3();
+    var quat = new THREE.Quaternion().setFromUnitVectors(object.up, new THREE.Vector3(0, 1, 0));
+    var quatInverse = quat.clone().invert();
+    function onMouseDown(event) { if (!scope.enabled) return; event.preventDefault(); if (event.button === 0) { state = STATE.ROTATE; rotateStart.set(event.clientX, event.clientY); } else if (event.button === 1) { state = STATE.PAN; panStart.set(event.clientX, event.clientY); } else if (event.button === 2) { state = STATE.DOLLY; dollyStart.set(event.clientX, event.clientY); } if (scope.domElement !== document) { scope.domElement.addEventListener('mousemove', onMouseMove, false); scope.domElement.addEventListener('mouseup', onMouseUp, false); } }
+    function onMouseMove(event) { if (!scope.enabled) return; event.preventDefault(); if (state === STATE.ROTATE) { rotateEnd.set(event.clientX, event.clientY); rotateDelta.subVectors(rotateEnd, rotateStart); rotateLeft(2 * Math.PI * rotateDelta.x / scope.domElement.clientHeight); rotateUp(2 * Math.PI * rotateDelta.y / scope.domElement.clientHeight); rotateStart.copy(rotateEnd); } else if (state === STATE.DOLLY) { dollyEnd.set(event.clientX, event.clientY); dollyDelta.subVectors(dollyEnd, dollyStart); if (dollyDelta.y > 0) { dollyIn(getZoomScale()); } else if (dollyDelta.y < 0) { dollyOut(getZoomScale()); } dollyStart.copy(dollyEnd); } else if (state === STATE.PAN) { panEnd.set(event.clientX, event.clientY); panDelta.subVectors(panEnd, panStart); pan(panDelta.x, panDelta.y); panStart.copy(panEnd); } }
+    function onMouseUp() { if (!scope.enabled) return; state = STATE.NONE; if (scope.domElement !== document) { scope.domElement.removeEventListener('mousemove', onMouseMove); scope.domElement.removeEventListener('mouseup', onMouseUp); } }
+    function onMouseWheel(event) { if (!scope.enabled || !scope.enableZoom) return; event.preventDefault(); if (event.deltaY < 0) { dollyOut(getZoomScale()); } else if (event.deltaY > 0) { dollyIn(getZoomScale()); } }
+    this.domElement.addEventListener('contextmenu', function(event) { event.preventDefault(); }, false);
+    this.domElement.addEventListener('mousedown', onMouseDown, false);
+    this.domElement.addEventListener('wheel', onMouseWheel, false);
+  }
+  return OrbitControls;
+})();
+</script>
+
+<script src="/geometry-decoder.js"></script>
+<script src="/twin-viewer.js"></script>
+<script src="/public/web-serial.js"></script>
+<script src="/public/device-inspector.js"></script>
+<script src="/public/flasher.js"></script>
+<script src="/public/jabcode-carrier.js"></script>
+
+<script>
+(function() {
+  /* ─── DOM refs ─── */
+  const btnConnect = document.getElementById('btn-connect');
+  const btnDisconnect = document.getElementById('btn-disconnect');
+  const btnSync = document.getElementById('btn-sync');
+  const btnSurface = document.getElementById('btn-surface');
+  const btnClear = document.getElementById('btn-clear');
+  const statusDot = document.getElementById('status-dot');
+  const statusText = document.getElementById('status-text');
+  const logEl = document.getElementById('log');
+  const cmdInput = document.getElementById('cmd-input');
+  const cmdSend = document.getElementById('cmd-send');
+  const surfaceArea = document.getElementById('surface-area');
+  const btnInspect = document.getElementById('btn-inspect');
+  const btnFlash = document.getElementById('btn-flash');
+  const btnReset = document.getElementById('btn-reset');
+  const fpFile = document.getElementById('fp-file');
+  const fpInfoRows = document.getElementById('fp-info-rows');
+  const fpProgress = document.getElementById('fp-progress');
+  const fpProgressLabel = document.getElementById('fp-progress-label');
+  const fpProgressRow = document.getElementById('fp-progress-row');
+  const fpToggle = document.getElementById('fp-toggle');
+  const fpBody = document.getElementById('fp-body');
+
+  /* ─── Logging ─── */
+  let logCount = 0;
+  function log(type, msg) {
+    logCount++;
+    const entry = document.createElement('div');
+    entry.className = 'log-entry ' + type;
+    entry.innerHTML = `<span class="ts">[${logCount}]</span>${msg}`;
+    logEl.appendChild(entry);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  /* ─── Status ─── */
+  function setStatus(state, text) {
+    statusDot.className = 'status-dot ' + state;
+    statusText.textContent = text;
+  }
+
+  /* ─── Serial carrier ─── */
+  let carrier = null;
+  let twinViewer = null;
+
+  var activeBaud = null;
+  var activePortInfo = null;
+
+  function setConnectedUI(connected, portInfo, baud) {
+    btnConnect.disabled = connected;
+    btnDisconnect.disabled = !connected;
+    btnSync.disabled = !connected;
+    btnSurface.disabled = !connected;
+    cmdInput.disabled = !connected;
+    cmdSend.disabled = !connected;
+    activeBaud = connected ? (baud || 115200) : null;
+    activePortInfo = connected ? (portInfo || null) : null;
+
+    var hw = document.getElementById('hw-info');
+    if (hw) {
+      hw.textContent = connected
+        ? (activePortInfo ? (activePortInfo.usbVendorId || '') + ':' + (activePortInfo.usbProductId || '') + ' @ ' + activeBaud
+           : '@ ' + activeBaud + ' bps')
+        : '';
+    }
+    var label = document.getElementById('console-device-label');
+    if (label) {
+      label.textContent = connected
+        ? (activePortInfo ? (activePortInfo.usbProductName || 'device') : 'device')
+        : '';
+    }
+  }
+
+  /* Initialize Three.js Metatron view in surface area */
+  function initSurface() {
+    const overlay = surfaceArea.querySelector('.overlay');
+    if (overlay) overlay.style.display = 'none';
+
+    const container = document.createElement('div');
+    container.id = 'viewer-container';
+    container.style.cssText = 'position:absolute;inset:0;';
+    surfaceArea.appendChild(container);
+
+    twinViewer = new TwinViewer(container);
+    twinViewer.animate();
+  }
+
+  btnConnect.addEventListener('click', async () => {
+    try {
+      carrier = new SerialCarrier({
+        onreceipt: (r) => {
+          log('receipt', `receipt cy=${r.cy} h=${r.hash} r=${r.r}`);
+          if (twinViewer) {
+            log('info', 'forwarding receipt to Metatron view');
+          }
+        },
+        oncell: (c) => {
+          log('rx', `OMI cell: ${c.substring(0, 60)}${c.length > 60 ? '…' : ''}`);
+        },
+        onring: (r) => {
+          log('info', `ring: ${r.filled || '?'} filled, xor=0x${r.xor || '??'}`);
+        },
+        ongpio: (g) => {
+          log('gpio', `GPIO:${g.pin}=${g.value}`);
+        },
+        onframe: (line) => {
+          log('rx', line.substring(0, 120));
+        },
+        onstatus: (msg) => {
+          log('info', msg);
+        },
+        onerror: (msg) => {
+          log('error', msg);
+        },
+        ondisconnect: () => {
+          setStatus('disconnected', 'disconnected');
+          setConnectedUI(false);
+          log('info', 'serial disconnected');
+        }
+      });
+
+      await carrier.connect(115200);
+      var pi = carrier.portInfo || {};
+      var info = 'connected @ 115200';
+      if (pi.usbVendorId) info += ' (' + pi.usbVendorId.toString(16) + ':' + (pi.usbProductId || '??').toString(16) + ')';
+      setStatus('connected', info);
+      setConnectedUI(true, pi, 115200);
+      log('info', 'serial connected — IMO carrier active: ' + info);
+
+      if (!surfaceArea.querySelector('#viewer-container')) {
+        initSurface();
+      }
+
+      initToolModules(carrier);
+
+    } catch (e) {
+      log('error', 'connection failed: ' + e.message);
+      setStatus('disconnected', 'connection failed');
+    }
+  });
+
+  btnDisconnect.addEventListener('click', async () => {
+    if (carrier) {
+      await carrier.disconnect();
+      carrier = null;
+    }
+    inspector = null;
+    setToolEnabled(false);
+    hideFlashProgress();
+    setStatus('disconnected', 'disconnected');
+    setConnectedUI(false);
+  });
+
+  btnSync.addEventListener('click', () => {
+    if (carrier) {
+      log('tx', ':sync');
+      carrier.sendSync().catch(e => log('error', 'send failed: ' + e.message));
+    }
+  });
+
+  btnSurface.addEventListener('click', () => {
+    if (carrier) {
+      const surface = window.prompt('Surface type (frame / smith / obj / gltf):', 'frame');
+      if (surface) {
+        log('tx', `:surface ${surface}`);
+        carrier.sendSurface(surface).catch(e => log('error', 'send failed: ' + e.message));
+      }
+    }
+  });
+
+  btnClear.addEventListener('click', () => {
+    logEl.innerHTML = '';
+    logCount = 0;
+  });
+
+  cmdSend.addEventListener('click', () => {
+    const text = cmdInput.value.trim();
+    if (!text || !carrier) return;
+    log('tx', text);
+    carrier.send(text).catch(e => log('error', 'send failed: ' + e.message));
+    cmdInput.value = '';
+  });
+
+  cmdInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !cmdSend.disabled) cmdSend.click();
+  });
+
+  /* ─── Toolbox ─── */
+  let inspector = null;
+  let toolLog = (msg) => log('info', '[TOOL] ' + msg);
+
+  function setToolEnabled(en) {
+    btnInspect.disabled = !en;
+    btnReset.disabled = !en;
+    var lp = document.getElementById('btn-load-parts');
+    if (lp) lp.disabled = !en;
+    var fl = document.getElementById('btn-flash-start');
+    if (fl) fl.disabled = !en;
+    var bu = document.getElementById('btn-backup');
+    if (bu) bu.disabled = !en;
+    var er = document.getElementById('btn-erase');
+    if (er) er.disabled = !en;
+    document.getElementById('fp-confirm').disabled = !en;
+  }
+
+  function setFlashProgress(pct, label) {
+    fpProgress.value = pct;
+    fpProgressLabel.textContent = label || '';
+    fpProgressRow.style.display = 'block';
+  }
+
+  function hideFlashProgress() {
+    fpProgressRow.style.display = 'none';
+  }
+
+  function showChipInfo(info) {
+    fpInfoRows.innerHTML = '';
+    var rows = [
+      ['Chip:', info.chipModel || '?'],
+      ['Rev:', info.chipRevStr || '?'],
+      ['MAC:', info.mac || '?'],
+      ['Flash:', info.flashSize || '?'],
+      ['Cores:', info.cores || '?'],
+      ['Features:', (info.features && info.features.length) ? info.features.join(', ') : 'none']
+    ];
+    for (var i = 0; i < rows.length; i++) {
+      var r = document.createElement('div');
+      r.className = 'fp-row';
+      r.style.marginBottom = '0';
+      r.innerHTML = '<span class="fp-label">' + rows[i][0] + '</span>' +
+        '<span class="fp-val">' + rows[i][1] + '</span>';
+      fpInfoRows.appendChild(r);
+    }
+    /* Update target info on flash tab */
+    var ti = document.getElementById('fp-target-info');
+    if (ti) {
+      var pi = activePortInfo || {};
+      ti.innerHTML = 'Target: <b>' + (info.chipModel || '?') + '</b> ' +
+        info.mac + ' via ' +
+        (pi.usbVendorId ? (pi.usbVendorId.toString(16) + ':' + (pi.usbProductId || '??').toString(16)) : 'USB') +
+        ' @ ' + (activeBaud || '?') + ' bps';
+    }
+    hideFlashProgress();
+  }
+
+  function showParts(parts) {
+    var el = document.getElementById('fp-parts-rows');
+    if (!el) return;
+    el.innerHTML = '';
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      var r = document.createElement('div');
+      r.className = 'fp-row';
+      r.style.marginBottom = '0';
+      var status = p.detected ? '<span class="fp-ok">✓</span>' : '<span class="fp-warn">✗</span>';
+      var md5 = p.md5 ? ' md5:' + p.md5.substring(0, 8) + '…' : '';
+      r.innerHTML = status + ' <span class="fp-label">' + p.label + '</span>' +
+        ' <span class="fp-val">' + (p.offset || '?') + '</span>' +
+        ' <span style="color:#445">' + (p.size || '') + '</span>' +
+        ' <span style="color:#556;font-size:9px">' + md5 + '</span>';
+      el.appendChild(r);
+    }
+  }
+
+  /* Wire binary data path: when carrier is in binary mode, route
+   * raw bytes to both inspector and flasher simultaneously.
+   * The carrier's setBinaryMode(true, onBinary) switches the read
+   * loop to raw-bytes mode. */
+  function enableBinaryMode(c) {
+    c.setBinaryMode(true, function(chunk) {
+      if (inspector) inspector.feed(chunk);
+      Flasher.feed(chunk);
+    });
+  }
+
+  function disableBinaryMode(c) {
+    c.setBinaryMode(false);
+  }
+
+  function initToolModules(c) {
+    inspector = new DeviceInspector(c);
+    inspector.onlog = toolLog;
+    Flasher.init(c);
+    Flasher.onlog = toolLog;
+    Flasher.onprogress = function(done, total, label) {
+      setFlashProgress(Math.round((done / total) * 100), label || (done + '/' + total));
+    };
+    setToolEnabled(true);
+    hideFlashProgress();
+  }
+
+  /* ─── Button handlers ─── */
+
+  btnInspect.addEventListener('click', async () => {
+    if (!inspector || !carrier) return;
+    setToolEnabled(false);
+    enableBinaryMode(carrier);
+    try {
+      toolLog('inspecting device… (chip must be in download mode; ' +
+              'hold GPIO0 low and toggle EN/RST, or click Reset button)');
+      var info = await inspector.inspect();
+      showChipInfo(info);
+      toolLog('inspect complete');
+    } catch (e) {
+      toolLog('inspect failed: ' + e.message);
+    }
+    disableBinaryMode(carrier);
+    setToolEnabled(true);
+  });
+
+  function withBinaryMode(fn) {
+    return async function() {
+      if (!carrier) return;
+      enableBinaryMode(carrier);
+      try { await fn(); } finally { disableBinaryMode(carrier); }
+    };
+  }
+
+  btnReset.addEventListener('click', withBinaryMode(async () => {
+    toolLog('resetting via DTR toggle…');
+    try {
+      if (carrier && carrier.port && carrier.port.setSignals) {
+        await carrier.port.setSignals({ dataTerminalReady: false, requestToSend: false });
+        await new Promise(function(r) { setTimeout(r, 50); });
+        await carrier.port.setSignals({ dataTerminalReady: true, requestToSend: false });
+        await new Promise(function(r) { setTimeout(r, 50); });
+        await carrier.port.setSignals({ dataTerminalReady: false, requestToSend: true });
+        toolLog('DTR/RST toggled — chip reset');
+      } else {
+        toolLog('DTR/RTS not available; toggle EN manually');
+      }
+    } catch (e) {
+      toolLog('reset signal failed: ' + e.message);
+    }
+  }));
+
+  document.getElementById('btn-load-parts').addEventListener('click', withBinaryMode(async () => {
+    toolLog('reading partition table…');
+    var parts = await inspector.readPartitions();
+    showParts(parts);
+    toolLog('partition table loaded');
+  }));
+
+  /* File picker → when file selected, enable confirm checkbox */
+  document.getElementById('fp-file').addEventListener('change', function() {
+    var confirmEl = document.getElementById('fp-confirm');
+    if (confirmEl) confirmEl.checked = false;
+    var file = this.files[0];
+    if (file) {
+      toolLog('selected: ' + file.name + ' (' + file.size + ' bytes)');
+      confirmEl.disabled = false;
+    } else {
+      confirmEl.disabled = true;
+    }
+  });
+
+  /* Confirm checkbox gates the flash start button */
+  document.getElementById('fp-confirm').addEventListener('change', function() {
+    var btn = document.getElementById('btn-flash-start');
+    if (btn) btn.disabled = !this.checked;
+  });
+
+  document.getElementById('btn-flash-start').addEventListener('click', withBinaryMode(async () => {
+    var fileEl = document.getElementById('fp-file');
+    var file = fileEl.files[0];
+    if (!file) { toolLog('no firmware file selected'); return; }
+    if (!document.getElementById('fp-confirm').checked) { toolLog('confirm target device first'); return; }
+
+    setToolEnabled(false);
+    try {
+      var buf = await file.arrayBuffer();
+      var data = new Uint8Array(buf);
+      var offsetStr = document.getElementById('fp-offset').value;
+      var offset = parseInt(offsetStr, 16);
+      if (isNaN(offset)) { toolLog('invalid offset'); setToolEnabled(true); return; }
+
+      Flasher.setConfirmed(true);
+      await Flasher.flashFirmware(data, offset);
+      toolLog('firmware written successfully');
+      hideFlashProgress();
+      document.getElementById('fp-confirm').checked = false;
+      document.getElementById('btn-flash-start').disabled = true;
+    } catch (e) {
+      toolLog('flash failed: ' + e.message);
+      hideFlashProgress();
+    }
+    setToolEnabled(true);
+  }));
+
+  document.getElementById('btn-erase').addEventListener('click', withBinaryMode(async () => {
+    var offsetStr = document.getElementById('fp-backup-offset').value;
+    var sizeStr = document.getElementById('fp-backup-size').value;
+    var offset = parseInt(offsetStr, 16);
+    var size = parseInt(sizeStr, 16);
+    if (isNaN(offset) || isNaN(size)) { toolLog('invalid offset/size'); return; }
+    setToolEnabled(false);
+    try {
+      Flasher.setConfirmed(true);
+      await Flasher.eraseRegion(offset, size);
+      toolLog('erase complete');
+      hideFlashProgress();
+    } catch (e) {
+      toolLog('erase failed: ' + e.message);
+      hideFlashProgress();
+    }
+    setToolEnabled(true);
+  }));
+
+  document.getElementById('btn-backup').addEventListener('click', async () => {
+    toolLog('backup via ROM protocol requires custom stub — not available');
+  });
+
+  /* ─── JABCode Carrier ─── */
+  var jabInput = document.getElementById('jab-pointer-input');
+  var jabPreview = document.getElementById('jab-preview');
+  var jabStatus = document.getElementById('jab-status');
+
+  function setJabStatus(type, msg) {
+    jabStatus.innerHTML = '<span class="fp-' + type + '">' + msg + '</span>';
+  }
+
+  document.getElementById('btn-jab-export').addEventListener('click', function() {
+    try {
+      var text = jabInput.value.trim();
+      if (!text) { setJabStatus('warn', 'enter an OMI pointer'); return; }
+      var parsed = JABCodeCarrier.parsePointer(text);
+      var result = JABCodeCarrier.encodeToJABCode(parsed.S);
+      jabPreview.innerHTML = result.svg;
+      var scale = Math.min(1, 210 / 21);
+      jabPreview.querySelector('svg').style.cssText = 'width:' + (21 * scale * 10 + 4) + 'px;height:auto;max-width:100%;';
+      setJabStatus('ok', '[JAB] exported ' + result.profile + ' debug matrix');
+    } catch (e) {
+      setJabStatus('warn', 'export failed: ' + e.message);
+    }
+  });
+
+  document.getElementById('btn-jab-import').addEventListener('click', function() {
+    try {
+      var text = jabInput.value.trim();
+      if (!text) { setJabStatus('warn', 'enter pointer or hex'); return; }
+      var result = JABCodeCarrier.decodeFromJABCode(text);
+      jabInput.value = result.pointer;
+      if (result.shape.ok) {
+        setJabStatus('ok', 'imported: ' + result.pointer + ' — shape OK, requires Q(S)=0');
+      } else {
+        setJabStatus('warn', 'imported: ' + result.pointer + ' — shape errors: ' + result.shape.errors.join('; '));
+      }
+    } catch (e) {
+      setJabStatus('warn', 'import failed: ' + e.message);
+    }
+  });
+
+  document.getElementById('btn-jab-validate').addEventListener('click', function() {
+    try {
+      var text = jabInput.value.trim();
+      if (!text) { setJabStatus('warn', 'enter an OMI pointer or hex'); return; }
+      var J = JABCodeCarrier;
+      var S;
+      if (text.indexOf('omi-') === 0) {
+        S = J.parsePointer(text).S;
+      } else if (/^[0-9a-fA-F]{32}$/.test(text)) {
+        var bytes = new Uint8Array(16);
+        for (var i = 0; i < 16; i++) bytes[i] = parseInt(text.substring(i * 2, i * 2 + 2), 16);
+        S = J.unpackFrame(bytes);
+      } else {
+        setJabStatus('warn', 'unknown format');
+        return;
+      }
+      var shape = J.validateFrameShape(S);
+      var fields = shape.ok ? J.extractFrameFields(S) : null;
+      var msg = shape.ok
+        ? 'shape: OK — LL=' + shape.LL.toString(16) + ' NN=' + shape.NN.toString(16) + ' MM=' + shape.MM.toString(16) + ' — requires Q(S)=0 validation'
+        : 'shape: FAIL — ' + shape.errors.join('; ');
+      if (shape.warnings.length) msg += ' | warnings: ' + shape.warnings.join('; ');
+      setJabStatus(shape.ok ? 'ok' : 'warn', msg);
+    } catch (e) {
+      setJabStatus('warn', 'validate failed: ' + e.message);
+    }
+  });
+
+  /* Tab switching */
+  document.querySelectorAll('.fp-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.fp-tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.fp-tab-content').forEach(function(tc) { tc.classList.remove('active'); });
+      this.classList.add('active');
+      var target = document.getElementById('tab-' + this.getAttribute('data-tab'));
+      if (target) target.classList.add('active');
+    });
+  });
+
+  fpToggle.addEventListener('click', function() {
+    var hidden = fpBody.classList.toggle('fp-hidden');
+    fpToggle.textContent = hidden ? '▶ TOOLBOX' : '▼ TOOLBOX';
+  });
+
+  setConnectedUI(false);
+})();
+</script>
+</body>
+</html>
