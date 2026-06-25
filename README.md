@@ -265,3 +265,54 @@ The two dual pairs:
 
 These are independent. Each pair preserves one invariant and passes the
 receipt unchanged across its axis.
+
+---
+
+## Browser Surface View
+
+The viewer at `/` is a cosmological surface, not a protocol authority.
+
+```text
+Receipt[n-1] + Receipt[n]
+        ↓
+positive rational slopes
+        ↓
+mediant coordinate
+        ↓
+determinant boundary witness
+        ↓
+HM ≤ GM ≤ AM ≤ QM pressure ladder
+        ↓
+lane / band
+        ↓
+:root data attributes + CSS variables
+        ↓
+native browser cascade
+        ↓
+DOM / SVG / WebGL paint
+```
+
+### Final Covariant Rule
+
+```text
+Code is data.
+File is port.
+Notation is citation.
+Canon validates.
+Cosmology projects.
+Receipt accepts.
+```
+
+### Practical Invariants
+
+```text
+Do not let rendered cosmology write canon.
+Do not let file IO imply acceptance.
+Do not let code execution imply truth.
+Do not let notation imply receipt.
+All browser views are cosmology.
+All source files are ports.
+All code emitted through the page is data until validated.
+All OMI strings are notation until resolved as citations.
+Only receipt validation promotes them into canon.
+```
