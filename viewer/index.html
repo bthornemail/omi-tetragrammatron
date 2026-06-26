@@ -826,6 +826,7 @@ body.sabbath { animation: sabbath-pulse 1s ease-in-out infinite alternate; }
         </defs>
         <g id="minimap-fano-lines" opacity="0.3"></g>
         <g id="minimap-rings"></g>
+        <g id="minimap-gnomonic"></g>
       </svg>
       <span class="minimap-title">FANO·RINGS</span>
     </div>
@@ -1028,6 +1029,7 @@ THREE.OrbitControls = (function() {
 <script src="public/flasher.js"></script>
 <script src="public/jabcode-carrier.js"></script>
 <script src="public/receipt-surface-cascade.js"></script>
+<script src="public/gnomonic-surface.js"></script>
 
 <script>
 (function() {
@@ -1616,6 +1618,7 @@ function tick() {
                : 'face_eval';
     var receipt = emitCommit(type);
     if (window.ReceiptSurfaceCascade) ReceiptSurfaceCascade.ingestFromReceipt(receipt);
+    if (window.GnomonicSurface) GnomonicSurface.ingestReceiptPair(receipt);
   }
 
   frameCount++;

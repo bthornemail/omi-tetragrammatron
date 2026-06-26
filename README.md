@@ -174,7 +174,8 @@ Requires a C compiler and the math library.
 ```bash
 make              # build binary + Coq proof
 make coq          # build Coq proof only
-make smoke        # full smoke test
+make smoke        # full smoke test (binary + JS tests)
+make test-js      # run JS surface tests (JABCode + receipt cascade)
 ```
 
 ---

@@ -8,7 +8,7 @@ PROOF_DIR = proof
 VFILE = $(PROOF_DIR)/phi_proof.v
 VOFILE = $(PROOF_DIR)/phi_proof.vo
 
-.PHONY: all coq clean smoke
+.PHONY: all coq clean smoke test-js
 
 all: $(TARGET) coq
 
@@ -43,6 +43,12 @@ smoke: $(TARGET)
 	./$(TARGET) --check
 	./$(TARGET) --render-frame > /tmp/frame.json
 	./$(TARGET) --render-ppm > /tmp/frame.ppm
+	make test-js
+
+test-js:
+	node scripts/test-jabcode-carrier.js
+	node scripts/test-receipt-surface-cascade.js
+	node scripts/test-gnomonic-surface.js
 
 clean:
 	rm -f $(TARGET) $(OBJS) $(PROOF_DIR)/*.vo $(PROOF_DIR)/*.glob $(PROOF_DIR)/*.aux
