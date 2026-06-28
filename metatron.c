@@ -660,7 +660,7 @@ void render_gltf(void) {
     char *b64 = (char *)malloc(b64len); if (!b64) { free(bin); return; }
     b64_encode(bin, (size_t)blen, b64);
     free(bin);
-    printf("{\"asset\":{\"version\":\"2.0\",\"generator\":\"opencode\"},"
+    printf("{\"asset\":{\"version\":\"2.0\",\"generator\":\"omicron\"},"
            "\"scene\":0,\"scenes\":[{\"nodes\":[0]}],"
            "\"nodes\":[{\"mesh\":0}],"
            "\"meshes\":[{\"primitives\":[{\"mode\":1,"

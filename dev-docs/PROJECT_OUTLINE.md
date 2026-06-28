@@ -15,22 +15,22 @@ omi.h / omi.c
 tetragrammatron.h / tetragrammatron.c
 metatron.h / metatron.c
 imo.h / imo.c
-opencode.c        legacy application name; target rename is omicron.c
+omicron.c         thin runtime application/orchestration file
 ```
 
 Current build target:
 
 ```text
-opencode.bin
+omicron.bin
 ```
 
-Target application name:
+Application name:
 
 ```text
 omicron.bin
 ```
 
-The runtime rename is pending. Until then, `opencode.c`, `opencode.o`, and `opencode.bin` are the current working application files.
+The runtime rename is complete. `omicron.c`, `omicron.o`, and `omicron.bin` are the current working application files.
 
 ## 2. OMI Module
 
@@ -168,13 +168,13 @@ Does not own:
 Current file:
 
 ```text
-opencode.c
+omicron.c
 ```
 
-Target file:
+Legacy file:
 
 ```text
-omicron.c
+opencode.c
 ```
 
 Current role:
@@ -209,8 +209,8 @@ Main modes:
 
 Rename rule:
 
-- Keep behavior stable while renaming `opencode` to `omicron`.
-- Update `Makefile`, smoke tests, docs, and help output together.
+- Keep behavior stable after the `opencode` to `omicron` rename.
+- Keep `Makefile`, smoke tests, docs, and help output aligned.
 
 ## 7. Build And Generated Artifacts
 
@@ -227,13 +227,13 @@ omi.o
 tetragrammatron.o
 metatron.o
 imo.o
-opencode.o
+omicron.o
 ```
 
 Current binary:
 
 ```text
-opencode.bin
+omicron.bin
 ```
 
 Generated/local artifacts:
@@ -523,8 +523,6 @@ For codebase changes:
 
 Known structural changes still pending:
 
-- Rename `opencode` application files and build target to `omicron`.
-- Merge viewer REPO addenda and role-repo policy drafts into `viewer/docs/REPO.md`.
 - Implement full OMI-Lisp notation parser.
 - Connect candidates to Tetragrammatron validation and receipt storage.
 - Enforce projection gates across adapters.

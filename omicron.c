@@ -1368,7 +1368,7 @@ static void render_gltf(void) {
     b64_encode(bin, (size_t)blen, b64);
     free(bin);
 
-    printf("{\"asset\":{\"version\":\"2.0\",\"generator\":\"opencode\"},"
+    printf("{\"asset\":{\"version\":\"2.0\",\"generator\":\"omicron\"},"
            "\"scene\":0,\"scenes\":[{\"nodes\":[0]}],"
            "\"nodes\":[{\"mesh\":0}],"
            "\"meshes\":[{\"primitives\":[{\"mode\":1,"
@@ -2283,7 +2283,7 @@ int main(int argc, char **argv) {
         if(strcmp(argv[1],"--check")==0){return check_incidence();}
         if(strcmp(argv[1],"--help")==0||strcmp(argv[1],"-h")==0){
             printf("OPENCORE v2 \342\200\224 deterministic autonomous AGI seed\n");
-            printf("Usage: opencode.bin [mode] [args]\n");
+            printf("Usage: omicron.bin [mode] [args]\n");
             printf("Modes:\n");
             printf("  (no args)     autonomous: self-generates from ring + stdin\n");
             printf("  --eval <s>    evaluate S-expression, print receipt\n");

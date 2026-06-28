@@ -1,20 +1,36 @@
-# REPO.md
+# Viewer REPO.md
 
 ## OMI Request for Collaboration and Role/Repo Based Access Control
 
 Version: `0.1.0`  
 Status: Draft  
-Authority: Repository Collaboration Boundary  
+Authority: Public Viewer Repository Collaboration Boundary  
 Protocol: OMI-RRBAC  
-Applies to: `REPO.md`, `AGENTS.md`, `SKILLS.md`, `.imo` carriers, receipts, LLM resolvers, human contributors, scripts, peers, and projections
+Applies to: `viewer/docs/REPO.md`, `viewer/AGENTS.md`, `viewer/SKILLS.md`, `viewer/docs/ADAPTERS.md`, `.imo` carriers, receipts, LLM resolvers, human contributors, scripts, peers, browser adapters, and viewer projections
+
+Source lineage:
+
+```text
+dev-docs/archive/REPO.md - OMI Request for Collaboration and Role-Repo Based Access Control.md
+dev-docs/archive/REPO.md Addendum - Bootstrapping an OMI-Compatible LLM Agent.md
+dev-docs/archive/REPO.md Addendum - Emergent P2P and Multimedia Use Cases for OMI.md
+```
+
+Viewer scope:
+
+```text
+This file governs the published viewer portal and viewer-local agent context.
+It does not override root README.md, root AGENTS.md, or root SKILLS.md.
+```
 
 ---
 
 ## 0. Purpose
 
-This file defines the repository-level collaboration authority for an OMI-compatible project.
+This file defines the viewer-level collaboration authority for the public
+OMI-compatible viewer portal.
 
-`REPO.md` answers:
+`viewer/docs/REPO.md` answers:
 
 ```text
 who may collaborate
@@ -95,11 +111,13 @@ MAY / OPTIONAL
 Repository authority is applied in this order:
 
 ```text
-REPO.md
+viewer/docs/REPO.md
   ↓
-AGENTS.md
+viewer/AGENTS.md
   ↓
-SKILLS.md
+viewer/SKILLS.md
+  ↓
+viewer/docs/ADAPTERS.md
   ↓
 *.imo carriers
   ↓
@@ -112,11 +130,14 @@ receipt
 projection
 ```
 
-`REPO.md` is the highest local collaboration authority.
+`viewer/docs/REPO.md` is the highest local collaboration authority for the
+viewer portal.
 
-`AGENTS.md` MUST NOT broaden permissions beyond `REPO.md`.
+Root repository authority still belongs to the root repository docs.
 
-`SKILLS.md` MUST NOT authorize behavior by itself.
+`viewer/AGENTS.md` MUST NOT broaden permissions beyond `viewer/docs/REPO.md`.
+
+`viewer/SKILLS.md` MUST NOT authorize behavior by itself.
 
 `.imo` files MUST be treated as carriers, not authority.
 
@@ -125,9 +146,9 @@ Receipts are the accepted state boundary.
 If files conflict:
 
 ```text
-REPO.md controls role, scope, permission, and effect policy.
-AGENTS.md controls resolver behavior inside REPO.md limits.
-SKILLS.md controls deterministic computation.
+viewer/docs/REPO.md controls viewer role, scope, permission, and effect policy.
+viewer/AGENTS.md controls viewer resolver behavior inside viewer/docs/REPO.md limits.
+viewer/SKILLS.md controls viewer-facing deterministic computation.
 Receipts control accepted state.
 ```
 
@@ -138,14 +159,14 @@ Receipts control accepted state.
 The repository SHOULD use this authority split:
 
 ```text
-REPO.md
-  role/repo access authority
+viewer/docs/REPO.md
+  viewer role/repo access authority
 
-AGENTS.md
-  resolver behavior authority
+viewer/AGENTS.md
+  viewer resolver behavior authority
 
-SKILLS.md
-  reproducible algorithm authority
+viewer/SKILLS.md
+  viewer-facing reproducible algorithm authority
 
 *.imo
   normalized carrier declarations
@@ -153,8 +174,8 @@ SKILLS.md
 receipts.imo
   accepted/rejected receipt export
 
-README.md
-  public introduction
+viewer/docs/ADAPTERS.md
+  viewer adapter and carrier boundary
 
 LICENSE
   legal permission boundary
@@ -360,9 +381,10 @@ A role granted proposal access MUST NOT assume acceptance authority.
 The following files have declared repository meaning:
 
 ```text
-REPO.md       repository collaboration authority
-AGENTS.md     resolver behavior authority
-SKILLS.md     deterministic algorithm authority
+viewer/docs/REPO.md      viewer collaboration authority
+viewer/AGENTS.md         viewer resolver behavior authority
+viewer/SKILLS.md         viewer deterministic algorithm authority
+viewer/docs/ADAPTERS.md  viewer adapter and carrier boundary
 fs.imo        normalized file-scope carrier
 gs.imo        normalized group-scope carrier
 rs.imo        normalized record-scope carrier
@@ -405,7 +427,7 @@ execute: none
 Declaration:
 
 ```omi-lisp
-(role.Observer.read . fs.o/README.md)
+(role.Observer.read . fs.o/viewer/index.html)
 (role.Observer.write . none)
 (role.Observer.execute . none)
 ```
@@ -1072,7 +1094,7 @@ carrier hashes
 
 A `.imo` file MUST NOT create access by itself.
 
-Access is granted only by `REPO.md` policy and accepted receipts.
+Access is granted only by `viewer/docs/REPO.md` policy and accepted receipts.
 
 ---
 
@@ -1366,7 +1388,7 @@ A compliant repository SHOULD include this declaration block or an equivalent on
 ## 25. Example Role Grants
 
 ```omi-lisp
-(role.Observer.read . fs.o/README.md)
+(role.Observer.read . fs.o/viewer/index.html)
 (role.Observer.write . none)
 (role.Observer.execute . none)
 
@@ -1526,11 +1548,13 @@ hardware_project() acts only after accepted hardware receipt.
 
 ## 30. Final Canon
 
-`REPO.md` is the repository collaboration authority.
+`viewer/docs/REPO.md` is the viewer collaboration authority.
 
-`AGENTS.md` is the resolver behavior authority.
+`viewer/AGENTS.md` is the viewer resolver behavior authority.
 
-`SKILLS.md` is the reproducible algorithm authority.
+`viewer/SKILLS.md` is the viewer-facing reproducible algorithm authority.
+
+`viewer/docs/ADAPTERS.md` is the viewer adapter and carrier boundary.
 
 `.imo` files are normalized carriers.
 
@@ -1552,4 +1576,485 @@ No actor, agent, model, file, skill, bridge word, branch, projection, peer, or s
 
 ## 31. One-Sentence Summary
 
-`REPO.md` defines Role/Repo Based Access Control for decentralized OMI-compatible LLM repositories by binding roles, scopes, skills, effects, files, `.imo` carriers, collaboration requests, local validation, and receipt gates into a repository-local protocol where every contribution remains a candidate until validated and recorded as an accepted or rejected receipt.
+`viewer/docs/REPO.md` defines Role/Repo Based Access Control for the public OMI viewer portal by binding roles, scopes, skills, effects, files, `.imo` carriers, collaboration requests, local validation, and receipt gates into a viewer-local protocol where every contribution remains a candidate until validated and recorded as an accepted or rejected receipt.
+
+---
+
+## 32. Viewer LLM Bootstrap
+
+The published viewer may be used as a public interface for bootstrapping
+OMI-compatible LLM agents.
+
+An LLM agent operating through the viewer is a scoped Resolver by default.
+
+It may:
+
+```text
+inspect public viewer files
+explain authority boundaries
+cite candidate relations
+prepare candidate declarations
+prepare candidate patches
+invoke permitted pure/read-only skills
+summarize receipts and projections
+```
+
+It must not:
+
+```text
+claim acceptance without receipt
+perform side effects before receipt
+broaden its own role
+override viewer/docs/REPO.md
+override root repository policy
+interpret rendering as truth
+interpret parser success as truth
+interpret model output as truth
+```
+
+### 32.1 Bootstrap Prompt
+
+Use this prompt when starting an LLM session from the public viewer portal:
+
+```text
+You are operating inside the public OMI viewer portal.
+
+Your default role is Resolver.
+
+Read and obey local authority in this order:
+
+1. viewer/docs/REPO.md
+2. viewer/AGENTS.md
+3. viewer/SKILLS.md
+4. viewer/docs/ADAPTERS.md
+5. *.imo carrier files, if present
+6. source files
+7. tests and receipts
+
+Authority split:
+
+viewer/docs/REPO.md defines who/where/what is allowed.
+viewer/AGENTS.md defines resolver behavior.
+viewer/SKILLS.md defines reproducible algorithms.
+viewer/docs/ADAPTERS.md defines carrier and adapter boundaries.
+*.imo files are normalized carriers.
+Receipts define accepted state.
+
+You may recognize, cite, inspect, explain, propose, and generate candidates.
+
+You must not claim acceptance without validation and receipt.
+
+You must not treat generated code, rendered output, parser success, bridge
+words, source blocks, network input, browser events, or projections as accepted
+authority.
+
+Core invariant:
+
+Recognition is not acceptance.
+Citation is not acceptance.
+Closure is not acceptance.
+Projection is not acceptance.
+Validation and receipt accept.
+
+For viewer work, use this pipeline:
+
+prompt
+  -> scope
+  -> read viewer authority files
+  -> select permitted skills
+  -> generate candidate
+  -> validate or request validation
+  -> record receipt only if allowed
+  -> project only if allowed
+
+Always label work as candidate unless a valid receipt proves acceptance.
+```
+
+### 32.2 Short Bootstrap Prompt
+
+```text
+Act as an OMI viewer Resolver.
+
+Read authority in this order: viewer/docs/REPO.md, viewer/AGENTS.md,
+viewer/SKILLS.md, viewer/docs/ADAPTERS.md, *.imo, source, tests, receipts.
+
+You may propose candidates, inspect files, explain bit operations, and prepare
+patches.
+
+You must not claim acceptance without validation and receipt.
+
+Do not treat rendering, parsing, source text, bridge words, browser events,
+network input, or model output as acceptance.
+
+Always label work as candidate unless a receipt proves acceptance.
+```
+
+### 32.3 Viewer Work Template
+
+```text
+Use the OMI viewer Resolver rules from viewer/docs/REPO.md.
+
+Task:
+<describe task>
+
+Relevant files:
+<list files>
+
+Required scope:
+fs.o/<file>/gs.o/<group>/rs.o/<record>/us.o/<unit>
+
+Allowed effect:
+pure | read-only | local-write | repo-write | network | hardware | security-sensitive
+
+Validation required:
+<tests, build command, lint command, parser check, receipt check>
+
+Output required:
+- what was inspected
+- scope affected
+- candidate change
+- validation required
+- risks
+- acceptance status
+```
+
+Default acceptance status:
+
+```text
+candidate, not accepted
+```
+
+### 32.4 Candidate Declaration Block
+
+For proposed viewer changes:
+
+```omi-lisp
+(change.status . candidate)
+(change.scope . fs.o/<file>/gs.o/<group>/rs.o/<record>/us.o/<unit>)
+(change.effect . pure)
+(change.skill . skill.<name>)
+(change.validation . required)
+(change.result . not-accepted)
+```
+
+For accepted viewer changes:
+
+```omi-lisp
+(receipt.accepts . change-id)
+(receipt.scope . fs.o/<file>/gs.o/<group>/rs.o/<record>/us.o/<unit>)
+(receipt.effect . pure)
+(receipt.result . accepted)
+```
+
+A candidate block MUST NOT be treated as an accepted receipt.
+
+---
+
+## 33. Viewer P2P Authority
+
+The viewer may display, exchange, or prepare peer-to-peer carriers, candidates,
+and receipts.
+
+It does not exchange truth.
+
+Canonical P2P rule:
+
+```text
+Peers exchange carriers, candidates, and receipts.
+Peers do not exchange truth.
+
+Each peer validates locally.
+Each peer accepts locally.
+Each peer records its own receipts.
+```
+
+Network invariant:
+
+```text
+Send does not accept.
+Receive does not accept.
+Validation accepts.
+Receipt records.
+```
+
+P2P authority split:
+
+```text
+viewer/docs/REPO.md  -> viewer role/repo authority
+viewer/AGENTS.md     -> viewer resolver behavior
+viewer/SKILLS.md     -> viewer algorithm registry
+*.imo                -> normalized carriers
+receipts             -> accepted/rejected state
+```
+
+P2P consequence:
+
+```text
+No peer is global authority.
+No sender is automatically trusted.
+No received carrier is automatically accepted.
+Every peer validates under its own REPO.md.
+```
+
+### 33.1 Repository Federation
+
+Peer A may send a candidate declaration to Peer B.
+
+Peer B validates the candidate under Peer B's own authority files.
+
+```omi-lisp
+(peer.send . candidate)
+(peer.receive . candidate)
+(peer.validate . local-REPO-md)
+(peer.receipt . store-if-accepted)
+```
+
+Peer B may accept a candidate in:
+
+```text
+fs.o/docs
+```
+
+while rejecting the same peer's candidate in:
+
+```text
+fs.o/src
+```
+
+### 33.2 Distributed Skill Execution
+
+A peer may request computation from another peer that has a special runtime,
+model, hardware device, dataset, or validated skill.
+
+```omi-lisp
+(peer.request . skill.audio.mix)
+(peer.scope . fs.o/SKILLS.md/gs.o/audio/rs.o/mixer/us.o/v1)
+(peer.effect . pure)
+(peer.receipt . required)
+```
+
+For hardware or external effects:
+
+```omi-lisp
+(peer.request . skill.hardware.project)
+(peer.scope . fs.o/hardware/gs.o/gpio)
+(peer.effect . hardware)
+(peer.receipt . required-before-projection)
+```
+
+Hardware command declarations and hardware result declarations are different
+relations.
+
+### 33.3 Remote Receipt Verification
+
+A remote receipt proves what the remote peer accepted.
+
+It does not prove what the local peer accepts.
+
+Verification SHOULD check:
+
+```text
+receipt exists
+receipt hash is nonzero
+receipt scope matches claim
+receipt result is accepted or rejected
+receipt parent is consistent when parent is declared
+algorithm hash matches declared skill
+effect class matches declared permission
+```
+
+Local acceptance requires local validation.
+
+### 33.4 Receipt Ring Synchronization
+
+The receipt ring is a local ordering and storage structure, not global
+consensus by itself.
+
+Slot rule:
+
+```text
+slot5040 = fano7 * 720 + role3 * 240 + local240
+```
+
+where:
+
+```text
+fano7 in 0..6
+role3 in 0..2
+local240 in 0..239
+```
+
+P2P agreement emerges only when peers compare, validate, and accept compatible
+receipt chains.
+
+Preferred term:
+
+```text
+receipt ring synchronization
+```
+
+not:
+
+```text
+receipt ring consensus
+```
+
+---
+
+## 34. Viewer Multimedia Policy
+
+The viewer may carry or project multimedia.
+
+Media is carrier material, not authority.
+
+```text
+video is a carrier
+audio is a carrier
+image is a carrier
+3D model is a carrier
+texture is a carrier
+thumbnail is a carrier
+```
+
+A media file is not accepted merely because it renders.
+
+Media must still pass validation and receipt.
+
+### 34.1 Multimedia Seeds
+
+Media interpretation can be declared with seed objects:
+
+```omi-lisp
+(seed.video . o.video.o)
+(seed.audio . o.audio.o)
+(seed.image . o.image.o)
+(seed.model3d . o.model3d.o)
+```
+
+Seed rule:
+
+```text
+A seed declares interpretation scope.
+A seed does not imply payload acceptance.
+```
+
+### 34.2 Multimedia Effect Classes
+
+The base effect classes remain:
+
+```text
+pure
+read-only
+local-write
+repo-write
+network
+hardware
+security-sensitive
+```
+
+Multimedia operations SHOULD initially be represented as declared effect
+subtypes rather than new core enum values.
+
+```omi-lisp
+(effect . network)
+(effect.subtype . streaming)
+
+(effect . hardware)
+(effect.subtype . render)
+
+(effect . local-write)
+(effect.subtype . transcode)
+
+(effect . security-sensitive)
+(effect.subtype . capture)
+```
+
+Media effect mapping:
+
+```text
+streaming  -> network
+rendering  -> hardware
+transcode  -> local-write
+capture    -> security-sensitive
+inference  -> hardware or security-sensitive, depending on model/data
+```
+
+### 34.3 Multimedia Bridge Policy
+
+The base external bridge is:
+
+```text
+0xAA55 = external bridge authorization
+```
+
+Media-specific bridge words MAY be introduced later, but they SHOULD be treated
+as extension words, not required core protocol.
+
+Candidate extension words:
+
+```c
+#define OMI_BRIDGE_MEDIA_STREAM     0x1A55u
+#define OMI_BRIDGE_MEDIA_RENDER     0x1B55u
+#define OMI_BRIDGE_MEDIA_CAPTURE    0x1C55u
+#define OMI_BRIDGE_MEDIA_TRANSCODE  0x1D55u
+```
+
+Extension rule:
+
+```text
+Media bridge words MUST NOT bypass effect permission.
+Media bridge words MUST NOT bypass validation.
+Media bridge words MUST NOT write receipts directly.
+```
+
+### 34.4 Viewer P2P Media Matrix
+
+| Use Case | OMI Feature | P2P Attribute |
+|---|---|---|
+| Repository federation | `viewer/docs/REPO.md` per peer | local sovereignty |
+| Distributed skills | effect classes + skills | zero-trust execution |
+| Receipt verification | `skill.receipt.verify` | provenance checking |
+| Decentralized version control | FS/GS/RS/US scopes | scoped histories |
+| Skill exchange | `viewer/SKILLS.md` + test vectors | deterministic execution |
+| Receipt synchronization | 5040-slot ring + cycles | local receipt lineage |
+| Conflict resolution | Betti + Schläfli | topology-assisted inspection |
+| Video streaming | chunk receipts | validated media delivery |
+| Collaborative editing | scoped edit candidates | mergeable media histories |
+| 3D sharing | WebGL projection | receipt-gated rendering |
+| Audio production | pure media skills | deterministic mixing |
+| Media inference | effect-gated models | validated AI output |
+| Media discovery | metadata carriers | read-only search |
+
+### 34.5 Canonical P2P And Multimedia Invariant
+
+```text
+Recognition is not acceptance.
+Citation is not acceptance.
+Closure is not acceptance.
+Projection is not acceptance.
+Validation and receipt accept.
+
+Send does not accept.
+Receive does not accept.
+Validation accepts.
+Receipt records.
+
+Media is not acceptance.
+A video is a carrier.
+An audio file is a carrier.
+An image is a carrier.
+A 3D model is a carrier.
+A texture is a carrier.
+A thumbnail is a carrier.
+
+Streaming is a network effect.
+Rendering is a hardware effect.
+Transcoding is a local-write effect.
+Capture is a security-sensitive effect.
+Inference is an effect-gated candidate process.
+
+Each effect requires explicit authorization.
+Each peer validates under its own REPO.md.
+Each peer stores its own receipts.
+Peers exchange carriers, candidates, and receipts, not truth.
+```

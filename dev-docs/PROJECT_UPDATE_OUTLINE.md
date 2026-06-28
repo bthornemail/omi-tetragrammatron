@@ -5,7 +5,7 @@ This file indexes the archived update documents in `dev-docs/archive/` and turns
 ## 0. Current Status
 
 - C core scaffold has started: `omi.h`/`omi.c` now expose hardened fixed-width types, arena/gauge/bridge scaffold APIs, bitboard masks, and conservative projection gates.
-- `opencode.c`, `opencode.o`, and `opencode.bin` are legacy first-version application names. The runtime application target should become `omicron.c`, `omicron.o`, and `omicron.bin`.
+- Runtime application rename is complete: `omicron.c`, `omicron.o`, and `omicron.bin` replaced the legacy first-version `opencode` names.
 - JABCode v0 debug carrier exists in `viewer/public/jabcode-carrier.js`, but it should not be treated as an active standards carrier unless it is replaced with an implementation that follows `archive/JabCode.BSI-TR-03137.pdf`.
 - The archive contains broader design targets that are not yet fully implemented: full arena runtime, tokenizer/parser declarations, receipt-gated projection, adapter policy, repository role policy, P2P sync, hardware targets, and doctrine/docs consolidation.
 
@@ -57,7 +57,7 @@ Primary archive sources:
 
 Implementation phases:
 - Phase 2.1: finish scaffold cleanup with warning-safe helper functions and tests.
-- Phase 2.2: rename the legacy application target from `opencode` to `omicron`: `opencode.c` -> `omicron.c`, `opencode.o` -> `omicron.o`, `opencode.bin` -> `omicron.bin`, and update `Makefile`, smoke tests, docs, and CLI references.
+- Phase 2.2: completed rename of the legacy application target from `opencode` to `omicron`: `opencode.c` -> `omicron.c`, `opencode.o` -> `omicron.o`, `opencode.bin` -> `omicron.bin`, with `Makefile`, smoke tests, docs, and CLI references updated.
 - Phase 2.3: keep the runtime implementation split across `omi.c`, `imo.c`, `tetragrammatron.c`, `metatron.c`, and the thin orchestration file `omicron.c`.
 - Phase 2.4: add full gauge table behavior, bitboard folds, bridge slots, and explicit boot mode handling.
 - Phase 2.5: add tokenizer state that reads explicit input buffers and witnesses bytes without treating bytes as acceptance.
@@ -217,8 +217,8 @@ Archive handling:
 ## 9. Recommended Next Work Order
 
 1. Reconcile current C scaffold with `Normative Errata` and finish warning-safe tests.
-2. Rename `opencode` runtime application files and build targets to `omicron`.
-3. Merge viewer REPO addenda and role-repo policy drafts into `viewer/docs/REPO.md`, keeping viewer policy separate from root policy.
+2. Rename `opencode` runtime application files and build targets to `omicron`. Completed.
+3. Merge viewer REPO addenda and role-repo policy drafts into `viewer/docs/REPO.md`, keeping viewer policy separate from root policy. Completed.
 4. Add pre-header and frame parser helpers with pure round-trip tests.
 5. Add tokenizer/parser candidate construction for declarations.
 6. Connect candidate validation to Tetragrammatron-owned receipt storage.

@@ -33,7 +33,7 @@ Fault exists only at the physical carrier boundary:
 
 Every step: proposal -> citation -> reduction -> receipt -> carry-forward
 
-The seed is opencode.bin.
+The seed is omicron.bin.
 Autonomous AI = continuing growth around that seed.
 
 ---
@@ -483,7 +483,7 @@ function autoLoop(rt) {
 
 ---
 
-Modes (opencode.bin)
+Modes (omicron.bin)
 
   (no args)     autonomous: self-generates from ring + stdin
   --eval <s>    evaluate S-expression, print receipt
@@ -572,7 +572,7 @@ OMI canonical form:
 
 Build
 
-gcc -O2 -Wall -Wextra -o opencode.bin opencode.c -lm
+gcc -O2 -Wall -Wextra -o omicron.bin omicron.c -lm
 
 ---
 

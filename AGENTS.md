@@ -64,7 +64,7 @@ Everything else is private to its module.
 
 ## Source layout
 
-Four modules, single authority each, orchestrated by opencode.c:
+Four modules, single authority each, orchestrated by omicron.c:
 
 - omi.h/.c         — Citation Authority: addresses, registers, CONS/CAR/CDR, CID,
                      16 opcodes, nibble CPU, address parser/formatter, FNV-1a.
@@ -80,7 +80,7 @@ Four modules, single authority each, orchestrated by opencode.c:
                      compiler/reducer, HTTP/SSE/WebSocket server, SHA-1, BOOT_ROM[21],
                      signal handling, xmalloc family. Produces Runtime Representations.
                      Never validates. Never composes geometry. Never changes identity.
-- opencode.c       — Thin orchestration: main() dispatch to all 4 authorities.
+- omicron.c        — Thin orchestration: main() dispatch to all 4 authorities.
 - proof/phi_proof.v — Coq proof: Schläfli symbol {3,5} forces golden ratio φ
 - viewer/          — WebGL frontend (Three.js)
 - SKILLS.md        — full OMI runtime specification
@@ -125,7 +125,7 @@ IMO orchestrates pipeline, calls Metatron for projection.
 Tetragrammatron provides tetragrammatron_export/import (pure memory);
 IMO calls these for ring_save/load (disk serialization).
 
-## Modes in opencode.c
+## Modes in omicron.c
 
 --eval <s>      evaluate one S-expression
 --repl          interactive REPL

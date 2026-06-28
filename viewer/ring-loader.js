@@ -1,4 +1,4 @@
-/* Ring loader — fetches deterministic state from opencode.bin --serve */
+/* Ring loader -- fetches deterministic state from omicron.bin --serve */
 
 class RingLoader {
   constructor(baseUrl) {

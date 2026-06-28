@@ -2,8 +2,8 @@ CC = gcc
 CFLAGS = -O2 -Wall -Wextra
 COQC = coqc
 
-TARGET = opencode.bin
-OBJS = omi.o tetragrammatron.o metatron.o imo.o opencode.o
+TARGET = omicron.bin
+OBJS = omi.o tetragrammatron.o metatron.o imo.o omicron.o
 PROOF_DIR = proof
 VFILE = $(PROOF_DIR)/phi_proof.v
 VOFILE = $(PROOF_DIR)/phi_proof.vo
@@ -27,7 +27,7 @@ metatron.o: metatron.c metatron.h
 imo.o: imo.c imo.h metatron.h tetragrammatron.h
 	$(CC) $(CFLAGS) -c -o $@ $< -lm
 
-opencode.o: opencode.c omi.h tetragrammatron.h metatron.h imo.h
+omicron.o: omicron.c omi.h tetragrammatron.h metatron.h imo.h
 	$(CC) $(CFLAGS) -c -o $@ $< -lm
 
 coq: $(VOFILE)

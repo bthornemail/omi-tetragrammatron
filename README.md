@@ -163,7 +163,7 @@ User → IMO → OMI → Tetragrammatron → Receipt → Metatron → IMO → Su
 | `tetragrammatron.h/.c`| Validation  | ~180  | Ring, folds, acceptance |
 | `metatron.h` / `.c`   | Projection  | ~830  | Geometry, renderers, incidence |
 | `imo.h` / `imo.c`     | Carrier     | ~850  | HTTP, parser, serialization |
-| `opencode.c`          | Orchestration | ~400  | Thin main/CLI dispatch |
+| `omicron.c`           | Orchestration | ~400  | Thin main/CLI dispatch |
 
 ---
 

@@ -39,8 +39,8 @@ IMO is the Carrier Authority.
 
 Omicron is the thin runtime application.
 - Orchestrates the four authorities.
-- Replaces the legacy `opencode` application name.
-- Build target should become `omicron.bin`; object target should become `omicron.o`; orchestration source should become `omicron.c`.
+- Replaced the legacy `opencode` application name.
+- Build target is `omicron.bin`; object target is `omicron.o`; orchestration source is `omicron.c`.
 
 ## 3. OMI-Lisp Language Model
 
@@ -119,8 +119,8 @@ Core runtime source files:
 - `omicron.c`: thin orchestration application, replacing legacy `opencode.c`.
 
 Legacy compatibility:
-- Existing `opencode` references are migration targets.
-- Current CLI behavior must remain stable during the rename.
+- Archive-only `opencode` references remain historical.
+- Current CLI behavior must remain stable after the rename.
 
 ## 7. Public Viewer Portal
 
