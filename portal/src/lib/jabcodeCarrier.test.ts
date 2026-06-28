@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
-  decodeFromJABCode,
+  BSI_8_COLOR_PALETTE,
+  decodeFromDebugMatrix,
+  decodeFromJABCodeImage,
+  encodeBarcodePayload,
+  encodeToDebugMatrix,
   encodeToJABCode,
   formatPointer,
   packFrame,
@@ -33,12 +37,32 @@ describe('jabcodeCarrier debug carrier', () => {
   })
 
   it('encodes and decodes deterministic debug matrices', () => {
-    const encoded = encodeToJABCode(new Uint16Array(GOLDEN_S))
+    const encoded = encodeToDebugMatrix(new Uint16Array(GOLDEN_S))
     expect(encoded.kind).toBe('debug-matrix')
-    expect(encoded.profile).toBe('omi.jabcode.rs.v0')
-    expect(encoded.svg).toContain('data-omi-profile="omi.jabcode.rs.v0"')
-    expect(decodeFromJABCode(GOLDEN_HEX).requiresAlgebraicValidation).toBe(true)
-    expect(decodeFromJABCode(GOLDEN_POINTER).pointer).toBe(GOLDEN_POINTER)
+    expect(encoded.carrier).toBe('omi-barcode')
+    expect(encoded.profile).toBe('omi-jabcode')
+    expect(encoded.compliance).toBe('debug-only')
+    expect(encoded.svg).toContain('data-omi-carrier="omi-barcode"')
+    expect(encoded.svg).toContain('data-omi-profile="omi-jabcode"')
+    expect(encoded.svg).toContain('data-omi-compliance="debug-only"')
+    expect(decodeFromDebugMatrix(GOLDEN_HEX).requiresAlgebraicValidation).toBe(true)
+    expect(decodeFromDebugMatrix(GOLDEN_POINTER).pointer).toBe(GOLDEN_POINTER)
     expect(() => parsePointer('bad')).toThrow()
+  })
+
+  it('uses barcode payload and reserves real JABCode APIs', () => {
+    expect(Array.from(BSI_8_COLOR_PALETTE)).toEqual([
+      '#000000',
+      '#ff00ff',
+      '#ffff00',
+      '#00ffff',
+      '#ff0000',
+      '#00ff00',
+      '#0000ff',
+      '#ffffff',
+    ])
+    expect(hex(encodeBarcodePayload(new Uint16Array(GOLDEN_S)))).toBe(`ff001c1d1e1f20ff${GOLDEN_HEX}`)
+    expect(() => encodeToJABCode()).toThrow(/BSI TR-03137/)
+    expect(() => decodeFromJABCodeImage()).toThrow(/BSI TR-03137/)
   })
 })

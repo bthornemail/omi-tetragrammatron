@@ -147,10 +147,11 @@ Active canonical carrier notation:
 - `o---o/---/?---?@---@`
 - `o-S0-S1-S2-S3/S4/S5/S6/S7?PAYLOAD?MASK@CAR@CDR`
 
-JABCode policy:
-- JABCode must not be promoted as an active standards carrier unless implemented from `dev-docs/archive/JabCode.BSI-TR-03137.pdf`.
-- If official compliance is not implemented, leave JABCode out of the active carrier roadmap.
-- Existing debug matrix code is a development aid, not canonical JABCode compliance.
+Barcode policy:
+- `omi-barcode` is the canonical barcode carrier family.
+- `omi-jabcode` is the current custom OMI barcode form under that family.
+- The current `omi-jabcode` implementation is debug-only and must not be promoted as standards-compliant JABCode unless implemented from `dev-docs/archive/JabCode.BSI-TR-03137.pdf`.
+- Barcode distinctions should be expressed through OMI/IMO addressing and receipt context, not verbose profile names.
 
 Adapter policy:
 - Browser, serial, DOM/CSSOM/Canvas/WebGL, ESP32, file, network, and P2P adapters must be receipt-gated for side effects.

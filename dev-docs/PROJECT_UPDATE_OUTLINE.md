@@ -6,7 +6,7 @@ This file indexes the archived update documents in `dev-docs/archive/` and turns
 
 - C core scaffold has started in `core/`: `core/omi.h`/`core/omi.c` now expose hardened fixed-width types, arena/gauge/bridge scaffold APIs, bitboard masks, and conservative projection gates.
 - Runtime application rename is complete: `core/omicron.c`, `core/omicron.o`, and `core/omicron.bin` replaced the legacy first-version `opencode` names.
-- JABCode v0 debug carrier exists in `portal/src/lib/jabcodeCarrier.ts`, ported from `dev-docs/archive/viewer/public/jabcode-carrier.js`, but it should not be treated as an active standards carrier unless it is replaced with an implementation that follows `archive/JabCode.BSI-TR-03137.pdf`.
+- Barcode carrier scaffold exists in `portal/src/lib/jabcodeCarrier.ts`, ported from `dev-docs/archive/viewer/public/jabcode-carrier.js`. The canonical carrier family is `omi-barcode`; the custom current form is `omi-jabcode`. The current output is debug-only and must not be treated as an active standards JABCode carrier unless it is replaced with an implementation that follows `archive/JabCode.BSI-TR-03137.pdf`.
 - The archive contains broader design targets that are not yet fully implemented: full arena runtime, tokenizer/parser declarations, receipt-gated projection, adapter policy, repository role policy, P2P sync, hardware targets, and doctrine/docs consolidation.
 
 ## 1. Canon And Authority Model
@@ -136,8 +136,8 @@ Primary archive sources:
 - `archive/JabCode.BSI-TR-03137.pdf`
 
 Current state:
-- JABCode v0 debug carrier is implemented as deterministic debug matrix, not full BSI TR 03137 compliance.
-- Portal TypeScript surfaces and module tests exist for JABCode debug carrier, receipt surface cascade, and gnomonic surface.
+- `omi-barcode` / `omi-jabcode` debug carrier is implemented as deterministic debug matrix, not full BSI TR 03137 compliance.
+- Portal TypeScript surfaces and module tests exist for barcode debug carrier, receipt surface cascade, and gnomonic surface.
 
 Implementation targets:
 - Do not promote JABCode as an active carrier unless implementation follows the official specification in `archive/JabCode.BSI-TR-03137.pdf`.

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  decodeFromJABCode,
-  encodeToJABCode,
+  decodeFromDebugMatrix,
+  encodeToDebugMatrix,
   formatPointer,
   parsePointer,
 } from './lib/jabcodeCarrier'
@@ -67,7 +67,7 @@ function App() {
   const carrier = useMemo(() => {
     try {
       const parsed = parsePointer(pointer)
-      return { ok: true as const, parsed, encoded: encodeToJABCode(parsed.S), decoded: decodeFromJABCode(pointer) }
+      return { ok: true as const, parsed, encoded: encodeToDebugMatrix(parsed.S), decoded: decodeFromDebugMatrix(pointer) }
     } catch (error) {
       return { ok: false as const, error: error instanceof Error ? error.message : String(error) }
     }
@@ -116,8 +116,8 @@ function App() {
 
         <article className="panel">
           <div className="panel-head">
-            <h2>Debug Carrier</h2>
-            <code>not accepted</code>
+            <h2>Barcode Carrier</h2>
+            <code>debug-only</code>
           </div>
           <label className="field">
             <span>OMI pointer</span>
@@ -131,6 +131,10 @@ function App() {
                 <dd>{formatPointer(carrier.parsed.S, carrier.parsed.prefix)}</dd>
                 <dt>shape</dt>
                 <dd>{carrier.decoded.shape.ok ? 'recognized, validation required' : 'rejected shape'}</dd>
+                <dt>carrier</dt>
+                <dd>
+                  {carrier.encoded.carrier} / {carrier.encoded.profile}
+                </dd>
               </dl>
             </>
           ) : (

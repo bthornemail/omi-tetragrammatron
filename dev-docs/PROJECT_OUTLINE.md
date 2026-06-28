@@ -465,11 +465,13 @@ Active canonical carrier language:
 OMI citation notation
 ```
 
-JABCode status:
+Barcode status:
 
-- `portal/src/lib/jabcodeCarrier.ts` exists as a debug/development carrier.
-- JABCode must not be treated as standards-compliant unless implemented from `dev-docs/archive/JabCode.BSI-TR-03137.pdf`.
-- If official compliance is not implemented, JABCode remains out of the active carrier roadmap.
+- `portal/src/lib/jabcodeCarrier.ts` exists as a debug/development barcode carrier.
+- `omi-barcode` is the canonical barcode carrier family.
+- `omi-jabcode` is the current custom OMI barcode form under that family.
+- The current `omi-jabcode` debug matrix must not be treated as standards-compliant JABCode unless implemented from `dev-docs/archive/JabCode.BSI-TR-03137.pdf`.
+- Barcode differences should be represented through OMI/IMO addressing and receipt context, not verbose profile names.
 
 Carrier boundary:
 

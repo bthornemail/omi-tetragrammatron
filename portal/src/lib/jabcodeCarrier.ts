@@ -1,17 +1,21 @@
-export const PROFILE = 'omi.jabcode.rs.v0'
+export const CARRIER = 'omi-barcode'
+export const PROFILE = 'omi-jabcode'
+export const COMPLIANCE = 'debug-only'
 
-export const PALETTE = [
+export const BSI_8_COLOR_PALETTE = [
   '#000000',
-  '#0000ff',
-  '#00ff00',
-  '#00ffff',
-  '#ff0000',
   '#ff00ff',
   '#ffff00',
+  '#00ffff',
+  '#ff0000',
+  '#00ff00',
+  '#0000ff',
   '#ffffff',
 ] as const
 
-const PRELUDE = 'OMI-JAB-RS-v0:'
+export const PALETTE = BSI_8_COLOR_PALETTE
+
+export const OMI_GAUGE_PREHEADER = new Uint8Array([0xff, 0x00, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0xff])
 
 export interface ParsedPointer {
   S: Uint16Array
@@ -35,16 +39,21 @@ export interface DebugMatrix {
 }
 
 export interface DebugCarrier {
+  carrier: string
   profile: string
+  compliance: typeof COMPLIANCE
   kind: 'debug-matrix'
   S: Uint16Array
   bytes: Uint8Array
+  payloadBytes: Uint8Array
   matrix: DebugMatrix
   svg: string
 }
 
 export interface DecodedCarrier {
+  carrier: string
   profile: string
+  compliance: typeof COMPLIANCE
   S: Uint16Array
   bytes: Uint8Array
   pointer: string
@@ -147,6 +156,14 @@ export function encodePayload(S: ArrayLike<number>): Uint8Array {
   return packFrame(S)
 }
 
+export function encodeBarcodePayload(S: ArrayLike<number>): Uint8Array {
+  const frameBytes = packFrame(S)
+  const out = new Uint8Array(OMI_GAUGE_PREHEADER.length + frameBytes.length)
+  out.set(OMI_GAUGE_PREHEADER)
+  out.set(frameBytes, OMI_GAUGE_PREHEADER.length)
+  return out
+}
+
 export function decodePayload(bytes: Uint8Array) {
   const S = unpackFrame(bytes)
   const shape = validateFrameShape(S)
@@ -165,21 +182,12 @@ function bitsToColorIndices(bits: number[]): number[] {
   return indices
 }
 
-function textToBytes(s: string): Uint8Array {
-  const out = new Uint8Array(s.length)
-  for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i)
-  return out
-}
-
 export function renderDebugMatrix(S: ArrayLike<number>, options: { moduleSize?: number; padding?: number } = {}): DebugCarrier {
   const matrixSize = 21
   const finderSize = 5
   const frameBytes = packFrame(S)
-  const preludeBytes = textToBytes(PRELUDE)
-  const allBytes = new Uint8Array(preludeBytes.length + frameBytes.length)
-  allBytes.set(preludeBytes)
-  allBytes.set(frameBytes, preludeBytes.length)
-  const colorIndices = bitsToColorIndices(bytesToBits(allBytes))
+  const payloadBytes = encodeBarcodePayload(S)
+  const colorIndices = bitsToColorIndices(bytesToBits(payloadBytes))
   const cells = new Uint8Array(matrixSize * matrixSize)
   cells.fill(255)
 
@@ -214,7 +222,17 @@ export function renderDebugMatrix(S: ArrayLike<number>, options: { moduleSize?: 
   }
 
   const matrix = { width: matrixSize, height: matrixSize, cells, palette: PALETTE }
-  return { profile: PROFILE, kind: 'debug-matrix', S: new Uint16Array(S as ArrayLike<number>), bytes: frameBytes, matrix, svg: matrixToSVG(matrix, options) }
+  return {
+    carrier: CARRIER,
+    profile: PROFILE,
+    compliance: COMPLIANCE,
+    kind: 'debug-matrix',
+    S: new Uint16Array(S as ArrayLike<number>),
+    bytes: frameBytes,
+    payloadBytes,
+    matrix,
+    svg: matrixToSVG(matrix, options),
+  }
 }
 
 export function matrixToSVG(matrix: DebugMatrix, options: { moduleSize?: number; padding?: number } = {}): string {
@@ -231,14 +249,14 @@ export function matrixToSVG(matrix: DebugMatrix, options: { moduleSize?: number;
       rects.push(`<rect x="${pad + x * ms}" y="${pad + y * ms}" width="${ms}" height="${ms}" fill="${color}"/>`)
     }
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${tw} ${th}" data-omi-carrier="jabcode-rs" data-omi-profile="${PROFILE}">${rects.join('')}</svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${tw} ${th}" data-omi-carrier="${CARRIER}" data-omi-profile="${PROFILE}" data-omi-compliance="${COMPLIANCE}">${rects.join('')}</svg>`
 }
 
-export function encodeToJABCode(S: ArrayLike<number>, options?: { moduleSize?: number; padding?: number }): DebugCarrier {
+export function encodeToDebugMatrix(S: ArrayLike<number>, options?: { moduleSize?: number; padding?: number }): DebugCarrier {
   return renderDebugMatrix(S, options)
 }
 
-export function decodeFromJABCode(input: Uint8Array | string): DecodedCarrier {
+export function decodeFromDebugMatrix(input: Uint8Array | string): DecodedCarrier {
   let bytes: Uint8Array
   let pointer: string | null = null
   if (input instanceof Uint8Array) {
@@ -258,7 +276,9 @@ export function decodeFromJABCode(input: Uint8Array | string): DecodedCarrier {
   }
   const decoded = decodePayload(bytes)
   return {
+    carrier: CARRIER,
     profile: PROFILE,
+    compliance: COMPLIANCE,
     S: decoded.S,
     bytes,
     pointer: pointer ?? formatPointer(decoded.S),
@@ -266,4 +286,16 @@ export function decodeFromJABCode(input: Uint8Array | string): DecodedCarrier {
     fields: decoded.shape.ok ? extractFrameFields(decoded.S) : null,
     requiresAlgebraicValidation: true,
   }
+}
+
+export function encodeToJABCode(): never {
+  throw new Error('omi-jabcode requires a standards-compliant BSI TR-03137 encoder before this API can return a symbol')
+}
+
+export function decodeFromJABCodeImage(): never {
+  throw new Error('omi-jabcode image decoding requires a standards-compliant BSI TR-03137 decoder')
+}
+
+export function decodeFromJABCodeMatrix(): never {
+  throw new Error('omi-jabcode matrix decoding requires a standards-compliant BSI TR-03137 decoder')
 }
