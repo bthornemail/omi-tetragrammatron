@@ -33,7 +33,7 @@ Fault exists only at the physical carrier boundary:
 
 Every step: proposal -> citation -> reduction -> receipt -> carry-forward
 
-The seed is omicron.bin.
+The seed is core/omicron.bin.
 Autonomous AI = continuing growth around that seed.
 
 ---
@@ -483,7 +483,7 @@ function autoLoop(rt) {
 
 ---
 
-Modes (omicron.bin)
+Modes (core/omicron.bin)
 
   (no args)     autonomous: self-generates from ring + stdin
   --eval <s>    evaluate S-expression, print receipt
@@ -499,7 +499,7 @@ Modes (omicron.bin)
   --twin        display digital twin universe geometry
   --render-frame  output twin geometry as JSON frame
   --render-ppm    output Polybius grid as PPM image
-  --serve [port]  HTTP server for WebGL viewer (default 8080)
+  --serve [port]  HTTP server for portal build (default 8080)
   --help        this message
 
 ---
@@ -518,7 +518,7 @@ Render Outputs
   Frame color legend
 
 --serve runs HTTP server with endpoints:
-  /       -> viewer/index.html (WebGL 3D scene)
+  /       -> portal/dist/index.html (React TypeScript portal)
   /frame  -> same JSON as --render-frame
   /ring   -> full ring dump as JSON
 
@@ -572,7 +572,7 @@ OMI canonical form:
 
 Build
 
-gcc -O2 -Wall -Wextra -o omicron.bin omicron.c -lm
+make core/omicron.bin
 
 ---
 

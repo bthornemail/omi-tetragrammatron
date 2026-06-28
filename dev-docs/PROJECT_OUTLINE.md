@@ -11,34 +11,34 @@ This file describes the structure of the current project codebase. It is not the
 The C runtime is organized around four authority modules and one thin application/orchestration file.
 
 ```text
-omi.h / omi.c
-tetragrammatron.h / tetragrammatron.c
-metatron.h / metatron.c
-imo.h / imo.c
-omicron.c         thin runtime application/orchestration file
+core/omi.h / core/omi.c
+core/tetragrammatron.h / core/tetragrammatron.c
+core/metatron.h / core/metatron.c
+core/imo.h / core/imo.c
+core/omicron.c         thin runtime application/orchestration file
 ```
 
 Current build target:
 
 ```text
-omicron.bin
+core/omicron.bin
 ```
 
 Application name:
 
 ```text
-omicron.bin
+core/omicron.bin
 ```
 
-The runtime rename is complete. `omicron.c`, `omicron.o`, and `omicron.bin` are the current working application files.
+The runtime rename is complete. `core/omicron.c`, `core/omicron.o`, and `core/omicron.bin` are the current working application files.
 
 ## 2. OMI Module
 
 Files:
 
 ```text
-omi.h
-omi.c
+core/omi.h
+core/omi.c
 ```
 
 Authority:
@@ -70,8 +70,8 @@ Does not own:
 Files:
 
 ```text
-tetragrammatron.h
-tetragrammatron.c
+core/tetragrammatron.h
+core/tetragrammatron.c
 ```
 
 Authority:
@@ -102,8 +102,8 @@ Does not own:
 Files:
 
 ```text
-metatron.h
-metatron.c
+core/metatron.h
+core/metatron.c
 ```
 
 Authority:
@@ -134,8 +134,8 @@ Does not own:
 Files:
 
 ```text
-imo.h
-imo.c
+core/imo.h
+core/imo.c
 ```
 
 Authority:
@@ -168,7 +168,7 @@ Does not own:
 Current file:
 
 ```text
-omicron.c
+core/omicron.c
 ```
 
 Legacy file:
@@ -223,25 +223,25 @@ Makefile
 Current source objects:
 
 ```text
-omi.o
-tetragrammatron.o
-metatron.o
-imo.o
-omicron.o
+core/omi.o
+core/tetragrammatron.o
+core/metatron.o
+core/imo.o
+core/omicron.o
 ```
 
 Current binary:
 
 ```text
-omicron.bin
+core/omicron.bin
 ```
 
 Generated/local artifacts:
 
 ```text
-frame.json
-frame.ppm
-omi.auto.ring
+output/frame.json
+output/frame.ppm
+core/omi.auto.ring
 proof/*.vo
 proof/*.glob
 proof/*.vok
@@ -292,9 +292,7 @@ scripts/test-c-scaffold.c
 JS test files:
 
 ```text
-scripts/test-jabcode-carrier.js
-scripts/test-receipt-surface-cascade.js
-scripts/test-gnomonic-surface.js
+scripts/test-portal-modules.js
 ```
 
 Smoke coverage:
@@ -307,47 +305,48 @@ Smoke coverage:
 - frame rendering
 - PPM rendering
 - C scaffold checks
-- JS viewer/carrier/surface checks
+- portal TypeScript carrier/surface checks
 
 ## 10. Viewer Web Portal
 
 Directory:
 
 ```text
-viewer/
+portal/
 ```
 
 Main page:
 
 ```text
-viewer/index.html
+portal/index.html
 ```
 
 Viewer scripts:
 
 ```text
-viewer/geometry-decoder.js
-viewer/ring-loader.js
-viewer/twin-viewer.js
+portal/src/App.tsx
+portal/src/lib/jabcodeCarrier.ts
+portal/src/lib/receiptSurfaceCascade.ts
+portal/src/lib/gnomonicSurface.ts
 ```
 
-Public viewer modules:
+Archived viewer modules:
 
 ```text
-viewer/public/device-inspector.js
-viewer/public/flasher.js
-viewer/public/gnomonic-surface.js
-viewer/public/jabcode-carrier.js
-viewer/public/receipt-surface-cascade.js
-viewer/public/web-serial.js
+dev-docs/archive/viewer/public/device-inspector.js
+dev-docs/archive/viewer/public/flasher.js
+dev-docs/archive/viewer/public/gnomonic-surface.js
+dev-docs/archive/viewer/public/jabcode-carrier.js
+dev-docs/archive/viewer/public/receipt-surface-cascade.js
+dev-docs/archive/viewer/public/web-serial.js
 ```
 
 Viewer role:
 
-- public web-portal interface
+- React/TypeScript public web-portal interface
 - receipt and geometry inspection
 - browser-side carrier/projection experiments
-- LLM-agent bootstrap surface for published viewer usage
+- LLM-agent bootstrap surface for published portal usage
 
 Viewer does not replace root repository policy.
 
@@ -358,10 +357,10 @@ Viewer docs are separate from root docs.
 Files:
 
 ```text
-viewer/AGENTS.md
-viewer/SKILLS.md
-viewer/docs/ADAPTERS.md
-viewer/docs/REPO.md
+agent-docs/AGENTS.md
+agent-docs/SKILLS.md
+agent-docs/ADAPTERS.md
+agent-docs/REPO.md
 ```
 
 Source archive lineage:
@@ -376,19 +375,19 @@ dev-docs/archive/REPO.md Addendum - Emergent P2P and Multimedia Use Cases for OM
 Merge target:
 
 ```text
-viewer/docs/REPO.md
+agent-docs/REPO.md
 ```
 
 Purpose:
 
-- public LLM-agent bootstrapping through the viewer portal
-- viewer-local adapter and collaboration policy
+- public LLM-agent bootstrapping through the portal
+- portal-local adapter and collaboration policy
 - public interface guidance
 
 Boundary:
 
-- Do not merge viewer policy into root `AGENTS.md` or root `SKILLS.md`.
-- Do not let viewer docs override root repository instructions.
+- Do not merge portal/agent-docs policy into root `AGENTS.md` or root `SKILLS.md`.
+- Do not let agent docs override root repository instructions.
 
 ## 12. Root Documentation
 
@@ -468,7 +467,7 @@ OMI citation notation
 
 JABCode status:
 
-- `viewer/public/jabcode-carrier.js` exists as a debug/development carrier.
+- `portal/src/lib/jabcodeCarrier.ts` exists as a debug/development carrier.
 - JABCode must not be treated as standards-compliant unless implemented from `dev-docs/archive/JabCode.BSI-TR-03137.pdf`.
 - If official compliance is not implemented, JABCode remains out of the active carrier roadmap.
 
@@ -517,7 +516,7 @@ For codebase changes:
 4. Run `make smoke`.
 5. Run `make coq` when proof-facing behavior changes.
 6. Run deterministic banned-call scan for runtime source.
-7. Keep root docs, viewer docs, and archive context separate.
+7. Keep root docs, agent docs, portal source, and archive context separate.
 
 ## 17. Pending Structural Work
 

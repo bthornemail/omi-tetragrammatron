@@ -1481,9 +1481,9 @@ static void serve_file(int fd, const char *path) {
     while (*rel == '/') rel++;
     if (!*rel) rel = "index.html";
 
-    /* safety: only serve from viewer/ */
+    /* safety: only serve from built portal output */
     char full[512];
-    snprintf(full, sizeof(full), "viewer/%s", rel);
+    snprintf(full, sizeof(full), "portal/dist/%s", rel);
 
     FILE *f = fopen(full, "rb");
     if (!f) { http_404(fd); return; }
@@ -1851,7 +1851,7 @@ static void serve_http(int port) {
     fprintf(stderr, "  /receipt  — hashable receipt of incidence (e.g. /receipt?id=9)\n");
     fprintf(stderr, "  /events  — SSE frame stream\n");
     fprintf(stderr, "  /ws      — WebSocket frame stream\n");
-    fprintf(stderr, "  /        — WebGL viewer (index.html)\n");
+    fprintf(stderr, "  /        — portal build (index.html)\n");
     fflush(stderr);
 
     int push_counter = 0;
@@ -2302,7 +2302,7 @@ int main(int argc, char **argv) {
             printf("  --render-gltf  output solid wireframe as glTF 2.0\n");
             printf("  --render-ppm    output Polybius grid as PPM image\n");
             printf("  --smith         output Smith chart as SVG\n");
-            printf("  --serve [port]  HTTP server for WebGL viewer (default 8080)\n");
+            printf("  --serve [port]  HTTP server for portal build (default 8080)\n");
             printf("  --check       run incidence self-checks\n");
             printf("  --help        this message\n");
             return 0;

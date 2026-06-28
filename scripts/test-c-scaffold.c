@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "../omi.h"
+#include "omi.h"
 
 static unsigned char mem[OMI_ARENA_SIZE];
 

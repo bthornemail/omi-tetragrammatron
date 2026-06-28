@@ -40,7 +40,7 @@ IMO is the Carrier Authority.
 Omicron is the thin runtime application.
 - Orchestrates the four authorities.
 - Replaced the legacy `opencode` application name.
-- Build target is `omicron.bin`; object target is `omicron.o`; orchestration source is `omicron.c`.
+- Build target is `core/omicron.bin`; object target is `core/omicron.o`; orchestration source is `core/omicron.c`.
 
 ## 3. OMI-Lisp Language Model
 
@@ -112,31 +112,31 @@ Carrier behavior may deliver inputs, but deterministic output must depend only o
 ## 6. Runtime Files
 
 Core runtime source files:
-- `omi.h` / `omi.c`: Citation Authority and deterministic instruction core.
-- `tetragrammatron.h` / `tetragrammatron.c`: Validation Authority and receipt ring.
-- `metatron.h` / `metatron.c`: Projection Authority and geometry surfaces.
-- `imo.h` / `imo.c`: Carrier Authority, parsers, files, server, and ports.
-- `omicron.c`: thin orchestration application, replacing legacy `opencode.c`.
+- `core/omi.h` / `core/omi.c`: Citation Authority and deterministic instruction core.
+- `core/tetragrammatron.h` / `core/tetragrammatron.c`: Validation Authority and receipt ring.
+- `core/metatron.h` / `core/metatron.c`: Projection Authority and geometry surfaces.
+- `core/imo.h` / `core/imo.c`: Carrier Authority, parsers, files, server, and ports.
+- `core/omicron.c`: thin orchestration application, replacing legacy `opencode.c`.
 
 Legacy compatibility:
 - Archive-only `opencode` references remain historical.
 - Current CLI behavior must remain stable after the rename.
 
-## 7. Public Viewer Portal
+## 7. Public Portal
 
-The `viewer/` directory is the public web-portal interface. Its policy docs are distinct from root repository docs.
+The `portal/` directory is the public React/TypeScript web-portal interface. Its policy docs are distinct from root repository docs and live in `agent-docs/`.
 
-Viewer public-interface docs:
-- `viewer/AGENTS.md`
-- `viewer/SKILLS.md`
-- `viewer/docs/ADAPTERS.md`
-- `viewer/docs/REPO.md`
+Public-interface docs:
+- `agent-docs/AGENTS.md`
+- `agent-docs/SKILLS.md`
+- `agent-docs/ADAPTERS.md`
+- `agent-docs/REPO.md`
 
-Viewer REPO target:
-- Treat `viewer/docs/REPO.md` as shared public-interface context for LLM agents, alongside `viewer/AGENTS.md` and `viewer/SKILLS.md`.
+Agent REPO target:
+- Treat `agent-docs/REPO.md` as shared public-interface context for LLM agents, alongside `agent-docs/AGENTS.md` and `agent-docs/SKILLS.md`.
 - Merge source material from `dev-docs/archive/REPO.md - First Draft.md`, `dev-docs/archive/REPO.md - OMI Request for Collaboration and Role-Repo Based Access Control.md`, `dev-docs/archive/REPO.md Addendum - Bootstrapping an OMI-Compatible LLM Agent.md`, and `dev-docs/archive/REPO.md Addendum - Emergent P2P and Multimedia Use Cases for OMI.md`.
-- Keep `viewer/docs/REPO.md` scoped to public LLM-agent bootstrapping and role/repo policy through the published viewer.
-- Do not merge viewer public-interface policy into root `README.md`, root `AGENTS.md`, or root `SKILLS.md`.
+- Keep `agent-docs/REPO.md` scoped to public LLM-agent bootstrapping and role/repo policy through the published portal.
+- Do not merge portal public-interface policy into root `README.md`, root `AGENTS.md`, or root `SKILLS.md`.
 
 ## 8. Carriers And Adapters
 
@@ -163,7 +163,7 @@ Root repository docs govern the runtime repository:
 - `AGENTS.md`
 - `SKILLS.md`
 
-Viewer docs govern public web-portal use only.
+Agent docs govern public web-portal use only.
 
 Versioning model:
 - File diffs are carriers.
@@ -178,7 +178,7 @@ Every phase must keep these passing:
 - `make smoke`
 - `make coq`
 - C scaffold/unit tests
-- JS viewer tests
+- portal TypeScript module tests
 - deterministic banned-call scan
 
 Required test classes:
@@ -200,7 +200,7 @@ Do not:
 - let parser output perform side effects
 - treat bridge recognition, carrier decode, or projection as acceptance
 - implement partial JABCode while calling it standards-compliant
-- collapse viewer public-interface policy into root repository policy
+- collapse portal public-interface policy into root repository policy
 
 ## 12. Completion Standard
 
@@ -210,4 +210,4 @@ The project is specification-complete when:
 - Accepted receipts record identity in the ring.
 - Metatron projections derive only from accepted receipts.
 - IMO carries input/output without owning truth.
-- The public viewer can bootstrap LLM agents from viewer-local docs without overriding root repository policy.
+- The public portal can bootstrap LLM agents from `agent-docs/` without overriding root repository policy.

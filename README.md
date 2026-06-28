@@ -159,11 +159,11 @@ User → IMO → OMI → Tetragrammatron → Receipt → Metatron → IMO → Su
 
 | File                  | Authority   | Lines | Role |
 |-----------------------|-------------|-------|------|
-| `omi.h` / `omi.c`    | Citation    | ~180  | OMI addresses, CPU, FNV-1a |
-| `tetragrammatron.h/.c`| Validation  | ~180  | Ring, folds, acceptance |
-| `metatron.h` / `.c`   | Projection  | ~830  | Geometry, renderers, incidence |
-| `imo.h` / `imo.c`     | Carrier     | ~850  | HTTP, parser, serialization |
-| `omicron.c`           | Orchestration | ~400  | Thin main/CLI dispatch |
+| `core/omi.h` / `core/omi.c` | Citation | ~180 | OMI addresses, CPU, FNV-1a |
+| `core/tetragrammatron.h/.c` | Validation | ~180 | Ring, folds, acceptance |
+| `core/metatron.h` / `.c` | Projection | ~830 | Geometry, renderers, incidence |
+| `core/imo.h` / `core/imo.c` | Carrier | ~850 | HTTP, parser, serialization |
+| `core/omicron.c` | Orchestration | ~400 | Thin main/CLI dispatch |
 
 ---
 
@@ -174,8 +174,8 @@ Requires a C compiler and the math library.
 ```bash
 make              # build binary + Coq proof
 make coq          # build Coq proof only
-make smoke        # full smoke test (binary + JS tests)
-make test-js      # run JS surface tests (JABCode + receipt cascade)
+make smoke        # full smoke test (core + portal tests)
+make test-js      # build/lint portal and run TypeScript module tests
 ```
 
 ---
@@ -242,7 +242,7 @@ S0-S1-S2-S3/S4/S5/S6/S7?PAYLOAD?MASK@CAR@CDR
 | `--render-gltf` | glTF JSON to stdout |
 | `--smith` | Smith SVG to stdout |
 | `--check` | incidence self-check |
-| `--serve [port]` | HTTP server for WebGL viewer (default 8080) |
+| `--serve [port]` | HTTP server for portal build (default 8080) |
 
 ---
 
@@ -269,9 +269,9 @@ receipt unchanged across its axis.
 
 ---
 
-## Browser Surface View
+## Portal Surface View
 
-The viewer at `/` is a cosmological surface, not a protocol authority.
+The portal at `/` is a cosmological surface, not a protocol authority.
 
 ### Projection Surfaces
 

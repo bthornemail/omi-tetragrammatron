@@ -4,14 +4,14 @@ This file indexes the archived update documents in `dev-docs/archive/` and turns
 
 ## 0. Current Status
 
-- C core scaffold has started: `omi.h`/`omi.c` now expose hardened fixed-width types, arena/gauge/bridge scaffold APIs, bitboard masks, and conservative projection gates.
-- Runtime application rename is complete: `omicron.c`, `omicron.o`, and `omicron.bin` replaced the legacy first-version `opencode` names.
-- JABCode v0 debug carrier exists in `viewer/public/jabcode-carrier.js`, but it should not be treated as an active standards carrier unless it is replaced with an implementation that follows `archive/JabCode.BSI-TR-03137.pdf`.
+- C core scaffold has started in `core/`: `core/omi.h`/`core/omi.c` now expose hardened fixed-width types, arena/gauge/bridge scaffold APIs, bitboard masks, and conservative projection gates.
+- Runtime application rename is complete: `core/omicron.c`, `core/omicron.o`, and `core/omicron.bin` replaced the legacy first-version `opencode` names.
+- JABCode v0 debug carrier exists in `portal/src/lib/jabcodeCarrier.ts`, ported from `dev-docs/archive/viewer/public/jabcode-carrier.js`, but it should not be treated as an active standards carrier unless it is replaced with an implementation that follows `archive/JabCode.BSI-TR-03137.pdf`.
 - The archive contains broader design targets that are not yet fully implemented: full arena runtime, tokenizer/parser declarations, receipt-gated projection, adapter policy, repository role policy, P2P sync, hardware targets, and doctrine/docs consolidation.
 
 ## 1. Canon And Authority Model
 
-Purpose: stabilize the language used across root docs, viewer/public portal docs, and implementation comments before deeper runtime work.
+Purpose: stabilize the language used across root docs, `agent-docs/`, portal docs, and implementation comments before deeper runtime work.
 
 Primary archive sources:
 - `archive/The Doctrine of Determinism.md`
@@ -30,19 +30,19 @@ Deliverables:
 - Main `README.md` canon section.
 - Root `AGENTS.md` refinement if needed.
 - A short authority-boundary note in source-facing docs.
-- Viewer web-portal `REPO.md` consolidation for public LLM-agent bootstrapping.
-- Explicit statement that viewer-facing docs are separate from root repository authority docs.
+- `agent-docs/REPO.md` consolidation for public LLM-agent bootstrapping.
+- Explicit statement that portal/agent-facing docs are separate from root repository authority docs.
 
-Viewer public-interface docs:
-- `viewer/AGENTS.md`
-- `viewer/SKILLS.md`
-- `viewer/docs/ADAPTERS.md`
-- `viewer/docs/REPO.md`
+Public-interface docs:
+- `agent-docs/AGENTS.md`
+- `agent-docs/SKILLS.md`
+- `agent-docs/ADAPTERS.md`
+- `agent-docs/REPO.md`
 
-Viewer REPO merge target:
-- Merge the archive REPO drafts and REPO addenda into `viewer/docs/REPO.md`.
-- Keep it scoped to bootstrapping LLM agents and role/repo policy through the published `viewer/` web portal.
-- Do not merge viewer public-interface policy into root `README.md`, root `AGENTS.md`, or root `SKILLS.md`.
+Agent REPO merge target:
+- Merge the archive REPO drafts and REPO addenda into `agent-docs/REPO.md`.
+- Keep it scoped to bootstrapping LLM agents and role/repo policy through the published `portal/` web portal.
+- Do not merge portal public-interface policy into root `README.md`, root `AGENTS.md`, or root `SKILLS.md`.
 
 ## 2. C Runtime Scaffold To Reference Runtime
 
@@ -58,7 +58,7 @@ Primary archive sources:
 Implementation phases:
 - Phase 2.1: finish scaffold cleanup with warning-safe helper functions and tests.
 - Phase 2.2: completed rename of the legacy application target from `opencode` to `omicron`: `opencode.c` -> `omicron.c`, `opencode.o` -> `omicron.o`, `opencode.bin` -> `omicron.bin`, with `Makefile`, smoke tests, docs, and CLI references updated.
-- Phase 2.3: keep the runtime implementation split across `omi.c`, `imo.c`, `tetragrammatron.c`, `metatron.c`, and the thin orchestration file `omicron.c`.
+- Phase 2.3: keep the runtime implementation split across `core/omi.c`, `core/imo.c`, `core/tetragrammatron.c`, `core/metatron.c`, and the thin orchestration file `core/omicron.c`.
 - Phase 2.4: add full gauge table behavior, bitboard folds, bridge slots, and explicit boot mode handling.
 - Phase 2.5: add tokenizer state that reads explicit input buffers and witnesses bytes without treating bytes as acceptance.
 - Phase 2.6: add parser form handling for declarations, dot relations, quote forms, and candidate construction.
@@ -113,11 +113,11 @@ Primary archive sources:
 
 Implementation targets:
 - Treat root `README.md`, root `AGENTS.md`, and root `SKILLS.md` as repository/runtime authority docs.
-- Treat `viewer/AGENTS.md`, `viewer/SKILLS.md`, `viewer/docs/ADAPTERS.md`, and `viewer/docs/REPO.md` as public web-portal interface docs for bootstrapping external/LLM agents through the published viewer.
+- Treat `agent-docs/AGENTS.md`, `agent-docs/SKILLS.md`, `agent-docs/ADAPTERS.md`, and `agent-docs/REPO.md` as public web-portal interface docs for bootstrapping external/LLM agents through the published portal.
 - Define role/effect classes in a small machine-readable block.
 - Add pure skill registry examples for `delta16`, `bqf32`, `slot5040`, receipt verification, and scope resolution.
 - Build a minimal deterministic version-candidate format before implementing merge/rollback.
-- Keep viewer public-interface policies separate and distinct from root repository policies unless an explicit bridge document says otherwise.
+- Keep portal public-interface policies separate and distinct from root repository policies unless an explicit bridge document says otherwise.
 
 Acceptance criteria:
 - Pure/read-only/repo-write/network/hardware/security-sensitive effects are explicit.
@@ -137,7 +137,7 @@ Primary archive sources:
 
 Current state:
 - JABCode v0 debug carrier is implemented as deterministic debug matrix, not full BSI TR 03137 compliance.
-- Web viewer surfaces and JS tests exist for JABCode, receipt surface cascade, and gnomonic surface.
+- Portal TypeScript surfaces and module tests exist for JABCode debug carrier, receipt surface cascade, and gnomonic surface.
 
 Implementation targets:
 - Do not promote JABCode as an active carrier unless implementation follows the official specification in `archive/JabCode.BSI-TR-03137.pdf`.
@@ -202,8 +202,8 @@ Suggested active docs:
 - `README.md`: project purpose, build, modes, core authority model, current capabilities.
 - `AGENTS.md`: coding constraints, determinism, authority boundaries, build/test rules.
 - `SKILLS.md`: runtime specification and deterministic skill registry.
-- `viewer/docs/REPO.md`: public web-portal role/repo context produced by merging the REPO drafts and REPO addenda.
-- `viewer/AGENTS.md`, `viewer/SKILLS.md`, `viewer/docs/ADAPTERS.md`: public-interface agent/bootstrap policy docs for published viewer usage.
+- `agent-docs/REPO.md`: public web-portal role/repo context produced by merging the REPO drafts and REPO addenda.
+- `agent-docs/AGENTS.md`, `agent-docs/SKILLS.md`, `agent-docs/ADAPTERS.md`: public-interface agent/bootstrap policy docs for published portal usage.
 - `dev-docs/PROJECT_UPDATE_OUTLINE.md`: this roadmap.
 - `dev-docs/PROJECT_SPECIFICATON.md`: active standard project specification.
 - `dev-docs/PROJECT_OUTLINE.md`: active standard project outline.
@@ -218,12 +218,12 @@ Archive handling:
 
 1. Reconcile current C scaffold with `Normative Errata` and finish warning-safe tests.
 2. Rename `opencode` runtime application files and build targets to `omicron`. Completed.
-3. Merge viewer REPO addenda and role-repo policy drafts into `viewer/docs/REPO.md`, keeping viewer policy separate from root policy. Completed.
+3. Merge REPO addenda and role-repo policy drafts into `agent-docs/REPO.md`, keeping portal policy separate from root policy. Completed.
 4. Add pre-header and frame parser helpers with pure round-trip tests.
 5. Add tokenizer/parser candidate construction for declarations.
 6. Connect candidate validation to Tetragrammatron-owned receipt storage.
 7. Implement projection gate enforcement for adapters.
-8. Consolidate root README/AGENTS/SKILLS active docs separately from viewer docs.
+8. Consolidate root README/AGENTS/SKILLS active docs separately from portal/agent docs.
 9. Decide whether to implement official JABCode compliance or leave JABCode out of active carriers.
 10. Add P2P/hardware demos only after gates are enforced.
 

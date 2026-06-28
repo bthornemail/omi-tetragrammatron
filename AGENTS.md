@@ -66,23 +66,24 @@ Everything else is private to its module.
 
 Four modules, single authority each, orchestrated by omicron.c:
 
-- omi.h/.c         — Citation Authority: addresses, registers, CONS/CAR/CDR, CID,
+- core/omi.h/.c    — Citation Authority: addresses, registers, CONS/CAR/CDR, CID,
                      16 opcodes, nibble CPU, address parser/formatter, FNV-1a.
                      Produces OMI Cells. Never validates. Never projects. Never transports.
-- tetragrammatron.h/.c — Validation Authority: DeltaC, Polybius, Diagonal Law, Rotation,
+- core/tetragrammatron.h/.c — Validation Authority: DeltaC, Polybius, Diagonal Law, Rotation,
                      Governor, 5040 ring, acceptance, three folds, tetragrammatron_export/import
                      (pure memory). Produces Receipts. Never renders. Never serializes. Never parses.
-- metatron.h/.c    — Projection Authority: all geometry (seed crystal tables, SHAPE_DB[21],
+- core/metatron.h/.c — Projection Authority: all geometry (seed crystal tables, SHAPE_DB[21],
                      vertex coordinates, resolve_vertex, cite_to_sphere, quaternion/Hopf,
                      Schläfli, Betti), 6 renderers (frame/PPM/SVG/OBJ/glTF/smith),
                      check_incidence. Produces Surfaces. Never validates. Never transports.
-- imo.h/.c         — Carrier Authority: ring_save/load (file I/O), S-expression parser/
+- core/imo.h/.c    — Carrier Authority: ring_save/load (file I/O), S-expression parser/
                      compiler/reducer, HTTP/SSE/WebSocket server, SHA-1, BOOT_ROM[21],
                      signal handling, xmalloc family. Produces Runtime Representations.
                      Never validates. Never composes geometry. Never changes identity.
-- omicron.c        — Thin orchestration: main() dispatch to all 4 authorities.
+- core/omicron.c   — Thin orchestration: main() dispatch to all 4 authorities.
 - proof/phi_proof.v — Coq proof: Schläfli symbol {3,5} forces golden ratio φ
-- viewer/          — WebGL frontend (Three.js)
+- portal/          — React + TypeScript + Vite public web portal
+- agent-docs/      — public agent bootstrap docs
 - SKILLS.md        — full OMI runtime specification
 - AGENTS.md        — this file
 
@@ -144,7 +145,7 @@ IMO calls these for ring_save/load (disk serialization).
 --render-gltf   glTF JSON to stdout
 --smith         Smith SVG to stdout
 --check         incidence self-check
---serve [port]  HTTP server for WebGL viewer (default 8080)
+--serve [port]  HTTP server for portal build (default 8080)
 
 ## Key formulas
 

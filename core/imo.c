@@ -337,7 +337,7 @@ static void serve_file(int fd, const char *path) {
     while (*rel == '/') rel++;
     if (!*rel) rel = "index.html";
     char full[512];
-    snprintf(full, sizeof(full), "viewer/%s", rel);
+    snprintf(full, sizeof(full), "portal/dist/%s", rel);
     FILE *f = fopen(full, "rb");
     if (!f) { http_404(fd); return; }
     fseek(f, 0, SEEK_END);
@@ -633,7 +633,7 @@ void serve_http(int port) {
     fprintf(stderr, "  /receipt  — hashable receipt of incidence (e.g. /receipt?id=9)\n");
     fprintf(stderr, "  /events  — SSE frame stream\n");
     fprintf(stderr, "  /ws      — WebSocket frame stream\n");
-    fprintf(stderr, "  /        — WebGL viewer (index.html)\n");
+    fprintf(stderr, "  /        — portal build (index.html)\n");
     fflush(stderr);
     int push_counter = 0;
     while (g_running) {
