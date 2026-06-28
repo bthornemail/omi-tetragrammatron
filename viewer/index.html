@@ -487,6 +487,30 @@ header #hw-connect-area {
 .doc-node-type { color: var(--kk); font-size: 7px; }
 
 /* ── CONTROLS ── */
+.help-box {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.help-title {
+  font-size: 9px;
+  font-weight: bold;
+  color: var(--gold);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.help-step {
+  font-size: 8px;
+  color: var(--gold2);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
 .ctrl-row {
   display: flex;
   align-items: center;
@@ -683,6 +707,7 @@ body.sabbath { animation: sabbath-pulse 1s ease-in-out infinite alternate; }
       <span id="hdr-tick">tick:0</span>
       <span id="hdr-angle">0.0°</span>
       <span id="hdr-metric">Φ:0.00</span>
+      <span id="hdr-help" style="color:var(--gold2)">Drag = rotate · scroll = zoom</span>
       <span id="hdr-sabbath" style="color:var(--dim)">SABBATH:—</span>
     </div>
     <div id="hw-connect-area">
@@ -698,6 +723,13 @@ body.sabbath { animation: sabbath-pulse 1s ease-in-out infinite alternate; }
     <div class="panel-title">Controls · Graph · Stream</div>
     <div class="panel-body">
 
+      <div class="help-box">
+        <div class="help-title">Quick start</div>
+        <div class="help-step">1. Connect serial or paste NDJSON to begin.</div>
+        <div class="help-step">2. Watch the 3D twin update as receipts arrive.</div>
+        <div class="help-step">3. Drag to rotate, scroll to zoom, and reset view anytime.</div>
+      </div>
+
       <!-- Controls -->
       <div style="margin-bottom:10px">
         <div class="ctrl-row">
@@ -708,6 +740,7 @@ body.sabbath { animation: sabbath-pulse 1s ease-in-out infinite alternate; }
         <div class="ctrl-row">
           <span class="ctrl-label">auto-rotate</span>
           <button class="btn active" id="btn-rotate" onclick="toggleRotate()">ON</button>
+          <button class="btn" id="btn-reset-view">RESET VIEW</button>
           <button class="btn" id="btn-sabbath" onclick="seekSabbath()">SEEK Ω</button>
         </div>
         <div class="ctrl-row">
@@ -1576,9 +1609,20 @@ function seekSabbath() {
   }
 }
 
+function resetView() {
+  if (!twinViewer || !twinViewer.camera || !twinViewer.controls) return;
+  twinViewer.camera.position.set(6, 5, 8);
+  twinViewer.controls.target.set(0, 0, 0);
+  twinViewer.controls.update();
+}
+
 document.getElementById('spin-speed').addEventListener('input', function() {
   state.spinSpeed = parseFloat(this.value);
   document.getElementById('spin-val').textContent = this.value + '°';
+});
+
+document.getElementById('btn-reset-view').addEventListener('click', function() {
+  resetView();
 });
 
 /* ═══════════════════════════════════════════════════════
@@ -2177,6 +2221,7 @@ function init() {
 
 window.toggleRotate = toggleRotate;
 window.seekSabbath = seekSabbath;
+window.resetView = resetView;
 window.runPattern = runPattern;
 window.selectDoc = selectDoc;
 

@@ -8,7 +8,7 @@ PROOF_DIR = proof
 VFILE = $(PROOF_DIR)/phi_proof.v
 VOFILE = $(PROOF_DIR)/phi_proof.vo
 
-.PHONY: all coq clean smoke test-js
+.PHONY: all coq clean smoke test-js test-c
 
 all: $(TARGET) coq
 
@@ -43,7 +43,14 @@ smoke: $(TARGET)
 	./$(TARGET) --check
 	./$(TARGET) --render-frame > /tmp/frame.json
 	./$(TARGET) --render-ppm > /tmp/frame.ppm
+	make test-c
 	make test-js
+
+test-c: scripts/test-c-scaffold
+	./scripts/test-c-scaffold
+
+scripts/test-c-scaffold: scripts/test-c-scaffold.c omi.c omi.h
+	$(CC) $(CFLAGS) -o $@ scripts/test-c-scaffold.c omi.c -lm
 
 test-js:
 	node scripts/test-jabcode-carrier.js
@@ -51,4 +58,4 @@ test-js:
 	node scripts/test-gnomonic-surface.js
 
 clean:
-	rm -f $(TARGET) $(OBJS) $(PROOF_DIR)/*.vo $(PROOF_DIR)/*.glob $(PROOF_DIR)/*.aux
+	rm -f $(TARGET) $(OBJS) scripts/test-c-scaffold $(PROOF_DIR)/*.vo $(PROOF_DIR)/*.glob $(PROOF_DIR)/*.aux

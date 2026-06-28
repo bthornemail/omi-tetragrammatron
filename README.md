@@ -273,24 +273,45 @@ receipt unchanged across its axis.
 
 The viewer at `/` is a cosmological surface, not a protocol authority.
 
+### Projection Surfaces
+
+All browser views derive from the same receipt. Each surface projects the receipt differently; none validates, accepts, or mutates canon.
+
 ```text
-Receipt[n-1] + Receipt[n]
-        ↓
-positive rational slopes
-        ↓
-mediant coordinate
-        ↓
-determinant boundary witness
-        ↓
-HM ≤ GM ≤ AM ≤ QM pressure ladder
-        ↓
-lane / band
-        ↓
-:root data attributes + CSS variables
-        ↓
-native browser cascade
-        ↓
+Receipt pair
+  ↓
+cosmological sphere / orientation surface
+  ↓
+gnomonic projection — flattens sphere to plane; great circles become straight lines
+  ↓
+Smith chart — continuous coordinate / impedance view
+  ↓
+mediant / determinant — rational route resolver; boundary witness
+  ↓
+mean ladder (HM ≤ GM ≤ AM ≤ QM) — surface pressure ordering
+  ↓
+Genaille ruler — discrete lane/band quantizer
+  ↓
+CSS cascade — declarative selector-resolution view
+  ↓
 DOM / SVG / WebGL paint
+```
+
+```text
+GnomonicSurface
+  normalizes sphere points
+  projects onto tangent plane
+  draws straight geodesic lines in minimap SVG
+  does not validate, accept, or store state across receipts
+
+ReceiptSurfaceCascade
+  converts receipt to rational slope
+  computes mediant of receipt pairs
+  witnesses determinant boundary
+  orders mean pressure ladder
+  resolves lane/band for Genaille and CSS
+  writes :root data attributes + CSS variables
+  does not style elements — CSS selectors do that
 ```
 
 ### Final Covariant Rule
