@@ -30,7 +30,7 @@ Deliverables:
 - Main `README.md` canon section.
 - Root `AGENTS.md` refinement if needed.
 - A short authority-boundary note in source-facing docs.
-- Viewer web-portal README consolidation for public LLM-agent bootstrapping.
+- Viewer web-portal `REPO.md` consolidation for public LLM-agent bootstrapping.
 - Explicit statement that viewer-facing docs are separate from root repository authority docs.
 
 Viewer public-interface docs:
@@ -38,12 +38,10 @@ Viewer public-interface docs:
 - `viewer/SKILLS.md`
 - `viewer/docs/ADAPTERS.md`
 - `viewer/docs/REPO.md`
-- `viewer/README Addendum - Bootstrapping an OMI-Compatible LLM Agent.md`
-- `viewer/README Addendum - Emergent P2P and Multimedia Use Cases for OMI.md`
 
-Viewer README merge target:
-- Merge the two viewer README addenda into one public-facing viewer README.
-- Keep it scoped to bootstrapping LLM agents through the published `viewer/` web portal.
+Viewer REPO merge target:
+- Merge the archive REPO drafts and REPO addenda into `viewer/docs/REPO.md`.
+- Keep it scoped to bootstrapping LLM agents and role/repo policy through the published `viewer/` web portal.
 - Do not merge viewer public-interface policy into root `README.md`, root `AGENTS.md`, or root `SKILLS.md`.
 
 ## 2. C Runtime Scaffold To Reference Runtime
@@ -105,12 +103,13 @@ Non-goals for first pass:
 Purpose: define how updates, skills, agents, and collaboration requests become scoped candidates and accepted receipts.
 
 Primary archive sources:
-- `archive/REPO.md`
+- `archive/REPO.md - First Draft.md`
 - `archive/REPO.md - OMI Request for Collaboration and Role-Repo Based Access Control.md`
 - `archive/AGENTS.md`
 - `archive/SKILLS.md`
 - `archive/OMI Version Control from Place-Value Notation, Betti-Schlafli Interpretation, and Seed Objects.md`
-- `archive/README Addendum - Bootstrapping an OMI-Compatible LLM Agent.md`
+- `archive/REPO.md Addendum - Bootstrapping an OMI-Compatible LLM Agent.md`
+- `archive/REPO.md Addendum - Emergent P2P and Multimedia Use Cases for OMI.md`
 
 Implementation targets:
 - Treat root `README.md`, root `AGENTS.md`, and root `SKILLS.md` as repository/runtime authority docs.
@@ -133,7 +132,7 @@ Primary archive sources:
 - `archive/ADAPTERS.md`
 - `archive/2026-06-28-Project_Architecture_Check.md`
 - `archive/OMI as a Pseudo-Persistent Open World Model.md`
-- `archive/README Addendum - Emergent P2P and Multimedia Use Cases for OMI.md`
+- `archive/REPO.md Addendum - Emergent P2P and Multimedia Use Cases for OMI.md`
 - `archive/JabCode.BSI-TR-03137.pdf`
 
 Current state:
@@ -181,7 +180,7 @@ Primary archive sources:
 - `archive/OMI eMMC Target as Tetrahedral Centroid Memory Model.md`
 - `archive/OMI as a Pseudo-Persistent Open World Model.md`
 - `archive/Emergent P2P Use Cases & Attributes for OMI Protocol.md`
-- `archive/README Addendum - Emergent P2P and Multimedia Use Cases for OMI.md`
+- `archive/REPO.md Addendum - Emergent P2P and Multimedia Use Cases for OMI.md`
 - `archive/ADAPTERS.md`
 
 Implementation targets:
@@ -203,8 +202,8 @@ Suggested active docs:
 - `README.md`: project purpose, build, modes, core authority model, current capabilities.
 - `AGENTS.md`: coding constraints, determinism, authority boundaries, build/test rules.
 - `SKILLS.md`: runtime specification and deterministic skill registry.
-- `viewer/README.md`: public web-portal README produced by merging the two viewer README addenda.
-- `viewer/AGENTS.md`, `viewer/SKILLS.md`, `viewer/docs/ADAPTERS.md`, `viewer/docs/REPO.md`: public-interface agent/bootstrap policy docs for published viewer usage.
+- `viewer/docs/REPO.md`: public web-portal role/repo context produced by merging the REPO drafts and REPO addenda.
+- `viewer/AGENTS.md`, `viewer/SKILLS.md`, `viewer/docs/ADAPTERS.md`: public-interface agent/bootstrap policy docs for published viewer usage.
 - `dev-docs/PROJECT_UPDATE_OUTLINE.md`: this roadmap.
 - `dev-docs/PROJECT_SPECIFICATON.md`: active standard project specification.
 - `dev-docs/PROJECT_OUTLINE.md`: active standard project outline.
@@ -219,7 +218,7 @@ Archive handling:
 
 1. Reconcile current C scaffold with `Normative Errata` and finish warning-safe tests.
 2. Rename `opencode` runtime application files and build targets to `omicron`.
-3. Merge viewer README addenda into a single `viewer/README.md`, keeping viewer policy separate from root policy.
+3. Merge viewer REPO addenda and role-repo policy drafts into `viewer/docs/REPO.md`, keeping viewer policy separate from root policy.
 4. Add pre-header and frame parser helpers with pure round-trip tests.
 5. Add tokenizer/parser candidate construction for declarations.
 6. Connect candidate validation to Tetragrammatron-owned receipt storage.

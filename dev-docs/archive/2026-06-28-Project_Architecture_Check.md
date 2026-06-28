@@ -39741,10 +39741,10 @@ Can you give me a readme addeum for a prompt people can use to bootstrap a llm a
 ## ChatGPT
 `2026-06-26 15:30` | `id:260626-1530` ^260626-153047
 
-Yes — this should be a **README addendum** people can copy into their repo, plus a **bootstrap prompt** they can paste into any LLM session.
+Yes — this should be a **REPO.md addendum** people can copy into their repo, plus a **bootstrap prompt** they can paste into any LLM session.
 
 :::writing{variant="document" id="50938"}
-# README Addendum: Bootstrapping an OMI-Compatible LLM Agent
+# REPO.md addendum: Bootstrapping an OMI-Compatible LLM Agent
 
 ## Purpose
 
@@ -40978,10 +40978,10 @@ Yes — this is the right emergent layer. I would tighten three things before ca
  Do not rush new C enum values unless the runtime truly needs ABI-level media effects.
 ```
 
-Here is a cleaned README addendum version.
+Here is a cleaned REPO.md addendum version.
 
 :::writing{variant="document" id="27491"}
-# README Addendum: Emergent P2P and Multimedia Use Cases for OMI
+# REPO.md addendum: Emergent P2P and Multimedia Use Cases for OMI
 
 ## Purpose
 
@@ -41976,7 +41976,7 @@ Peers exchange carriers, candidates, and receipts, not truth.
 ```
 :::
 
-This is strong as a README addendum or as `docs/P2P_MEDIA.md`. The most important correction is that OMI gives you **local receipt sovereignty**, not automatic global consensus.
+This is strong as a REPO.md addendum or as `docs/P2P_MEDIA.md`. The most important correction is that OMI gives you **local receipt sovereignty**, not automatic global consensus.
 
 ---
 

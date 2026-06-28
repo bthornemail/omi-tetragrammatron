@@ -1,4 +1,4 @@
-# README Addendum: Emergent P2P and Multimedia Use Cases for OMI
+# REPO.md addendum: Emergent P2P and Multimedia Use Cases for OMI
 
 ## Purpose
 

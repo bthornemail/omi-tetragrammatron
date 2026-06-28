@@ -137,7 +137,20 @@ In the Polybius square:
 - The **16** matches the 4×4 grid size
 - The **xy product** encodes the **transitional chirality** between two orientation classes
 
-**The 16xy term is where π lives—the turn/carry that mediates between discrete and smooth geometry.**
+**The 16xy term is the chiral traversal branch.** It is where cube/octahedron
+tangency forces orientation to matter, but the implementation does not assign
+π to this monomial.
+
+Runtime alignment:
+
+| Term | Runtime role |
+|------|--------------|
+| **4y²** | Tetrahedral/local squared relation |
+| **16xy** | Cube/octahedron tangent branch and chiral traversal selection |
+| **60x²** | Icosahedron/dodecahedron high-shell field and φ projection witness |
+
+π appears only at the projection boundary, after tetragrammatron chirality has
+resolved, as the angular phase used by Hopf, Smith, and rotation renderers.
 
 ---
 

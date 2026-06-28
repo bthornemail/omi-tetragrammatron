@@ -1,4 +1,4 @@
-# README Addendum: Bootstrapping an OMI-Compatible LLM Agent
+# REPO.md addendum: Bootstrapping an OMI-Compatible LLM Agent
 
 ## Purpose
 

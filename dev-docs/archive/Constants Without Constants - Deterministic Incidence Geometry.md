@@ -282,11 +282,14 @@ The terms are **not** coordinate distances. They are **incidence partition bound
 
 They tell the protocol:
 
-> **"Which geometric forms and constants live in which mathematical neighborhood?"**
+> **"Which geometric forms and projection witnesses belong to which mathematical neighborhood?"**
 
-- π (circular closure) lives in the 60x² region (icosahedral/dodecahedral family)
-- φ (golden ratio) lives in the 16xy region (cubic/octahedral crossing)
-- √ (boundary operation) lives at the intersection (4y²/16xy boundary)
+- `4y²` is the tetrahedral/local squared relation.
+- `16xy` is the cube/octahedron tangent branch where traversal becomes chiral.
+- `60x²` is the icosahedron/dodecahedron high-shell field where `{3,5}` and
+  `{5,3}` project φ.
+- π is not owned by a BQF monomial. It appears when chiral diagonal closure is
+  rendered as angular phase in the Hopf, Smith, and rotation projections.
 
 The protocol can thus ask: *"Is this constant witness appropriate for this incidence context?"* without storing the constant itself.
 
@@ -322,11 +325,13 @@ $$\pi = \text{projection}(\text{balanced chiral closure})$$
 
 ---
 
-## 8. Golden Ratio from Cuboctahedral Tangency
+## 8. Golden Ratio from Icosahedral/Dodecahedral High-Shell
 
-### 8.1 The {3,5} Common Core
+### 8.1 The {3,5} High-Shell Core
 
-The {3,5} incidence relationship appears where cube meets octahedron—the common-core crossing relation.
+The `{3,5}` incidence relationship belongs to the icosahedron/dodecahedron
+high-shell field. The cube/octahedron crossing is the `16xy` chiral traversal
+branch; it does not carry the golden-ratio witness.
 
 The icosahedron and dodecahedron are dual to each other, and they meet at a ratio of:
 
@@ -336,9 +341,10 @@ $$\phi = \frac{1 + \sqrt{5}}{2}$$
 
 φ is not stored. φ is the projection of the balanced {3,5}/{5,3} incidence field.
 
-When the protocol validates that the cubic family and icosahedral family maintain harmonic proportion at their boundary, the projection layer *outputs* φ.
+When the protocol validates that the icosahedral and dodecahedral families
+maintain `{3,5}/{5,3}` harmonic proportion, the projection layer *outputs* φ.
 
-$$\phi = \text{projection}(\text{cubic-icosahedral balance})$$
+$$\phi = \text{projection}(\text{icosahedral-dodecahedral balance})$$
 
 The {3,5} common-core relation is exact, finite, and bitwise-computable. Its geometric projection always produces the same φ to any precision.
 
@@ -729,7 +735,7 @@ The discriminant is $16^2 - 4(60)(4) = 256 - 960 = -704$, giving complex roots. 
 
 ---
 
-## Appendix E: Example: Deriving π from the Icosahedron
+## Appendix E: Icosahedron as φ High-Shell; π as Projection Phase
 
 The regular icosahedron has:
 - 12 vertices
@@ -742,9 +748,17 @@ $$R = \frac{\phi^2}{\sqrt{3}} = \frac{\phi \cdot \sqrt{5}}{2\sqrt{3}}$$
 
 The surface area of the sphere is $4\pi R^2$.
 
-Now, the key insight: *We do not compute π as a floating-point value.* We compute the icosahedral incidence structure (12 vertices, 30 edges, 20 faces with exact integer multiplicities). We validate this structure as a Fano-like incidence matrix. We record the validation receipt. Then, we project: "If this incidence structure is placed on a sphere, what is the sphere's area?" The projection layer outputs the symbolic constant π as part of the answer.
+Now, the key insight: *We do not compute π as a floating-point value inside the
+receipt.* We compute the icosahedral incidence structure (12 vertices, 30
+edges, 20 faces with exact integer multiplicities). That structure is the
+high-shell source of the φ witness. When a renderer places the accepted
+incidence on a sphere, π appears as angular projection phase.
 
-The icosahedron's incidence never changes. Different projection contexts may use π differently (e.g., as 3.14159... in floating-point, or as a formal symbol in symbolic algebra). But all contexts agree on the icosahedral incidence, so all contexts produce equivalent π projections.
+The icosahedron's incidence never changes. Different projection contexts may
+use π differently (e.g., as 3.14159... in floating-point, or as a formal symbol
+in symbolic algebra). But all contexts agree on the accepted incidence first,
+so π remains a projection witness, not a stored constant and not the value of
+the `60x²` branch.
 
 **Authority rests with incidence. Constants are shadows.**
 

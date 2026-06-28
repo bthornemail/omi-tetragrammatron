@@ -131,11 +131,11 @@ Viewer public-interface docs:
 - `viewer/SKILLS.md`
 - `viewer/docs/ADAPTERS.md`
 - `viewer/docs/REPO.md`
-- future `viewer/README.md`
 
-Viewer README target:
-- Merge `viewer/README Addendum - Bootstrapping an OMI-Compatible LLM Agent.md` and `viewer/README Addendum - Emergent P2P and Multimedia Use Cases for OMI.md`.
-- Keep this README scoped to public LLM-agent bootstrapping through the published viewer.
+Viewer REPO target:
+- Treat `viewer/docs/REPO.md` as shared public-interface context for LLM agents, alongside `viewer/AGENTS.md` and `viewer/SKILLS.md`.
+- Merge source material from `dev-docs/archive/REPO.md - First Draft.md`, `dev-docs/archive/REPO.md - OMI Request for Collaboration and Role-Repo Based Access Control.md`, `dev-docs/archive/REPO.md Addendum - Bootstrapping an OMI-Compatible LLM Agent.md`, and `dev-docs/archive/REPO.md Addendum - Emergent P2P and Multimedia Use Cases for OMI.md`.
+- Keep `viewer/docs/REPO.md` scoped to public LLM-agent bootstrapping and role/repo policy through the published viewer.
 - Do not merge viewer public-interface policy into root `README.md`, root `AGENTS.md`, or root `SKILLS.md`.
 
 ## 8. Carriers And Adapters

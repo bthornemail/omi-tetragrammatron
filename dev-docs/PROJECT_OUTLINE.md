@@ -362,14 +362,21 @@ viewer/AGENTS.md
 viewer/SKILLS.md
 viewer/docs/ADAPTERS.md
 viewer/docs/REPO.md
-viewer/README Addendum - Bootstrapping an OMI-Compatible LLM Agent.md
-viewer/README Addendum - Emergent P2P and Multimedia Use Cases for OMI.md
 ```
 
-Target:
+Source archive lineage:
 
 ```text
-viewer/README.md
+dev-docs/archive/REPO.md - First Draft.md
+dev-docs/archive/REPO.md - OMI Request for Collaboration and Role-Repo Based Access Control.md
+dev-docs/archive/REPO.md Addendum - Bootstrapping an OMI-Compatible LLM Agent.md
+dev-docs/archive/REPO.md Addendum - Emergent P2P and Multimedia Use Cases for OMI.md
+```
+
+Merge target:
+
+```text
+viewer/docs/REPO.md
 ```
 
 Purpose:
@@ -517,7 +524,7 @@ For codebase changes:
 Known structural changes still pending:
 
 - Rename `opencode` application files and build target to `omicron`.
-- Merge viewer README addenda into `viewer/README.md`.
+- Merge viewer REPO addenda and role-repo policy drafts into `viewer/docs/REPO.md`.
 - Implement full OMI-Lisp notation parser.
 - Connect candidates to Tetragrammatron validation and receipt storage.
 - Enforce projection gates across adapters.
