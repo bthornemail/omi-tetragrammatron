@@ -4,6 +4,8 @@ output/*.json
 output/*.ppm
 scripts/test-c-scaffold
 scripts/test-metatron-scribe
+scripts/test-omicron-boot
+core/omicron.test.o
 portal/dist/
 
 # Logs

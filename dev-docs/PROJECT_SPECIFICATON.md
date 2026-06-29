@@ -37,10 +37,14 @@ IMO is the Carrier Authority.
 - Owns files, S-expression/OMI-Lisp readable forms, `.imo` carrier normalization, HTTP/SSE/WebSocket, browser/device ports, and serialization.
 - Does not validate, compose geometry, or change identity.
 
-Omicron is the thin runtime application.
-- Orchestrates the four authorities.
+Omicron is the boot, context, dialect induction, and runtime application layer.
+- Orchestrates the four authorities without becoming a fifth authority.
+- Stages gauge pre-headers and boot context.
+- Binds system object declarations for `omi.o`, `imo.o`, `tetragrammatron.o`, and `metatron.o`.
+- Induces the readable OMI-Lisp surface from pre-language/gauge context.
 - Replaced the legacy `opencode` application name.
-- Build target is `core/omicron.bin`; object target is `core/omicron.o`; orchestration source is `core/omicron.c`.
+- Build target is `core/omicron.bin`; object target is `core/omicron.o`; scaffold header is `core/omicron.h`; orchestration source is `core/omicron.c`.
+- Does not validate, accept receipts, project meaning, or own carrier side effects.
 
 ## 3. OMI-Lisp Language Model
 
@@ -116,7 +120,7 @@ Core runtime source files:
 - `core/tetragrammatron.h` / `core/tetragrammatron.c`: Validation Authority and receipt ring.
 - `core/metatron.h` / `core/metatron.c`: Projection Authority and geometry surfaces.
 - `core/imo.h` / `core/imo.c`: Carrier Authority, parsers, files, server, and ports.
-- `core/omicron.c`: thin orchestration application, replacing legacy `opencode.c`.
+- `core/omicron.h` / `core/omicron.c`: boot/context/dialect scaffold and orchestration application, replacing legacy `opencode.c`.
 
 Legacy compatibility:
 - Archive-only `opencode` references remain historical.

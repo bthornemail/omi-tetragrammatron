@@ -14,6 +14,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "omicron.h"
 
 #define OMI_FS 0x1cu
 #define OMI_GS 0x1du
@@ -111,6 +112,84 @@ int metatron_scribe_receipt(const RingSlot *slot, MetatronSurfaceKind kind, Meta
 static RingSlot ring[RING_SIZE];
 static uint64_t g_cycle = 0;
 static volatile int g_running = 1;
+
+static int omicron_dialect_valid(OmicronDialect d) {
+    unsigned v = (unsigned)d;
+    return v >= 0xf0u && v <= 0xffu;
+}
+
+void omicron_config_init(OmicronConfig *cfg) {
+    if(!cfg)return;
+    memset(cfg,0,sizeof(*cfg));
+    cfg->mode=OMICRON_MODE_CLI;
+    cfg->dialect=OMICRON_DIALECT_OMICRON;
+}
+
+const char *omicron_mode_name(OmicronMode m) {
+    switch(m){
+        case OMICRON_MODE_CLI:return "cli";
+        case OMICRON_MODE_SOFTWARE_BOOT:return "software-boot";
+        case OMICRON_MODE_HARDWARE_BOOT:return "hardware-boot";
+        case OMICRON_MODE_EMBEDDED:return "embedded";
+        case OMICRON_MODE_MODULE:return "module";
+        case OMICRON_MODE_BITBOARD:return "bitboard";
+        default:return "unknown";
+    }
+}
+
+const char *omicron_dialect_name(OmicronDialect d) {
+    if(d==OMICRON_DIALECT_OMICRON)return "omicron";
+    if(d==OMICRON_DIALECT_CANONICAL)return "canonical";
+    return omicron_dialect_valid(d) ? "reserved" : "invalid";
+}
+
+int omicron_stage_preheader(OmicronDialect d, uint8_t out[OMICRON_PREHEADER_LEN]) {
+    if(!out||!omicron_dialect_valid(d))return 0;
+    out[0]=(uint8_t)d; out[1]=0x00u; out[2]=OMI_FS; out[3]=OMI_GS;
+    out[4]=OMI_RS; out[5]=OMI_US; out[6]=0x20u; out[7]=(uint8_t)d;
+    return 1;
+}
+
+static int omicron_object_pair_ok(const void *p, size_t n) {
+    return (p&&n>0)||(!p&&n==0);
+}
+
+int omicron_load_system_objects(const OmicronConfig *cfg) {
+    if(!cfg)return 0;
+    if(!omicron_object_pair_ok(cfg->omi_object,cfg->omi_object_len))return 0;
+    if(!omicron_object_pair_ok(cfg->imo_object,cfg->imo_object_len))return 0;
+    if(!omicron_object_pair_ok(cfg->tetragrammatron_object,cfg->tetragrammatron_object_len))return 0;
+    if(!omicron_object_pair_ok(cfg->metatron_object,cfg->metatron_object_len))return 0;
+    return 1;
+}
+
+int omicron_induce_omi_lisp(const OmicronConfig *cfg) {
+    if(!cfg)return 0;
+    return omicron_dialect_valid(cfg->dialect);
+}
+
+int omicron_config_from_cli(OmicronConfig *cfg, int argc, char **argv) {
+    if(!cfg)return 0;
+    if(argc>1&&argv&&argv[1]){
+        if(strcmp(argv[1],"--boot")==0)cfg->mode=OMICRON_MODE_SOFTWARE_BOOT;
+        else if(strcmp(argv[1],"--hardware-boot")==0)cfg->mode=OMICRON_MODE_HARDWARE_BOOT;
+        else if(strcmp(argv[1],"--embedded")==0)cfg->mode=OMICRON_MODE_EMBEDDED;
+        else if(strcmp(argv[1],"--module")==0)cfg->mode=OMICRON_MODE_MODULE;
+        else if(strcmp(argv[1],"--bitboard")==0)cfg->mode=OMICRON_MODE_BITBOARD;
+        else cfg->mode=OMICRON_MODE_CLI;
+    }
+    cfg->dialect=OMICRON_DIALECT_OMICRON;
+    return 1;
+}
+
+int omicron_boot(const OmicronConfig *cfg) {
+    uint8_t h[OMICRON_PREHEADER_LEN];
+    if(!cfg)return 1;
+    if(!omicron_stage_preheader(cfg->dialect,h))return 2;
+    if(!omicron_induce_omi_lisp(cfg))return 3;
+    if(!omicron_load_system_objects(cfg))return 4;
+    return 0;
+}
 
 static void die(const char *msg) { fprintf(stderr, "FATAL: %s\n", msg); _exit(1); }
 

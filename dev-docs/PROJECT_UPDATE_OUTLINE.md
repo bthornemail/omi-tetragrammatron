@@ -6,6 +6,7 @@ This file indexes the archived update documents in `dev-docs/archive/` and turns
 
 - C core scaffold has started in `core/`: `core/omi.h`/`core/omi.c` now expose hardened fixed-width types, arena/gauge/bridge scaffold APIs, bitboard masks, and conservative projection gates.
 - Runtime application rename is complete: `core/omicron.c`, `core/omicron.o`, and `core/omicron.bin` replaced the legacy first-version `opencode` names.
+- Omicron V0 boot/context/dialect scaffold is implemented in `core/omicron.h` and `core/omicron.c`: config initialization, CLI mode selection, gauge pre-header staging, OMI-Lisp induction guard, system object binding checks, and focused C tests. `core/omicron.c` is still monolithic; `main()` has not yet been reduced to the new scaffold.
 - Metatron Scribe V0 is implemented as deterministic receipt-to-notation scribing with `--scribe <surface>`, declaration-only surfaces, and focused C tests.
 - Barcode carrier scaffold exists in `portal/src/lib/jabcodeCarrier.ts`, ported from `dev-docs/archive/viewer/public/jabcode-carrier.js`. The canonical carrier family is `omi-barcode`; the custom current form is `omi-jabcode`. The current output is debug-only and must not be treated as an active standards JABCode carrier unless it is replaced with an implementation that follows `archive/JabCode.BSI-TR-03137.pdf`.
 - The archive contains broader design targets that are not yet fully implemented: full arena runtime, tokenizer/parser declarations, receipt-gated projection, adapter policy, repository role policy, P2P sync, hardware targets, and doctrine/docs consolidation.
@@ -52,6 +53,10 @@ Purpose: evolve the current scaffold into the fuller reference runtime without b
 Primary archive sources:
 - `archive/The OMI Uniform Bitboard.md`
 - `archive/The Uniform Bitboard, Pre-Language, OMI-Lisp, and Pseudo-Persistent Open World Substrate.md`
+- `archive/OMI Pre-Language Control Envelope Authority - Replacing LL-MM-NN with FS-GS-RS-US.md`
+- `archive/OMI Gauge Pre-Header Authority.md`
+- `archive/OMI Gauge Header and Orbit Authority.md`
+- `archive/OMI eMMC Boot Target Example.md`
 
 Depreciated implementation sources:
 - `depreciated/Reference-Final Implementation - Complete Files.md`
@@ -62,11 +67,13 @@ Implementation phases:
 - Phase 2.1: finish scaffold cleanup with warning-safe helper functions and tests.
 - Phase 2.2: completed rename of the legacy application target from `opencode` to `omicron`: `opencode.c` -> `omicron.c`, `opencode.o` -> `omicron.o`, `opencode.bin` -> `omicron.bin`, with `Makefile`, smoke tests, docs, and CLI references updated.
 - Phase 2.3: keep the runtime implementation split across `core/omi.c`, `core/imo.c`, `core/tetragrammatron.c`, `core/metatron.c`, and the thin orchestration file `core/omicron.c`.
-- Phase 2.4: add full gauge table behavior, bitboard folds, bridge slots, and explicit boot mode handling.
-- Phase 2.5: add tokenizer state that reads explicit input buffers and witnesses bytes without treating bytes as acceptance.
-- Phase 2.6: add parser form handling for declarations, dot relations, quote forms, and candidate construction.
-- Phase 2.7: connect validation candidates to Tetragrammatron-owned receipt storage without moving carrier I/O into OMI.
-- Phase 2.8: add projection gates for accepted receipt, declared effect, role/scope permission, and bridge authorization.
+- Phase 2.4: started Omicron boot/context/dialect scaffold with `OmicronConfig`, `OmicronMode`, `OmicronDialect`, deterministic pre-header staging, object binding checks, and C tests.
+- Phase 2.5: add full gauge table behavior, bitboard folds, bridge slots, and explicit boot mode handling.
+- Phase 2.6: reduce `core/omicron.c` in place so `main()` uses `OmicronConfig` and dispatches authority modules without changing CLI behavior.
+- Phase 2.7: add tokenizer state that reads explicit input buffers and witnesses bytes without treating bytes as acceptance.
+- Phase 2.8: add parser form handling for declarations, dot relations, quote forms, and candidate construction.
+- Phase 2.9: connect validation candidates to Tetragrammatron-owned receipt storage without moving carrier I/O into OMI.
+- Phase 2.10: add projection gates for accepted receipt, declared effect, role/scope permission, and bridge authorization.
 
 Acceptance tests:
 - Struct sizes and endian helpers.
@@ -216,6 +223,7 @@ Suggested active docs:
 - `dev-docs/PROJECT_UPDATE_OUTLINE.md`: this roadmap.
 - `dev-docs/PROJECT_SPECIFICATON.md`: active standard project specification.
 - `dev-docs/PROJECT_OUTLINE.md`: active standard project outline.
+- `dev-docs/OMICRON.md`: active Omicron boot/context/dialect scaffold note.
 - Optional future `dev-docs/IMPLEMENTATION_NOTES.md`: narrow notes for current phase only.
 
 Archive handling:

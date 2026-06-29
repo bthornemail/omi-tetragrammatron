@@ -15,6 +15,7 @@ core/omi.h / core/omi.c
 core/tetragrammatron.h / core/tetragrammatron.c
 core/metatron.h / core/metatron.c
 core/imo.h / core/imo.c
+core/omicron.h       boot/context/dialect scaffold
 core/omicron.c         thin runtime application/orchestration file
 ```
 
@@ -169,6 +170,7 @@ Does not own:
 Current file:
 
 ```text
+core/omicron.h
 core/omicron.c
 ```
 
@@ -180,10 +182,26 @@ opencode.c
 
 Current role:
 
+- boot/context/dialect scaffold
+- gauge pre-header staging
+- system object binding checks
 - thin application entry point
 - CLI mode dispatch
 - runtime orchestration across OMI, Tetragrammatron, Metatron, and IMO
 - web server entry mode
+
+Does not own:
+
+- citation law
+- validation
+- receipt acceptance
+- projection meaning
+- carrier I/O beyond wrapper dispatch
+
+Technical debt:
+
+- `core/omicron.c` is still a legacy monolithic runtime file.
+- The V0 `core/omicron.h` scaffold exists, but `main()` has not yet been reduced to `OmicronConfig` plus authority dispatch.
 
 Main modes:
 
@@ -206,6 +224,7 @@ Main modes:
 --smith
 --check
 --serve [port]
+--scribe <surface>
 ```
 
 Rename rule:
