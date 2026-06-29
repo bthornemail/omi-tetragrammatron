@@ -139,7 +139,7 @@ That refactor must preserve existing CLI behavior.
 
 - [ ] Keep current CLI behavior unchanged.
 - [x] Move CLI argument interpretation into `omicron_config_from_cli`.
-- [ ] Move boot pre-header setup into `omicron_stage_preheader`.
+- [x] Move boot pre-header setup into `omicron_stage_preheader`.
 - [ ] Move object binding into `omicron_load_system_objects`.
 - [ ] Move OMI-Lisp dialect setup into `omicron_induce_omi_lisp`.
 - [ ] Make `main()` only construct `OmicronConfig` and call `omicron_boot`.

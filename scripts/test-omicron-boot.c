@@ -69,6 +69,10 @@ int main(void) {
     cfg.metatron_object_len = sizeof(obj);
     if (!omicron_load_system_objects(&cfg)) return fail("system objects bound");
     if (omicron_boot(&cfg) != 0) return fail("boot scaffold");
+    if ((cfg.flags & OMICRON_FLAG_PREHEADER_STAGED) == 0) return fail("boot preheader flag");
+    if ((cfg.flags & OMICRON_FLAG_PRELANGUAGE_INDUCED) == 0) return fail("boot prelanguage flag");
+    if ((cfg.flags & OMICRON_FLAG_OBJECTS_BOUND) == 0) return fail("boot objects flag");
+    if (memcmp(cfg.preheader, "\xf0\x00\x1c\x1d\x1e\x1f\x20\xf0", OMICRON_PREHEADER_LEN) != 0) return fail("boot config preheader");
     cfg.omi_object = NULL;
     if (omicron_load_system_objects(&cfg)) return fail("mismatched object pair");
     if (omicron_boot(&cfg) != 4) return fail("boot object failure code");

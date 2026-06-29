@@ -54,6 +54,7 @@ typedef struct {
     OmicronDialect dialect;
     uint32_t flags;
     uint64_t bitboard;
+    uint8_t preheader[OMICRON_PREHEADER_LEN];
     int argc;
     char **argv;
     const char *command_arg;
@@ -70,7 +71,7 @@ typedef struct {
 
 void omicron_config_init(OmicronConfig *cfg);
 int omicron_config_from_cli(OmicronConfig *cfg, int argc, char **argv);
-int omicron_boot(const OmicronConfig *cfg);
+int omicron_boot(OmicronConfig *cfg);
 int omicron_stage_preheader(OmicronDialect dialect, uint8_t out[OMICRON_PREHEADER_LEN]);
 int omicron_induce_omi_lisp(const OmicronConfig *cfg);
 int omicron_load_system_objects(const OmicronConfig *cfg);
