@@ -129,6 +129,71 @@ Omicron may parse readable dialect forms and lower them into canonical hexadecim
 
 Omicron does not validate, accept, store receipts, project effects, or treat IP/Base36/Base64 syntax as authority.
 
+## Omicron Parser Vocabulary Guardrail
+
+The Omicron address parser is a dialect induction and notation-lowering scaffold.
+
+Parser fields MAY describe:
+
+```text
+candidate syntax
+normalized notation
+lowered frames
+dialect surfaces
+path segments
+prefix scopes
+payload/mask candidates
+CAR/CDR closure candidates
+```
+
+Parser fields MUST NOT use authority-bearing terms such as:
+
+```text
+valid
+accepted
+receipt
+proof
+projection
+```
+
+unless the field is explicitly marked as candidate-only, compatibility-only, or delegated to the owning authority module.
+
+Allowed:
+
+```text
+lowered_candidate
+normalized_candidate
+candidate_frame
+candidate_closure
+candidate_path
+```
+
+Forbidden inside Omicron parser API:
+
+```text
+lowered_valid_candidate
+accepted_candidate
+receipt_candidate
+proof_candidate
+projection_candidate
+```
+
+Authority ownership remains:
+
+```text
+Omicron parses and lowers dialect candidates.
+OMI cites canonical addressed notation.
+Tetragrammatron validates and accepts.
+Metatron projects accepted state.
+IMO carries serialized input and output.
+```
+
+Review rule:
+
+```text
+If a new Omicron parser field sounds like it validated, accepted, proved, stored, projected, or received state, the name is wrong unless the behavior is explicitly delegated outside Omicron.
+```
+
 ## Boot Order
 
 V0 records the intended construction method:

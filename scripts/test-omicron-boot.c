@@ -91,6 +91,29 @@ int main(void) {
     if (omicron_boot(&cfg) != 4) return fail("boot object failure code");
     if ((cfg.flags & OMICRON_FLAG_OBJECTS_BOUND) != 0) return fail("failed boot object flag cleared");
 
+    /*
+     * Omicron parser vocabulary guardrail:
+     *
+     * These tests cover candidate syntax, normalized notation, lowered frames,
+     * dialect surfaces, prefix/path parsing, and CAR/CDR closure decoding only.
+     *
+     * Parser fields must not imply validation, acceptance, receipt creation,
+     * proof generation, projection, routing, or receipt-ring storage.
+     *
+     * Allowed example:
+     *   lowered_candidate
+     *
+     * Forbidden examples:
+     *   lowered_valid_candidate
+     *   accepted_candidate
+     *   receipt_candidate
+     *   proof_candidate
+     *   projection_candidate
+     *
+     * Omicron lowers notation candidates.
+     * Tetragrammatron validates and accepts.
+     * Metatron projects accepted state.
+     */
     if (!omicron_parse_address_candidate("omi---imo", &ac)) return fail("parse omi ring");
     if (!ac.has_open || !ac.has_close) return fail("omi ring bounds");
     if (ac.has_frame || ac.has_prefix || ac.path_count != 0) return fail("omi ring empty surface");
