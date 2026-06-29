@@ -8,8 +8,8 @@ OUTPUT_DIR = output
 CORE_TARGET = $(CORE_DIR)/$(TARGET)
 OBJS = $(CORE_DIR)/omi.o $(CORE_DIR)/tetragrammatron.o $(CORE_DIR)/metatron.o $(CORE_DIR)/imo.o $(CORE_DIR)/omicron.o
 PROOF_DIR = proof
-VFILE = $(PROOF_DIR)/phi_proof.v
-VOFILE = $(PROOF_DIR)/phi_proof.vo
+VFILES = $(PROOF_DIR)/phi_proof.v $(PROOF_DIR)/omi_pi_proof.v
+VOFILES = $(VFILES:.v=.vo)
 
 .PHONY: all coq clean smoke test-js test-c test-metatron-scribe test-omicron-boot portal-build portal-lint
 
@@ -33,9 +33,9 @@ $(CORE_DIR)/imo.o: $(CORE_DIR)/imo.c $(CORE_DIR)/imo.h $(CORE_DIR)/metatron.h $(
 $(CORE_DIR)/omicron.o: $(CORE_DIR)/omicron.c $(CORE_DIR)/omicron.h $(CORE_DIR)/omi.h $(CORE_DIR)/tetragrammatron.h $(CORE_DIR)/metatron.h $(CORE_DIR)/imo.h
 	$(CC) $(CFLAGS) -c -o $@ $< -lm
 
-coq: $(VOFILE)
+coq: $(VOFILES)
 
-$(VOFILE): $(VFILE)
+$(PROOF_DIR)/%.vo: $(PROOF_DIR)/%.v
 	$(COQC) $<
 
 smoke: $(CORE_TARGET)
