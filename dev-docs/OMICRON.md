@@ -163,6 +163,65 @@ That refactor must preserve existing CLI behavior.
 
 The special test harness that compiles `core/omicron.c` with `main` renamed exists only because `core/omicron.c` still owns the legacy entrypoint. Remove that harness once `main()` is reduced and Omicron can be tested through the public scaffold without entrypoint rewriting.
 
+## Duplicate Declaration Audit
+
+Status: audit-only. Do not delete local duplicate declarations until the owning modular header compiles cleanly with `core/omicron.c` and CLI parity checks pass.
+
+Audit method:
+
+```text
+Compile probe core/omicron.c with forced inclusion of each modular header:
+  omi.h
+  tetragrammatron.h
+  metatron.h
+  imo.h
+```
+
+Current result: all probes fail because `core/omicron.c` still carries local legacy declarations and definitions from the monolithic runtime.
+
+Classification:
+
+- OMI-owned duplicates:
+  - `OmiInst`, `CpuState`
+  - wrapping, rotation, delta, BQF, and FNV helpers
+  - address parsing helpers
+  - nibble CPU helpers
+- Tetragrammatron-owned duplicates:
+  - `RingSlot`, ring state, cycle state, running flag
+  - ring index, store, dump, fold, and receipt-presence helpers
+  - Polybius, Fano, configuration matrix, ququart phase, slot routing, and chiral helpers
+- Metatron-owned duplicates:
+  - scribe surface types and scribe receipt bridge declarations
+  - shape, edge, incidence, branch, geometry, Smith, and render data
+  - vertex resolution, Hopf/ququart routing, frame, PPM, OBJ, glTF, Smith, and incidence helpers
+- IMO-owned duplicates:
+  - S-expression node, parser, compiler, reducer, event, buffer, and result types
+  - allocation, buffer, node, parser, canonicalization, compiler, receipt-generation, and reduction helpers
+  - BOOT ROM, ring file I/O, signal handling, HTTP/SSE/WebSocket serving, SHA-1, and base64 helpers
+- Omicron/local legacy-only declarations:
+  - Omicron V0 scaffold functions and command dispatch wrapper
+  - private HTTP route helpers and stream-client helpers until they move behind IMO
+  - private drawing helpers until renderers are fully owned through Metatron
+
+Removal order:
+
+1. Include `omi.h` cleanly, remove only OMI-owned local duplicates, and link through `core/omi.c`.
+2. Include `tetragrammatron.h` cleanly, remove only validation and receipt-ring duplicates, and verify ring authority remains with Tetragrammatron.
+3. Include `metatron.h` cleanly, remove scribe declarations first, then geometry and renderer duplicates.
+4. Include `imo.h` cleanly last, because carrier parsing, BOOT ROM, ring file I/O, signals, and server behavior pull the widest dependency surface.
+
+Deletion gate for every class:
+
+```text
+include owning header directly
+remove one duplicate class only
+preserve CLI behavior
+run C, smoke, Coq, and determinism checks
+compare --eval, --boot, --twin, --render-frame, --check, and --scribe behavior
+```
+
+Ring cleanup is the sensitive boundary. `core/omicron.c` currently has local ring state for legacy dispatch compatibility. Replacing that state must not create a second acceptance path or move receipt authority out of Tetragrammatron.
+
 ## Lock
 
 Omicron stages context.
