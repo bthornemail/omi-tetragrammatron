@@ -192,9 +192,19 @@ int omicron_load_system_objects(const OmicronConfig *cfg) {
     return 1;
 }
 
-int omicron_induce_omi_lisp(const OmicronConfig *cfg) {
+int omicron_induce_omi_lisp(OmicronConfig *cfg) {
     if(!cfg)return 0;
-    return omicron_dialect_valid(cfg->dialect);
+    if(!omicron_dialect_valid(cfg->dialect))return 0;
+    if((cfg->flags&OMICRON_FLAG_PREHEADER_STAGED)==0)return 0;
+    if(cfg->preheader[0]!=(uint8_t)cfg->dialect)return 0;
+    if(cfg->preheader[1]!=0x00u)return 0;
+    if(cfg->preheader[2]!=OMI_FS||cfg->preheader[3]!=OMI_GS)return 0;
+    if(cfg->preheader[4]!=OMI_RS||cfg->preheader[5]!=OMI_US)return 0;
+    if(cfg->preheader[6]!=OMICRON_READABLE_BOUNDARY)return 0;
+    if(cfg->preheader[7]!=(uint8_t)cfg->dialect)return 0;
+    cfg->readable_boundary=OMICRON_READABLE_BOUNDARY;
+    cfg->dot_operator=OMICRON_DOT_OPERATOR;
+    return 1;
 }
 
 int omicron_config_from_cli(OmicronConfig *cfg, int argc, char **argv) {

@@ -90,6 +90,18 @@ F0 00 1C 1D 1E 1F 20 F0
 
 The first and last dialect bytes must match. This is staging and recognition only. It is not acceptance.
 
+## OMI-Lisp Induction
+
+OMI-Lisp induction means the Omicron boot context has staged the pre-language gauge and declared the visible dot-notation surface available for later parser/runtime use.
+
+V0 induction requires:
+- pre-header staged
+- FS/GS/RS/US spine present
+- readable boundary `0x20` present
+- dot operator `0x2E` recorded as the visible CAR/CDR relation surface
+
+OMI-Lisp induction does not parse or evaluate user declarations. It does not validate relations, accept receipts, project surfaces, load files, or perform side effects.
+
 ## Boot Order
 
 V0 records the intended construction method:
@@ -145,7 +157,7 @@ That refactor must preserve existing CLI behavior.
 - [x] Move CLI argument interpretation into `omicron_config_from_cli`.
 - [x] Move boot pre-header setup into `omicron_stage_preheader`.
 - [x] Move object binding into `omicron_load_system_objects`.
-- [ ] Move OMI-Lisp dialect setup into `omicron_induce_omi_lisp`.
+- [x] Move OMI-Lisp dialect setup into `omicron_induce_omi_lisp`.
 - [ ] Make `main()` only construct `OmicronConfig` and call `omicron_boot`.
 - [ ] Delete local duplicate declarations only after modular headers can be included cleanly.
 

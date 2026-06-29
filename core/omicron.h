@@ -8,6 +8,8 @@
 #define OMICRON_FLAG_PREHEADER_STAGED 0x00000001u
 #define OMICRON_FLAG_PRELANGUAGE_INDUCED 0x00000002u
 #define OMICRON_FLAG_OBJECTS_BOUND 0x00000004u
+#define OMICRON_READABLE_BOUNDARY 0x20u
+#define OMICRON_DOT_OPERATOR 0x2eu
 
 typedef enum {
     OMICRON_MODE_CLI,
@@ -55,6 +57,8 @@ typedef struct {
     uint32_t flags;
     uint64_t bitboard;
     uint8_t preheader[OMICRON_PREHEADER_LEN];
+    uint8_t readable_boundary;
+    uint8_t dot_operator;
     int argc;
     char **argv;
     const char *command_arg;
@@ -73,7 +77,7 @@ void omicron_config_init(OmicronConfig *cfg);
 int omicron_config_from_cli(OmicronConfig *cfg, int argc, char **argv);
 int omicron_boot(OmicronConfig *cfg);
 int omicron_stage_preheader(OmicronDialect dialect, uint8_t out[OMICRON_PREHEADER_LEN]);
-int omicron_induce_omi_lisp(const OmicronConfig *cfg);
+int omicron_induce_omi_lisp(OmicronConfig *cfg);
 int omicron_load_system_objects(const OmicronConfig *cfg);
 const char *omicron_mode_name(OmicronMode mode);
 const char *omicron_command_name(OmicronCommand command);

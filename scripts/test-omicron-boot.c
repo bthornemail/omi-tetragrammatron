@@ -57,7 +57,12 @@ int main(void) {
     if (strcmp(cfg.command_arg, "(cons 1 2)") != 0) return fail("expr arg");
 
     omicron_config_init(&cfg);
+    if (omicron_induce_omi_lisp(&cfg)) return fail("induce without preheader");
+    if (!omicron_stage_preheader(cfg.dialect, cfg.preheader)) return fail("stage config preheader");
+    cfg.flags |= OMICRON_FLAG_PREHEADER_STAGED;
     if (!omicron_induce_omi_lisp(&cfg)) return fail("induce omi-lisp");
+    if (cfg.readable_boundary != OMICRON_READABLE_BOUNDARY) return fail("readable boundary");
+    if (cfg.dot_operator != OMICRON_DOT_OPERATOR) return fail("dot operator");
     if (!omicron_load_system_objects(&cfg)) return fail("empty system objects ok");
     cfg.omi_object = obj;
     cfg.omi_object_len = sizeof(obj);
@@ -72,6 +77,8 @@ int main(void) {
     if ((cfg.flags & OMICRON_FLAG_PREHEADER_STAGED) == 0) return fail("boot preheader flag");
     if ((cfg.flags & OMICRON_FLAG_PRELANGUAGE_INDUCED) == 0) return fail("boot prelanguage flag");
     if ((cfg.flags & OMICRON_FLAG_OBJECTS_BOUND) == 0) return fail("boot objects flag");
+    if (cfg.readable_boundary != OMICRON_READABLE_BOUNDARY) return fail("boot readable boundary");
+    if (cfg.dot_operator != OMICRON_DOT_OPERATOR) return fail("boot dot operator");
     if (memcmp(cfg.preheader, "\xf0\x00\x1c\x1d\x1e\x1f\x20\xf0", OMICRON_PREHEADER_LEN) != 0) return fail("boot config preheader");
     cfg.omi_object = NULL;
     if (omicron_load_system_objects(&cfg)) return fail("mismatched object pair");
