@@ -416,21 +416,25 @@ Definition local240_selector (n : nat) : N := N.of_nat (n mod 240)%nat.
 Definition projection_denominator_index (n : nat) : N := N.of_nat (2 * n + 1).
 
 Record BQFBridge : Type := mkBQFBridge {
+  bridge_orbit : nat;
   bridge_fano7 : N;
   bridge_local240 : N;
-  bridge_phase : ChiralPhase;
-  bridge_denominator : N;
   bridge_cross : N
 }.
+
+Definition bridge_phase (b : BQFBridge) : ChiralPhase :=
+  diagonal_accumulator_phase (bridge_orbit b).
+
+Definition bridge_denominator (b : BQFBridge) : N :=
+  projection_denominator_index (bridge_orbit b).
 
 Definition bqf_bridge_at (n : nat) : BQFBridge :=
   let x := (fano_selector n + 1)%N in
   let y := (local240_selector n + 1)%N in
   mkBQFBridge
+    n
     (fano_selector n)
     (local240_selector n)
-    (diagonal_accumulator_phase n)
-    (projection_denominator_index n)
     (bqf_chiral_bridge x y).
 
 Theorem fano_selector_bound : forall n : nat,
@@ -464,6 +468,14 @@ Theorem bqf_bridge_phase_matches_accumulator : forall n : nat,
   bridge_phase (bqf_bridge_at n) = diagonal_accumulator_phase n.
 Proof. reflexivity. Qed.
 
+Theorem bqf_bridge_phase_computed_from_orbit : forall b : BQFBridge,
+  bridge_phase b = diagonal_accumulator_phase (bridge_orbit b).
+Proof. reflexivity. Qed.
+
+Theorem bqf_bridge_denominator_computed_from_orbit : forall b : BQFBridge,
+  bridge_denominator b = projection_denominator_index (bridge_orbit b).
+Proof. reflexivity. Qed.
+
 Theorem bqf_bridge_cross_is_16xy : forall n : nat,
   bridge_cross (bqf_bridge_at n) =
     (16 * (fano_selector n + 1) * (local240_selector n + 1))%N.
@@ -488,13 +500,14 @@ Theorem bqf_bridge_denominator_matches_projection : forall n : nat,
   INR (N.to_nat (bridge_denominator (bqf_bridge_at n))) = omi_pi_den n.
 Proof.
   intro n.
-  unfold bqf_bridge_at, projection_denominator_index, omi_pi_den.
+  unfold bridge_denominator, bqf_bridge_at, projection_denominator_index, omi_pi_den.
   simpl.
   rewrite Nat2N.id.
   reflexivity.
 Qed.
 
 Theorem bqf_bridge_carries_projection_schedule : forall n : nat,
+  bridge_orbit (bqf_bridge_at n) = n /\
   bridge_phase (bqf_bridge_at n) = diagonal_accumulator_phase n /\
   INR (N.to_nat (bridge_denominator (bqf_bridge_at n))) = omi_pi_den n /\
   bridge_cross (bqf_bridge_at n) =
@@ -502,10 +515,12 @@ Theorem bqf_bridge_carries_projection_schedule : forall n : nat,
 Proof.
   intro n.
   split.
-  - apply bqf_bridge_phase_matches_accumulator.
+  - reflexivity.
   - split.
-    + apply bqf_bridge_denominator_matches_projection.
-    + apply bqf_bridge_cross_is_16xy.
+    + apply bqf_bridge_phase_matches_accumulator.
+    + split.
+      * apply bqf_bridge_denominator_matches_projection.
+      * apply bqf_bridge_cross_is_16xy.
 Qed.
 
 Definition omi_pi_term_from_incidence (n : nat) : R :=
