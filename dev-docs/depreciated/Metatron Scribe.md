@@ -1,3 +1,34 @@
+# DEPRECATED / SUPERSEDED PLAN / CONCEPT RETAINED
+
+This document is retained for historical context and research value.
+
+It is not current implementation canon.
+
+Depreciation scope:
+- Superseded as an implementation plan by Metatron Scribe V0.
+- Retained as source material for the active Metatron protocol role.
+
+Replacement:
+`dev-docs/METATRON.md` and the implemented Metatron Scribe V0 API in `core/metatron.h` / `core/metatron.c`.
+
+Reason:
+The codebase now contains a V0 implementation: Metatron can read populated Tetragrammatron receipt-ring state and emit deterministic, side-effect-free notation records for selected surfaces.
+
+Retained value:
+This document remains useful for the larger surface/fiber-bundle theory and future rich surface registry.
+
+Boundary:
+- Tetragrammatron owns receipt storage and acceptance.
+- Metatron scribes accepted receipt state into notation records.
+- IMO carries output.
+- Metatron does not validate, write files, perform browser/network/hardware effects, or own carrier I/O.
+- Receipt accepts.
+
+Active replacement:
+See `dev-docs/METATRON.md`.
+
+---
+
 
 ---
 

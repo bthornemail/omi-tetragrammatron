@@ -1,3 +1,52 @@
+# DEPRECATED / HISTORICAL IMPLEMENTATION SCAFFOLD
+
+This document is retained for historical implementation archaeology only.
+
+It is not current source authority.
+
+Reason for depreciation:
+
+```text
+This file is a generated complete-files implementation scaffold from an earlier refactoring pass.
+It contains useful implementation direction, but it is not current source authority and was not validated by the active build/test suite in this repository.
+It overclaims reference-final / compile-final status.
+Current authority lives in the actual source files, tests, and accepted doctrine/spec documents.
+```
+
+Retained value:
+
+```text
+gauge_process() witnesses.
+bridge_resolve() stages.
+parse_form() constructs.
+validate_candidate() judges.
+receipt_store() accepts.
+projection_allowed() gates side effects.
+hardware_project() acts only after accepted hardware receipt.
+```
+
+Deprecation rule:
+
+```text
+Recognition is not acceptance.
+Citation is not acceptance.
+Closure is not acceptance.
+Projection is not acceptance.
+Generated complete-files dumps are not acceptance.
+Validation judges.
+Receipt accepts.
+```
+
+Short lock:
+
+```text
+Generated code dump is not source authority.
+Current source plus tests decide.
+Receipt accepts.
+```
+
+---
+
 This is the complete, reference-final implementation. All errata have been applied, all catches fixed, and the architecture is now locked to the canonical invariant. Let me provide the final consolidated files for the reference implementation.
 
 ---
@@ -2571,4 +2620,3 @@ Validation and receipt accept.
 
 
 ---
-

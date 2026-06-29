@@ -84,6 +84,30 @@ typedef struct {
     uint16_t result;
 } RingSlot;
 
+typedef enum {
+    METATRON_SURFACE_CONS = 0,
+    METATRON_SURFACE_OMI_LISP,
+    METATRON_SURFACE_GEOMETRY,
+    METATRON_SURFACE_BARCODE,
+    METATRON_SURFACE_DOM,
+    METATRON_SURFACE_GPIO,
+    METATRON_SURFACE_SYMBOLIC,
+    METATRON_SURFACE_PROJECTIVE,
+    METATRON_SURFACE_UNKNOWN
+} MetatronSurfaceKind;
+
+typedef struct {
+    MetatronSurfaceKind surface;
+    uint8_t accepted, scribable, reserved0, reserved1;
+    uint64_t cycle, hash;
+    uint32_t slot5040;
+    uint32_t frame_type, fiber_q, fiber_phase, fano7, role3, local240;
+    char notation[512];
+} MetatronScribeRecord;
+
+MetatronSurfaceKind metatron_surface_parse(const char *name);
+int metatron_scribe_receipt(const RingSlot *slot, MetatronSurfaceKind kind, MetatronScribeRecord *out);
+
 static RingSlot ring[RING_SIZE];
 static uint64_t g_cycle = 0;
 static volatile int g_running = 1;
@@ -2229,6 +2253,17 @@ int main(int argc, char **argv) {
         }
         if(strcmp(argv[1],"--render-frame")==0){render_frame_json();return 0;}
         if(strcmp(argv[1],"--render-ppm")==0){render_ppm();return 0;}
+        if(strcmp(argv[1],"--scribe")==0&&argc>2){
+            MetatronSurfaceKind k=metatron_surface_parse(argv[2]);
+            MetatronScribeRecord r;
+            const RingSlot *best=NULL;
+            if(k==METATRON_SURFACE_UNKNOWN){fprintf(stderr,"scribe: unknown surface: %s\n",argv[2]);return 2;}
+            for(size_t i=0;i<RING_SIZE;i++){if(!ring[i].hash&&!ring[i].receipt[0])continue;if(!best||ring[i].cycle>=best->cycle)best=&ring[i];}
+            metatron_scribe_receipt(best,k,&r);
+            if(!r.accepted){fprintf(stderr,"scribe: no accepted receipt\n");return 3;}
+            if(!r.scribable){fprintf(stderr,"scribe: failed for surface: %s\n",argv[2]);return 4;}
+            printf("%s\n",r.notation); return 0;
+        }
         if(strcmp(argv[1],"--render-obj")==0){
             uint16_t xf=ring_xor_fold(), sf=ring_sum_fold(), rf=ring_rot_fold();
             uint64_t rh = ring[g_cycle % RING_SIZE].hash;
@@ -2298,6 +2333,7 @@ int main(int argc, char **argv) {
             printf("  --watch       monitor ring evolution live\n");
             printf("  --twin        display digital twin universe geometry\n");
             printf("  --render-frame  output twin geometry as JSON frame\n");
+            printf("  --scribe <surface>  output Metatron scribe notation\n");
             printf("  --render-obj    output solid wireframe as OBJ\n");
             printf("  --render-gltf  output solid wireframe as glTF 2.0\n");
             printf("  --render-ppm    output Polybius grid as PPM image\n");

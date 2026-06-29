@@ -309,6 +309,113 @@ SmithState resolve_smith(uint32_t slot5040, uint64_t hash) {
     return s;
 }
 
+const char *metatron_surface_name(MetatronSurfaceKind k) {
+    switch (k) {
+        case METATRON_SURFACE_CONS: return "cons";
+        case METATRON_SURFACE_OMI_LISP: return "omi-lisp";
+        case METATRON_SURFACE_GEOMETRY: return "geometry";
+        case METATRON_SURFACE_BARCODE: return "barcode";
+        case METATRON_SURFACE_DOM: return "dom";
+        case METATRON_SURFACE_GPIO: return "gpio";
+        case METATRON_SURFACE_SYMBOLIC: return "symbolic";
+        case METATRON_SURFACE_PROJECTIVE: return "projective";
+        default: return "unknown";
+    }
+}
+
+MetatronSurfaceKind metatron_surface_parse(const char *s) {
+    if (!s) return METATRON_SURFACE_UNKNOWN;
+    if (strcmp(s, "cons") == 0) return METATRON_SURFACE_CONS;
+    if (strcmp(s, "omi-lisp") == 0 || strcmp(s, "omi_lisp") == 0) return METATRON_SURFACE_OMI_LISP;
+    if (strcmp(s, "geometry") == 0) return METATRON_SURFACE_GEOMETRY;
+    if (strcmp(s, "barcode") == 0) return METATRON_SURFACE_BARCODE;
+    if (strcmp(s, "dom") == 0) return METATRON_SURFACE_DOM;
+    if (strcmp(s, "gpio") == 0) return METATRON_SURFACE_GPIO;
+    if (strcmp(s, "symbolic") == 0) return METATRON_SURFACE_SYMBOLIC;
+    if (strcmp(s, "projective") == 0) return METATRON_SURFACE_PROJECTIVE;
+    return METATRON_SURFACE_UNKNOWN;
+}
+
+static int metatron_slot_populated(const RingSlot *s) {
+    return s && (s->hash != 0 || s->receipt[0] != 0);
+}
+
+static void metatron_scribe_route(const RingSlot *s, MetatronScribeRecord *o) {
+    TwinGeometry g = resolve_hopf_ququart_route(
+        (int)(s->cycle % 11),
+        (int)(s->hash % 4),
+        (int)((s->hash >> 8) % 4),
+        (int)((s->cycle + s->hash) % 7),
+        (int)(s->hash % 3),
+        s->hash);
+    double p = g.fiberPhase;
+    while (p < 0.0) p += 2.0 * M_PI;
+    while (p >= 2.0 * M_PI) p -= 2.0 * M_PI;
+    o->slot5040 = (uint32_t)g.slot5040;
+    o->frame_type = (uint32_t)g.frame_type;
+    o->fiber_q = (uint32_t)g.fiberQ;
+    o->fiber_phase = (uint32_t)(p * 1000000.0 + 0.5);
+    o->fano7 = (uint32_t)g.fano7;
+    o->role3 = (uint32_t)g.role3;
+    o->local240 = (uint32_t)g.local240;
+}
+
+int metatron_scribe_receipt(const RingSlot *s, MetatronSurfaceKind k, MetatronScribeRecord *o) {
+    if (!o) return 0;
+    memset(o, 0, sizeof(*o));
+    o->surface = k;
+    if (!metatron_slot_populated(s)) return 0;
+    o->accepted = 1;
+    o->cycle = s->cycle;
+    o->hash = s->hash;
+    if (k == METATRON_SURFACE_UNKNOWN) return 0;
+    metatron_scribe_route(s, o);
+    const char *n = metatron_surface_name(k);
+    int w = 0;
+    switch (k) {
+        case METATRON_SURFACE_CONS:
+            w = snprintf(o->notation, sizeof(o->notation), "(receipt . (%llu . 0x%016llx))",
+                (unsigned long long)o->cycle, (unsigned long long)o->hash);
+            break;
+        case METATRON_SURFACE_OMI_LISP:
+            w = snprintf(o->notation, sizeof(o->notation),
+                "(metatron.scribe (surface \"%s\") (cycle %llu) (hash \"0x%016llx\") (slot5040 %u) (frame %u) (fiber %u))",
+                n, (unsigned long long)o->cycle, (unsigned long long)o->hash, o->slot5040, o->frame_type, o->fiber_q);
+            break;
+        case METATRON_SURFACE_GEOMETRY:
+            w = snprintf(o->notation, sizeof(o->notation),
+                "(metatron.geometry (cycle %llu) (hash \"0x%016llx\") (slot5040 %u) (frame %u) (fiber %u) (fano %u) (role %u) (local %u))",
+                (unsigned long long)o->cycle, (unsigned long long)o->hash, o->slot5040, o->frame_type, o->fiber_q, o->fano7, o->role3, o->local240);
+            break;
+        case METATRON_SURFACE_BARCODE:
+        case METATRON_SURFACE_DOM:
+        case METATRON_SURFACE_GPIO:
+        case METATRON_SURFACE_SYMBOLIC:
+        case METATRON_SURFACE_PROJECTIVE:
+            w = snprintf(o->notation, sizeof(o->notation),
+                "(metatron.declare (surface \"%s\") (cycle %llu) (hash \"0x%016llx\") (effect none))",
+                n, (unsigned long long)o->cycle, (unsigned long long)o->hash);
+            break;
+        default:
+            return 0;
+    }
+    if (w <= 0 || (size_t)w >= sizeof(o->notation)) {
+        memset(o->notation, 0, sizeof(o->notation));
+        return 0;
+    }
+    o->scribable = 1;
+    return 1;
+}
+
+int metatron_scribe_ring_latest(MetatronSurfaceKind k, MetatronScribeRecord *o) {
+    const RingSlot *best = NULL;
+    for (size_t i = 0; i < RING_SIZE; i++) {
+        if (!metatron_slot_populated(&ring[i])) continue;
+        if (!best || ring[i].cycle >= best->cycle) best = &ring[i];
+    }
+    return metatron_scribe_receipt(best, k, o);
+}
+
 void print_twin_geometry(const TwinGeometry *g) {
     printf("TWIN cyc=%llu res=0x%04x op=0x%04x",
         (unsigned long long)g->cycle, g->result, g->opcode);

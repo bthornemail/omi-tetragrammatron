@@ -11,7 +11,7 @@ PROOF_DIR = proof
 VFILE = $(PROOF_DIR)/phi_proof.v
 VOFILE = $(PROOF_DIR)/phi_proof.vo
 
-.PHONY: all coq clean smoke test-js test-c portal-build portal-lint
+.PHONY: all coq clean smoke test-js test-c test-metatron-scribe portal-build portal-lint
 
 all: $(CORE_TARGET) coq portal-build
 
@@ -52,9 +52,16 @@ smoke: $(CORE_TARGET)
 
 test-c: scripts/test-c-scaffold
 	./scripts/test-c-scaffold
+	make test-metatron-scribe
 
 scripts/test-c-scaffold: scripts/test-c-scaffold.c $(CORE_DIR)/omi.c $(CORE_DIR)/omi.h
 	$(CC) $(CFLAGS) -I$(CORE_DIR) -o $@ scripts/test-c-scaffold.c $(CORE_DIR)/omi.c -lm
+
+test-metatron-scribe: scripts/test-metatron-scribe
+	./scripts/test-metatron-scribe
+
+scripts/test-metatron-scribe: scripts/test-metatron-scribe.c $(CORE_DIR)/metatron.c $(CORE_DIR)/metatron.h $(CORE_DIR)/tetragrammatron.c $(CORE_DIR)/tetragrammatron.h $(CORE_DIR)/omi.c $(CORE_DIR)/omi.h
+	$(CC) $(CFLAGS) -I$(CORE_DIR) -o $@ scripts/test-metatron-scribe.c $(CORE_DIR)/metatron.c $(CORE_DIR)/tetragrammatron.c $(CORE_DIR)/omi.c -lm
 
 portal-build:
 	cd portal && npm run build
@@ -66,5 +73,5 @@ test-js: portal-build portal-lint
 	cd portal && npm run test
 
 clean:
-	rm -f $(CORE_TARGET) $(OBJS) scripts/test-c-scaffold $(PROOF_DIR)/*.vo $(PROOF_DIR)/*.glob $(PROOF_DIR)/*.aux
+	rm -f $(CORE_TARGET) $(OBJS) scripts/test-c-scaffold scripts/test-metatron-scribe $(PROOF_DIR)/*.vo $(PROOF_DIR)/*.glob $(PROOF_DIR)/*.aux
 	rm -rf portal/dist

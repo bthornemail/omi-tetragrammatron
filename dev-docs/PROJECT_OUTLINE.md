@@ -109,11 +109,12 @@ core/metatron.c
 Authority:
 
 ```text
-Projection
+Projection / Scribe-Transducer
 ```
 
 Owns:
 
+- deterministic receipt-to-notation transduction
 - geometry constants and derived constants
 - `SHAPE_DB[21]`
 - seed solids and incidence data

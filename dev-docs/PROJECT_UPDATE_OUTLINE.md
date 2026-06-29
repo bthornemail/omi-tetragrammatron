@@ -6,6 +6,7 @@ This file indexes the archived update documents in `dev-docs/archive/` and turns
 
 - C core scaffold has started in `core/`: `core/omi.h`/`core/omi.c` now expose hardened fixed-width types, arena/gauge/bridge scaffold APIs, bitboard masks, and conservative projection gates.
 - Runtime application rename is complete: `core/omicron.c`, `core/omicron.o`, and `core/omicron.bin` replaced the legacy first-version `opencode` names.
+- Metatron Scribe V0 is implemented as deterministic receipt-to-notation scribing with `--scribe <surface>`, declaration-only surfaces, and focused C tests.
 - Barcode carrier scaffold exists in `portal/src/lib/jabcodeCarrier.ts`, ported from `dev-docs/archive/viewer/public/jabcode-carrier.js`. The canonical carrier family is `omi-barcode`; the custom current form is `omi-jabcode`. The current output is debug-only and must not be treated as an active standards JABCode carrier unless it is replaced with an implementation that follows `archive/JabCode.BSI-TR-03137.pdf`.
 - The archive contains broader design targets that are not yet fully implemented: full arena runtime, tokenizer/parser declarations, receipt-gated projection, adapter policy, repository role policy, P2P sync, hardware targets, and doctrine/docs consolidation.
 
@@ -49,11 +50,11 @@ Agent REPO merge target:
 Purpose: evolve the current scaffold into the fuller reference runtime without breaking existing CLI behavior.
 
 Primary archive sources:
-- `archive/Reference-Final Implementation - Complete Files.md`
 - `archive/The OMI Uniform Bitboard.md`
 - `archive/The Uniform Bitboard, Pre-Language, OMI-Lisp, and Pseudo-Persistent Open World Substrate.md`
 
 Depreciated implementation sources:
+- `depreciated/Reference-Final Implementation - Complete Files.md`
 - `depreciated/Master Header - (omi.h) - Hardened Implementation.md`
 - `depreciated/Normative Errata.md`
 
@@ -154,20 +155,24 @@ Future optional work:
 - Media bridge registry for stream/render/capture/transcode constants.
 - Browser UI panels for carrier status and validation status as separate states.
 
-## 6. Metatron Geometry And Surface Model
+## 6. Metatron Scribe, Geometry, And Surface Model
 
-Purpose: align geometry surfaces with receipt projection while preserving Metatron as projection authority only.
+Purpose: align geometry surfaces with receipt projection while preserving Metatron as the scribe-transducer of accepted receipts. Rendering is one output of scribing, not the whole role.
 
 Primary archive sources:
-- `archive/Metatron Scribe.md`
 - `archive/Reasoning Behind the OMI Protocol.md`
 - `archive/OMI as a New Paradigm.md`
 
 Depreciated research notes:
+- `depreciated/Metatron Scribe.md`
 - `depreciated/Clippings.md`
+
+Active canon:
+- `METATRON.md`
 
 Implementation targets:
 - Keep existing geometry renderers and incidence checks stable.
+- Promote Metatron as receipt-to-notation transducer without making it validation authority.
 - Clarify Omi-surfaces as projection fibers over accepted receipts.
 - Expand surface vocabulary only after receipt/projection gates are in place.
 - Avoid turning visual surfaces into validation or acceptance authorities.

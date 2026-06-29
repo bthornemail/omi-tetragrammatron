@@ -86,6 +86,27 @@ typedef struct {
     double rho, theta;
 } SmithState;
 
+typedef enum {
+    METATRON_SURFACE_CONS = 0,
+    METATRON_SURFACE_OMI_LISP,
+    METATRON_SURFACE_GEOMETRY,
+    METATRON_SURFACE_BARCODE,
+    METATRON_SURFACE_DOM,
+    METATRON_SURFACE_GPIO,
+    METATRON_SURFACE_SYMBOLIC,
+    METATRON_SURFACE_PROJECTIVE,
+    METATRON_SURFACE_UNKNOWN
+} MetatronSurfaceKind;
+
+typedef struct {
+    MetatronSurfaceKind surface;
+    uint8_t accepted, scribable, reserved0, reserved1;
+    uint64_t cycle, hash;
+    uint32_t slot5040;
+    uint32_t frame_type, fiber_q, fiber_phase, fano7, role3, local240;
+    char notation[512];
+} MetatronScribeRecord;
+
 double tetra_golden_ratio(void);
 double tetra_derive_constant(const char *name, int steps);
 void resolve_vertex(int shape_idx, int cite, double *x, double *y, double *z);
@@ -106,5 +127,9 @@ void render_gltf(void);
 void quat_to_rot(double qw, double qx, double qy, double qz, double rot[3][3]);
 const ShapeDef *find_solid_with_data(int fano7, int role3);
 int check_incidence(void);
+const char *metatron_surface_name(MetatronSurfaceKind kind);
+MetatronSurfaceKind metatron_surface_parse(const char *name);
+int metatron_scribe_receipt(const RingSlot *slot, MetatronSurfaceKind kind, MetatronScribeRecord *out);
+int metatron_scribe_ring_latest(MetatronSurfaceKind kind, MetatronScribeRecord *out);
 
 #endif

@@ -29,8 +29,8 @@ Tetragrammatron is the Validation Authority.
 - Owns deterministic validation, DeltaC/BQF/Polybius/Fano/slot5040 logic, receipt acceptance, and the 5040-slot receipt ring.
 - Does not render, parse carriers, transport, or mutate identity.
 
-Metatron is the Projection Authority.
-- Owns geometry, surfaces, coordinates, solids, Smith/Gnomonic/CSS-style projection meaning, and renderers.
+Metatron is the Projection and Scribe-Transducer Authority.
+- Owns deterministic receipt-to-notation transduction, geometry, surfaces, coordinates, solids, Smith/Gnomonic/CSS-style projection meaning, and renderers.
 - Does not validate, transport, or accept.
 
 IMO is the Carrier Authority.
@@ -74,7 +74,7 @@ carrier input
   -> OMI cites identity and constructs candidate relation
   -> Tetragrammatron validates candidate
   -> receipt ring records accepted result
-  -> Metatron projects accepted receipt
+  -> Metatron scribes/projects accepted receipt
   -> IMO carries projected surface/output
 ```
 
@@ -209,6 +209,6 @@ The project is specification-complete when:
 - OMI-Lisp notation can be parsed into deterministic candidate relations.
 - Candidates validate through Tetragrammatron.
 - Accepted receipts record identity in the ring.
-- Metatron projections derive only from accepted receipts.
+- Metatron scribing and projections derive only from accepted receipts.
 - IMO carries input/output without owning truth.
 - The public portal can bootstrap LLM agents from `agent-docs/` without overriding root repository policy.

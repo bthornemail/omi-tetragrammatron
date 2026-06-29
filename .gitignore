@@ -3,6 +3,7 @@ dev-docs/temp/
 output/*.json
 output/*.ppm
 scripts/test-c-scaffold
+scripts/test-metatron-scribe
 portal/dist/
 
 # Logs
