@@ -239,6 +239,7 @@ int omicron_config_from_cli(OmicronConfig *cfg, int argc, char **argv) {
 
 int omicron_boot(OmicronConfig *cfg) {
     if(!cfg)return 1;
+    cfg->flags&=~(OMICRON_FLAG_PREHEADER_STAGED|OMICRON_FLAG_PRELANGUAGE_INDUCED|OMICRON_FLAG_OBJECTS_BOUND);
     if(!omicron_stage_preheader(cfg->dialect,cfg->preheader))return 2;
     cfg->flags|=OMICRON_FLAG_PREHEADER_STAGED;
     if(!omicron_induce_omi_lisp(cfg))return 3;

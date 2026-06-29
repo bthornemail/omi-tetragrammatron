@@ -76,6 +76,7 @@ int main(void) {
     cfg.omi_object = NULL;
     if (omicron_load_system_objects(&cfg)) return fail("mismatched object pair");
     if (omicron_boot(&cfg) != 4) return fail("boot object failure code");
+    if ((cfg.flags & OMICRON_FLAG_OBJECTS_BOUND) != 0) return fail("failed boot object flag cleared");
 
     printf("PASS omicron boot\n");
     return 0;

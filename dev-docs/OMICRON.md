@@ -118,7 +118,11 @@ tetragrammatron.o
 metatron.o
 ```
 
-V0 only checks deterministic pointer/length pair integrity for these bindings. It does not parse, validate, accept, serialize, or project them.
+V0 only checks deterministic pointer/length pair integrity for these bindings.
+
+`OBJECTS_BOUND` means object surface pointer/length bindings were checked for deterministic integrity.
+
+It does not mean object declarations were parsed, validated, accepted, serialized, projected, loaded from disk, or executed.
 
 ## Technical Debt
 
@@ -140,7 +144,7 @@ That refactor must preserve existing CLI behavior.
 - [ ] Keep current CLI behavior unchanged.
 - [x] Move CLI argument interpretation into `omicron_config_from_cli`.
 - [x] Move boot pre-header setup into `omicron_stage_preheader`.
-- [ ] Move object binding into `omicron_load_system_objects`.
+- [x] Move object binding into `omicron_load_system_objects`.
 - [ ] Move OMI-Lisp dialect setup into `omicron_induce_omi_lisp`.
 - [ ] Make `main()` only construct `OmicronConfig` and call `omicron_boot`.
 - [ ] Delete local duplicate declarations only after modular headers can be included cleanly.
