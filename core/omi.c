@@ -6,6 +6,7 @@
 #include <string.h>
 #include <math.h>
 #include "omi.h"
+#include "omicron.h"
 
 uint16_t u16(uint32_t x) { return (uint16_t)(x & 0xffffu); }
 
@@ -32,6 +33,34 @@ uint32_t fnv1a32_buf(const unsigned char *data, size_t len) {
 
 uint32_t fnv1a32_str(const char *s) {
     return fnv1a32_buf((const unsigned char *)s, strlen(s));
+}
+
+int omi_construct_citation_candidate(const struct OmiLogCandidate *source, OmiCitationCandidate *out) {
+    int n;
+    if(!source||!out)return 0;
+    memset(out,0,sizeof(*out));
+    if(!source->candidate_only||!source->address.source[0]||!source->keyword[0]||!source->assignment[0])return 0;
+    n=snprintf(out->citation_text,sizeof(out->citation_text),"%s %s %s",source->address.source,source->keyword,source->assignment);
+    if(n<0||(size_t)n>=sizeof(out->citation_text))return 0;
+    snprintf(out->source,sizeof(out->source),"%s",source->address.source);
+    snprintf(out->keyword,sizeof(out->keyword),"%s",source->keyword);
+    snprintf(out->assignment,sizeof(out->assignment),"%s",source->assignment);
+    memcpy(out->frame,source->address.lowered_frame,sizeof(out->frame));
+    out->prefix=source->address.prefix;
+    out->payload=source->address.payload;
+    out->mask=source->address.mask;
+    out->car36_value=source->address.car36_value;
+    out->cdr64_len=source->address.cdr64_len;
+    out->has_frame=source->address.has_frame;
+    out->has_prefix=source->address.has_prefix;
+    out->path_count=source->address.path_count;
+    out->has_payload_mask=source->address.has_payload_mask;
+    out->has_cons_closure=source->address.has_cons_closure;
+    out->has_source_block=source->has_source_block;
+    out->has_o_expression_body=source->has_o_expression_body;
+    out->candidate_only=1;
+    out->citation_hash=fnv1a64((const unsigned char*)out->citation_text,strlen(out->citation_text));
+    return 1;
 }
 
 int parse_hex_field(const char *text, size_t len, uint32_t *out) {

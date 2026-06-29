@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+struct OmiLogCandidate;
+
 #define OMI_VERSION_MAJOR 1
 #define OMI_VERSION_MINOR 0
 #define OMI_VERSION_PATCH 1
@@ -84,6 +86,8 @@ static inline void omi_store64le(omi_u8 *p, omi_u64 v) { omi_store32le(p, (omi_u
 #define OMI_RING_SLOTS 5040u
 #define OMI_RING_SLOT_SIZE 64u
 #define OMI_RING_STORAGE_SIZE (OMI_RING_SLOTS * OMI_RING_SLOT_SIZE)
+
+#define OMI_CITATION_TEXT_MAX 512u
 
 #define OMI_BRIDGE_OFFSET_RECORD_CLOSE 0x00u
 #define OMI_BRIDGE_OFFSET_SYSTEM_WITNESS 0x04u
@@ -175,6 +179,23 @@ typedef struct {
     omi_u32 cycle, source;
     omi_u8 validated;
 } omi_receipt_candidate_t;
+
+typedef struct {
+    char citation_text[OMI_CITATION_TEXT_MAX];
+    char source[256];
+    char keyword[16];
+    char assignment[128];
+    omi_u16 frame[8];
+    omi_u16 prefix;
+    omi_u32 payload, mask;
+    omi_u64 car36_value;
+    omi_u64 citation_hash;
+    size_t cdr64_len;
+    omi_u8 has_frame, has_prefix, path_count;
+    omi_u8 has_payload_mask, has_cons_closure;
+    omi_u8 has_source_block, has_o_expression_body;
+    omi_u8 candidate_only;
+} OmiCitationCandidate;
 
 typedef enum {
     TOKEN_EOF,
@@ -295,5 +316,6 @@ omi_effect_t omi_effect_of_declaration(omi_arena_t *arena, omi_handle_t declarat
 omi_u8 omi_projection_allowed(omi_arena_t *arena, omi_handle_t receipt_handle, omi_effect_t requested_effect);
 omi_u8 omi_receipt_is_accepted(omi_arena_t *arena, omi_handle_t receipt);
 omi_receipt_slot_t *omi_receipt_get(omi_arena_t *arena, omi_handle_t receipt);
+int omi_construct_citation_candidate(const struct OmiLogCandidate *source, OmiCitationCandidate *out);
 
 #endif

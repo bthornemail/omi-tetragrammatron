@@ -51,6 +51,7 @@ Public functions:
 - `omicron_load_system_objects`
 - `omicron_parse_address_candidate`
 - `omilog_parse_candidate`
+- `omilog_format_candidate_head`
 - `omicron_mode_name`
 - `omicron_command_name`
 - `omicron_dialect_name`
@@ -216,6 +217,12 @@ omi-
 
 The parser lowers the declaration head through `omicron_parse_address_candidate`, records the uppercase keyword, records the assignment text, and marks whether a following `omi-...-imo` block contains an O-expression body.
 
+`omilog_format_candidate_head` emits the deterministic normalized declaration head:
+
+```text
+<address-candidate> <KEYWORD> <assignment>
+```
+
 Output type:
 
 ```text
@@ -225,6 +232,15 @@ OmiLogCandidate
 This is candidate-only state.
 
 It does not validate the declaration, accept an Omi-Ring state, write the receipt ring, route live tables, evaluate OMI-Lisp, project surfaces, perform carrier I/O, or create side effects.
+
+V0 parser hardening:
+
+```text
+MUST, FACT, DECLARE, and other non-authority uppercase keywords may parse.
+VALID, ACCEPT, ACCEPTED, RECEIPT, PROOF, and PROJECTION do not parse as declaration keywords.
+Source blocks containing authority-bearing terms are rejected.
+Malformed addresses, missing keywords, missing assignments, and unclosed source blocks are rejected.
+```
 
 Implementation lock:
 

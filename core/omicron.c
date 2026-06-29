@@ -513,12 +513,46 @@ static int omilog_keyword_ok(const char *s, size_t n) {
     return 1;
 }
 
+static int omilog_keyword_authority_bearing(const char *s, size_t n) {
+    static const char *bad[]={"VALID","ACCEPT","ACCEPTED","RECEIPT","PROOF","PROJECTION"};
+    if(!s)return 1;
+    for(size_t i=0;i<sizeof(bad)/sizeof(bad[0]);i++)if(strlen(bad[i])==n&&memcmp(s,bad[i],n)==0)return 1;
+    return 0;
+}
+
 static int omilog_has_oexpr(const char *s, size_t n) {
     const char *open=NULL;
     if(!s||n==0)return 0;
     for(size_t i=0;i<n;i++){
         if(s[i]=='('&&!open)open=s+i;
         if(s[i]==')'&&open&&s+i>open)return 1;
+    }
+    return 0;
+}
+
+static int omilog_token_eq_lower(const char *s, size_t n, const char *word) {
+    size_t wn=strlen(word);
+    if(!s||!word||n!=wn)return 0;
+    for(size_t i=0;i<n;i++)if((char)tolower((unsigned char)s[i])!=word[i])return 0;
+    return 1;
+}
+
+static int omilog_block_has_authority_term(const char *s, size_t n) {
+    size_t i=0;
+    if(!s)return 1;
+    while(i<n){
+        while(i<n&&!isalpha((unsigned char)s[i]))i++;
+        size_t start=i;
+        while(i<n&&isalpha((unsigned char)s[i]))i++;
+        if(i>start){
+            size_t len=i-start;
+            if(omilog_token_eq_lower(s+start,len,"valid"))return 1;
+            if(omilog_token_eq_lower(s+start,len,"accept"))return 1;
+            if(omilog_token_eq_lower(s+start,len,"accepted"))return 1;
+            if(omilog_token_eq_lower(s+start,len,"receipt"))return 1;
+            if(omilog_token_eq_lower(s+start,len,"proof"))return 1;
+            if(omilog_token_eq_lower(s+start,len,"projection"))return 1;
+        }
     }
     return 0;
 }
@@ -543,6 +577,7 @@ int omilog_parse_candidate(const char *src, OmiLogCandidate *out) {
     while(*p&&*p!=' '&&*p!='\t'&&*p!='\r'&&*p!='\n')p++;
     key_len=(size_t)(p-key);
     if(!omilog_keyword_ok(key,key_len))return 0;
+    if(omilog_keyword_authority_bearing(key,key_len))return 0;
     if(!omilog_copy_token(out->keyword,sizeof(out->keyword),key,key_len))return 0;
     p=omilog_skip_horizontal(p);
     assign=p;
@@ -559,6 +594,7 @@ int omilog_parse_candidate(const char *src, OmiLogCandidate *out) {
         if(!close)return 0;
         out->source_block_start=block;
         out->source_block_len=(size_t)((close+4)-block);
+        if(omilog_block_has_authority_term(out->source_block_start,out->source_block_len))return 0;
         out->has_source_block=1;
         out->has_o_expression_body=(uint8_t)omilog_has_oexpr(block,out->source_block_len);
         p=close+4;
@@ -566,6 +602,15 @@ int omilog_parse_candidate(const char *src, OmiLogCandidate *out) {
         if(*p)return 0;
     }
     out->candidate_only=1;
+    return 1;
+}
+
+int omilog_format_candidate_head(const OmiLogCandidate *candidate, char *out, size_t cap) {
+    int n;
+    if(!candidate||!out||cap==0)return 0;
+    if(!candidate->candidate_only||!candidate->address.source[0]||!candidate->keyword[0]||!candidate->assignment[0])return 0;
+    n=snprintf(out,cap,"%s %s %s",candidate->address.source,candidate->keyword,candidate->assignment);
+    if(n<0||(size_t)n>=cap)return 0;
     return 1;
 }
 

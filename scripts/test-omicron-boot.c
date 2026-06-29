@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include "omi.h"
 #include "omicron.h"
 
 static int fail(const char *m) {
@@ -17,7 +18,10 @@ int main(void) {
     OmicronConfig cfg;
     OmicronAddressCandidate ac;
     OmiLogCandidate lc;
+    OmiLogCandidate lc2;
+    OmiCitationCandidate cc;
     uint8_t h[OMICRON_PREHEADER_LEN];
+    char normalized[512];
     char *boot_argv[] = {"omicron.bin", "--boot"};
     char *eval_argv[] = {"omicron.bin", "--eval", "(cons 1 2)"};
     char *eval_missing_argv[] = {"omicron.bin", "--eval"};
@@ -165,6 +169,19 @@ int main(void) {
     if (strcmp(lc.assignment, "project-base36-orbital-symbols") != 0) return fail("omilog assignment");
     if (!lc.address.has_prefix || lc.address.prefix != 128) return fail("omilog prefix");
     if (lc.has_source_block || lc.has_o_expression_body) return fail("omilog no source block");
+    if (!omilog_format_candidate_head(&lc, normalized, sizeof(normalized))) return fail("omilog normalize head");
+    if (strcmp(normalized, "omi-0000-0000-0000-0000-0000-0000-0036-0072/128 MUST project-base36-orbital-symbols") != 0) return fail("omilog normalized value");
+    if (!omilog_parse_candidate(normalized, &lc2)) return fail("omilog roundtrip parse");
+    if (strcmp(lc2.address.source, lc.address.source) != 0 || strcmp(lc2.keyword, lc.keyword) != 0 || strcmp(lc2.assignment, lc.assignment) != 0) return fail("omilog roundtrip fields");
+    if (!omi_construct_citation_candidate(&lc, &cc)) return fail("omi citation candidate");
+    if (!cc.candidate_only) return fail("omi citation candidate only");
+    if (strcmp(cc.citation_text, normalized) != 0) return fail("omi citation text");
+    if (cc.citation_hash != fnv1a64((const unsigned char *)normalized, strlen(normalized))) return fail("omi citation hash");
+    if (!cc.has_frame || !cc.has_prefix || cc.prefix != 128) return fail("omi citation flags");
+    if (cc.frame[6] != 0x0036 || cc.frame[7] != 0x0072) return fail("omi citation frame");
+
+    if (!omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 FACT candidate-only-fact", &lc)) return fail("parse omilog fact");
+    if (!omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 DECLARE candidate-only-declaration", &lc)) return fail("parse omilog declare");
 
     {
         const char *log =
@@ -182,13 +199,24 @@ int main(void) {
         if (!lc.has_source_block || !lc.source_block_start || lc.source_block_len == 0) return fail("omilog block flags");
         if (strncmp(lc.source_block_start, "omi-", 4) != 0) return fail("omilog block start");
         if (!lc.has_o_expression_body) return fail("omilog oexpr");
+        if (!omi_construct_citation_candidate(&lc, &cc)) return fail("omi citation block");
+        if (!cc.has_cons_closure || cc.car36_value != 5039 || cc.cdr64_len != 3) return fail("omi citation closure");
+        if (!cc.has_source_block || !cc.has_o_expression_body) return fail("omi citation block flags");
     }
 
     if (!omilog_parse_candidate("ip4:127.0.0.1/32 FACT local-surface-present", &lc)) return fail("parse omilog ip4");
     if (!lc.address.has_prefix || lc.address.prefix != 32) return fail("omilog ip4 prefix");
+    if (omilog_parse_candidate("", &lc)) return fail("omilog missing address");
     if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 must lower-case-keyword", &lc)) return fail("omilog lowercase keyword");
     if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 MUST", &lc)) return fail("omilog missing assignment");
+    if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128", &lc)) return fail("omilog missing keyword");
+    if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 RECEIPT creates-accepted-state", &lc)) return fail("omilog authority keyword receipt");
+    if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 PROOF creates-proof", &lc)) return fail("omilog authority keyword proof");
     if (omilog_parse_candidate("not-an-address MUST x", &lc)) return fail("omilog invalid address");
+    if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 FACT open-block\nomi-\n  ((x . y))", &lc)) return fail("omilog unclosed block");
+    if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 FACT authority-block\nomi-\n  ((receipt . \"accepted\"))\n-imo", &lc)) return fail("omilog authority block");
+    memset(&lc, 0, sizeof(lc));
+    if (omi_construct_citation_candidate(&lc, &cc)) return fail("omi citation rejects empty");
 
     printf("PASS omicron boot\n");
     return 0;

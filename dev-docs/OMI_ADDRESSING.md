@@ -303,6 +303,33 @@ O-expression structures.
 Hex validates.
 ```
 
+## OMI Citation Candidate Handoff
+
+After Omicron parses and normalizes an Omi-Log declaration candidate, OMI may construct a citation-facing candidate:
+
+```text
+OmiLogCandidate -> OmiCitationCandidate
+```
+
+Current C API:
+
+```text
+omi_construct_citation_candidate
+```
+
+This handoff copies the lowered address fields, keyword, assignment, source-block flags, CONS closure fields, and deterministic citation text/hash into OMI-owned candidate state.
+
+It does not validate, accept, write the receipt ring, project, evaluate, route, serialize, or perform carrier I/O.
+
+Boundary lock:
+
+```text
+Omi-Log declares.
+Omicron normalizes and lowers.
+OMI constructs citation candidates.
+Tetragrammatron validates later.
+```
+
 ## 128-Bit And 256-Bit Frames
 
 The OMI identity frame is eight 16-bit segments:

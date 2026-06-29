@@ -100,7 +100,7 @@ typedef struct {
     uint8_t lowered_candidate;
 } OmicronAddressCandidate;
 
-typedef struct {
+typedef struct OmiLogCandidate {
     OmicronAddressCandidate address;
     char keyword[OMICRON_OMILOG_KEYWORD_MAX];
     char assignment[OMICRON_OMILOG_ASSIGNMENT_MAX];
@@ -119,6 +119,7 @@ int omicron_induce_omi_lisp(OmicronConfig *cfg);
 int omicron_load_system_objects(const OmicronConfig *cfg);
 int omicron_parse_address_candidate(const char *src, OmicronAddressCandidate *out);
 int omilog_parse_candidate(const char *src, OmiLogCandidate *out);
+int omilog_format_candidate_head(const OmiLogCandidate *candidate, char *out, size_t cap);
 const char *omicron_mode_name(OmicronMode mode);
 const char *omicron_command_name(OmicronCommand command);
 const char *omicron_dialect_name(OmicronDialect dialect);

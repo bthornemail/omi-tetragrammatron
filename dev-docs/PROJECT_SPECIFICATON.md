@@ -32,6 +32,7 @@ receipt-like = compatibility shape for accepted-state records
 
 OMI is the Citation Authority.
 - Owns address/ruler notation, CONS/CAR/CDR identity, hashes, fixed-width operations, and citation construction.
+- Owns `OmiCitationCandidate` construction from normalized/lowered Omi-Log candidates.
 - Does not validate, project, transport, or accept.
 
 Tetragrammatron is the Validation Authority.
@@ -269,6 +270,7 @@ Do not:
 The project is specification-complete when:
 - OMI-Lisp notation can be parsed into deterministic candidate relations.
 - Omi-Log declarations lower into Omi-Ring candidates without creating accepted state.
+- OMI constructs citation candidates from lowered declaration candidates without validating or accepting them.
 - Candidates validate through Tetragrammatron.
 - Accepted Omi-Ring states record identity in the ring.
 - Metatron scribing and projections derive only from accepted states.
