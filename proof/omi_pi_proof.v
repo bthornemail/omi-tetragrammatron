@@ -46,6 +46,27 @@ Theorem dminus_sum_1e :
   dminus0 + dminus1 + dminus2 + dminus3 = 30.
 Proof. vm_compute. reflexivity. Qed.
 
+Record DiagonalClosure : Type := mkDiagonalClosure {
+  closure_xor : N;
+  closure_sum : N
+}.
+
+Definition dplus_closure : DiagonalClosure :=
+  mkDiagonalClosure (poly_xor4 dplus0 dplus1 dplus2 dplus3)
+                    (dplus0 + dplus1 + dplus2 + dplus3).
+
+Definition dminus_closure : DiagonalClosure :=
+  mkDiagonalClosure (poly_xor4 dminus0 dminus1 dminus2 dminus3)
+                    (dminus0 + dminus1 + dminus2 + dminus3).
+
+Theorem dplus_closure_valid :
+  closure_xor dplus_closure = 0 /\ closure_sum dplus_closure = 30.
+Proof. vm_compute. auto. Qed.
+
+Theorem dminus_closure_valid :
+  closure_xor dminus_closure = 0 /\ closure_sum dminus_closure = 30.
+Proof. vm_compute. auto. Qed.
+
 Theorem diag_sum_3c :
   dplus0 + dplus1 + dplus2 + dplus3 +
   (dminus0 + dminus1 + dminus2 + dminus3) = 60.
@@ -117,6 +138,8 @@ Proof. vm_compute. auto. Qed.
 
 Definition fano_line : Type := N * N * N.
 
+Definition fano_points : list N := [0; 1; 2; 3; 4; 5; 6].
+
 Definition fano_lines : list fano_line :=
   (0, 1, 2) ::
   (0, 3, 4) ::
@@ -129,6 +152,62 @@ Definition fano_lines : list fano_line :=
 
 Theorem fano_line_count : length fano_lines = 7%nat.
 Proof. vm_compute. reflexivity. Qed.
+
+Theorem fano_point_count : length fano_points = 7%nat.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition fano_line_points (l : fano_line) : list N :=
+  match l with
+  | (a, b, c) => [a; b; c]
+  end.
+
+Definition n_mem (x : N) (xs : list N) : bool :=
+  existsb (N.eqb x) xs.
+
+Definition fano_line_contains (p : N) (l : fano_line) : bool :=
+  n_mem p (fano_line_points l).
+
+Definition fano_point_line_count (p : N) : nat :=
+  length (filter (fano_line_contains p) fano_lines).
+
+Definition fano_pair_line_count (p q : N) : nat :=
+  length (filter (fun l => andb (fano_line_contains p l) (fano_line_contains q l)) fano_lines).
+
+Definition fano_each_line_has_three_points : Prop :=
+  forall l : fano_line, In l fano_lines -> length (fano_line_points l) = 3%nat.
+
+Definition fano_each_point_has_three_lines : Prop :=
+  forall p : N, In p fano_points -> fano_point_line_count p = 3%nat.
+
+Definition fano_each_pair_has_unique_line : Prop :=
+  forall p q : N,
+    In p fano_points ->
+    In q fano_points ->
+    p <> q ->
+    fano_pair_line_count p q = 1%nat.
+
+Theorem fano_line_widths : fano_each_line_has_three_points.
+Proof.
+  intros l H.
+  repeat (destruct H as [H | H]; [subst; vm_compute; reflexivity |]).
+  contradiction.
+Qed.
+
+Theorem fano_point_degrees : fano_each_point_has_three_lines.
+Proof.
+  intros p H.
+  repeat (destruct H as [H | H]; [subst; vm_compute; reflexivity |]).
+  contradiction.
+Qed.
+
+Theorem fano_pair_unique_lines : fano_each_pair_has_unique_line.
+Proof.
+  intros p q Hp Hq Hneq.
+  repeat (destruct Hp as [Hp | Hp]; [subst p | try contradiction]).
+  all: repeat (destruct Hq as [Hq | Hq]; [subst q | try contradiction]).
+  all: try (exfalso; apply Hneq; reflexivity).
+  all: vm_compute; reflexivity.
+Qed.
 
 Definition bqf (x y : N) : N := 60 * x * x + 16 * x * y + 4 * y * y.
 
@@ -179,6 +258,18 @@ Definition diagonal_phase_schedule : list ChiralPhase :=
 Definition polybius_phase_at (n : nat) : ChiralPhase :=
   nth (n mod 2)%nat diagonal_phase_schedule BalancedPhase.
 
+Definition diagonal_race_phase (n : nat) : ChiralPhase :=
+  match polybius_phase_at n with
+  | DPlusPhase =>
+      if andb (closure_xor dplus_closure =? 0) (closure_sum dplus_closure =? 30)
+      then DPlusPhase else IncompletePhase
+  | DMinusPhase =>
+      if andb (closure_xor dminus_closure =? 0) (closure_sum dminus_closure =? 30)
+      then DMinusPhase else IncompletePhase
+  | BalancedPhase => BalancedPhase
+  | IncompletePhase => IncompletePhase
+  end.
+
 Theorem diagonal_phase_schedule_even : forall n : nat,
   polybius_phase_at n = if Nat.even n then DPlusPhase else DMinusPhase.
 Proof.
@@ -213,6 +304,86 @@ Proof.
         (assert (S n0 < 2)%nat by (rewrite <- Hm; apply Nat.mod_upper_bound; lia); lia).
       subst n0.
       reflexivity.
+Qed.
+
+Theorem polybius_diagonal_race_forces_phase_schedule : forall n : nat,
+  diagonal_race_phase n = polybius_phase_at n.
+Proof.
+  intro n.
+  unfold diagonal_race_phase.
+  destruct (polybius_phase_at n); vm_compute; reflexivity.
+Qed.
+
+Record DiagonalAccumulator : Type := mkDiagonalAccumulator {
+  accumulator_phase : ChiralPhase
+}.
+
+Definition diagonal_closure_ready (c : DiagonalClosure) : bool :=
+  andb (N.eqb (closure_xor c) 0) (N.eqb (closure_sum c) 30).
+
+Definition diagonal_accumulator_step (a : DiagonalAccumulator) : DiagonalAccumulator :=
+  match accumulator_phase a with
+  | DPlusPhase =>
+      if diagonal_closure_ready dplus_closure
+      then mkDiagonalAccumulator DMinusPhase
+      else mkDiagonalAccumulator IncompletePhase
+  | DMinusPhase =>
+      if diagonal_closure_ready dminus_closure
+      then mkDiagonalAccumulator DPlusPhase
+      else mkDiagonalAccumulator IncompletePhase
+  | BalancedPhase => mkDiagonalAccumulator BalancedPhase
+  | IncompletePhase => mkDiagonalAccumulator IncompletePhase
+  end.
+
+Definition diagonal_accumulator_at (n : nat) : DiagonalAccumulator :=
+  Nat.iter n diagonal_accumulator_step (mkDiagonalAccumulator DPlusPhase).
+
+Definition diagonal_accumulator_phase (n : nat) : ChiralPhase :=
+  accumulator_phase (diagonal_accumulator_at n).
+
+Lemma nat_induction_by_two :
+  forall P : nat -> Prop,
+    P 0%nat ->
+    P 1%nat ->
+    (forall n : nat, P n -> P (S (S n))) ->
+    forall n : nat, P n.
+Proof.
+  intros P H0 H1 Hstep n.
+  assert (P n /\ P (S n)) as [H _].
+  - induction n as [| n [IHn IHSn]].
+    + split; assumption.
+    + split; [exact IHSn | apply Hstep; exact IHn].
+  - exact H.
+Qed.
+
+Theorem diagonal_accumulator_forces_phase_schedule : forall n : nat,
+  diagonal_accumulator_phase n = polybius_phase_at n.
+Proof.
+  intro n.
+  induction n using nat_induction_by_two.
+  - vm_compute. reflexivity.
+  - vm_compute. reflexivity.
+  - unfold diagonal_accumulator_phase, diagonal_accumulator_at in *.
+    change (Nat.iter (S (S n)) diagonal_accumulator_step (mkDiagonalAccumulator DPlusPhase))
+      with (diagonal_accumulator_step
+              (diagonal_accumulator_step
+                (Nat.iter n diagonal_accumulator_step (mkDiagonalAccumulator DPlusPhase)))).
+    destruct (Nat.iter n diagonal_accumulator_step (mkDiagonalAccumulator DPlusPhase)) as [p].
+    simpl in IHn.
+    rewrite IHn.
+    rewrite diagonal_phase_schedule_even.
+    rewrite diagonal_phase_schedule_even.
+    rewrite Nat.even_succ_succ.
+    destruct (Nat.even n); vm_compute; reflexivity.
+Qed.
+
+Theorem diagonal_accumulator_phase_matches_race : forall n : nat,
+  diagonal_accumulator_phase n = diagonal_race_phase n.
+Proof.
+  intro n.
+  rewrite diagonal_accumulator_forces_phase_schedule.
+  rewrite polybius_diagonal_race_forces_phase_schedule.
+  reflexivity.
 Qed.
 
 Theorem dplus_phase_sign : phase_to_sign DPlusPhase = 1.
@@ -254,19 +425,28 @@ Proof.
   reflexivity.
 Qed.
 
-Lemma nat_induction_by_two :
-  forall P : nat -> Prop,
-    P 0%nat ->
-    P 1%nat ->
-    (forall n : nat, P n -> P (S (S n))) ->
-    forall n : nat, P n.
+Definition omi_pi_term_from_diagonal_race (n : nat) : R :=
+  phase_to_sign (diagonal_race_phase n) / omi_pi_den n.
+
+Theorem omi_pi_term_from_diagonal_race_matches_polybius : forall n : nat,
+  omi_pi_term_from_diagonal_race n = omi_pi_term_from_polybius n.
 Proof.
-  intros P H0 H1 Hstep n.
-  assert (P n /\ P (S n)) as [H _].
-  - induction n as [| n [IHn IHSn]].
-    + split; assumption.
-    + split; [exact IHSn | apply Hstep; exact IHn].
-  - exact H.
+  intro n.
+  unfold omi_pi_term_from_diagonal_race, omi_pi_term_from_polybius.
+  rewrite polybius_diagonal_race_forces_phase_schedule.
+  reflexivity.
+Qed.
+
+Definition omi_pi_term_from_diagonal_accumulator (n : nat) : R :=
+  phase_to_sign (diagonal_accumulator_phase n) / omi_pi_den n.
+
+Theorem omi_pi_term_from_diagonal_accumulator_matches_race : forall n : nat,
+  omi_pi_term_from_diagonal_accumulator n = omi_pi_term_from_diagonal_race n.
+Proof.
+  intro n.
+  unfold omi_pi_term_from_diagonal_accumulator, omi_pi_term_from_diagonal_race.
+  rewrite diagonal_accumulator_phase_matches_race.
+  reflexivity.
 Qed.
 
 Theorem omi_pi_sign_matches_alternation : forall n : nat,
@@ -302,6 +482,15 @@ Definition omi_pi_partial (n : nat) : R :=
 Definition omi_pi_partial_from_incidence (n : nat) : R :=
   4 * sum_f_R0 omi_pi_term_from_incidence n.
 
+Definition omi_pi_partial_from_polybius (n : nat) : R :=
+  4 * sum_f_R0 omi_pi_term_from_polybius n.
+
+Definition omi_pi_partial_from_diagonal_race (n : nat) : R :=
+  4 * sum_f_R0 omi_pi_term_from_diagonal_race n.
+
+Definition omi_pi_partial_from_diagonal_accumulator (n : nat) : R :=
+  4 * sum_f_R0 omi_pi_term_from_diagonal_accumulator n.
+
 Definition omi_pi_lower (n : nat) : R := omi_pi_partial (S (2 * n)).
 
 Definition omi_pi_upper (n : nat) : R := omi_pi_partial (2 * n).
@@ -315,6 +504,39 @@ Proof.
   apply sum_eq.
   intros k _.
   apply omi_pi_term_matches_tg_alt.
+Qed.
+
+Theorem omi_pi_partial_from_polybius_matches_incidence : forall n : nat,
+  omi_pi_partial_from_polybius n = omi_pi_partial_from_incidence n.
+Proof.
+  intro n.
+  unfold omi_pi_partial_from_polybius, omi_pi_partial_from_incidence.
+  apply Rmult_eq_compat_l.
+  apply sum_eq.
+  intros k _.
+  apply omi_pi_term_from_polybius_matches_incidence.
+Qed.
+
+Theorem omi_pi_partial_from_diagonal_race_matches_polybius : forall n : nat,
+  omi_pi_partial_from_diagonal_race n = omi_pi_partial_from_polybius n.
+Proof.
+  intro n.
+  unfold omi_pi_partial_from_diagonal_race, omi_pi_partial_from_polybius.
+  apply Rmult_eq_compat_l.
+  apply sum_eq.
+  intros k _.
+  apply omi_pi_term_from_diagonal_race_matches_polybius.
+Qed.
+
+Theorem omi_pi_partial_from_diagonal_accumulator_matches_race : forall n : nat,
+  omi_pi_partial_from_diagonal_accumulator n = omi_pi_partial_from_diagonal_race n.
+Proof.
+  intro n.
+  unfold omi_pi_partial_from_diagonal_accumulator, omi_pi_partial_from_diagonal_race.
+  apply Rmult_eq_compat_l.
+  apply sum_eq.
+  intros k _.
+  apply omi_pi_term_from_diagonal_accumulator_matches_race.
 Qed.
 
 Theorem omi_pi_projection_series_converges :
@@ -391,8 +613,6 @@ Definition omi_pi_incidence_limit : {l : R | Un_cv (fun n : nat => sum_f_R0 omi_
 
 Definition OMI_PI_from_incidence : R := 4 * proj1_sig omi_pi_incidence_limit.
 
-Definition OMI_PI_from_polybius : R := OMI_PI_from_incidence.
-
 Theorem OMI_PI_from_incidence_equals_OMI_PI :
   OMI_PI_from_incidence = OMI_PI.
 Proof.
@@ -408,15 +628,110 @@ Proof.
   apply OMI_PI_Equals_Real_PI.
 Qed.
 
+Theorem omi_pi_polybius_projection_series_converges :
+  Un_cv (fun n : nat => sum_f_R0 omi_pi_term_from_polybius n) (OMI_PI / 4).
+Proof.
+  eapply Un_cv_ext with
+    (un := fun n : nat => sum_f_R0 omi_pi_term_from_incidence n).
+  - intro n.
+    symmetry.
+    apply sum_eq.
+    intros k _.
+    apply omi_pi_term_from_polybius_matches_incidence.
+  - apply omi_pi_incidence_projection_series_converges.
+Qed.
+
+Definition omi_pi_polybius_limit : {l : R | Un_cv (fun n : nat => sum_f_R0 omi_pi_term_from_polybius n) l} :=
+  exist _ (OMI_PI / 4) omi_pi_polybius_projection_series_converges.
+
+Definition OMI_PI_from_polybius : R := 4 * proj1_sig omi_pi_polybius_limit.
+
 Theorem OMI_PI_from_polybius_equals_incidence :
   OMI_PI_from_polybius = OMI_PI_from_incidence.
-Proof. reflexivity. Qed.
+Proof.
+  unfold OMI_PI_from_polybius, omi_pi_polybius_limit,
+    OMI_PI_from_incidence, omi_pi_incidence_limit.
+  simpl.
+  field.
+Qed.
 
 Theorem OMI_PI_from_polybius_equals_PI :
   OMI_PI_from_polybius = PI.
 Proof.
   rewrite OMI_PI_from_polybius_equals_incidence.
   apply OMI_PI_from_incidence_equals_PI.
+Qed.
+
+Theorem omi_pi_diagonal_race_projection_series_converges :
+  Un_cv (fun n : nat => sum_f_R0 omi_pi_term_from_diagonal_race n) (OMI_PI / 4).
+Proof.
+  eapply Un_cv_ext with
+    (un := fun n : nat => sum_f_R0 omi_pi_term_from_polybius n).
+  - intro n.
+    symmetry.
+    apply sum_eq.
+    intros k _.
+    apply omi_pi_term_from_diagonal_race_matches_polybius.
+  - apply omi_pi_polybius_projection_series_converges.
+Qed.
+
+Definition omi_pi_diagonal_race_limit :
+  {l : R | Un_cv (fun n : nat => sum_f_R0 omi_pi_term_from_diagonal_race n) l} :=
+  exist _ (OMI_PI / 4) omi_pi_diagonal_race_projection_series_converges.
+
+Definition OMI_PI_from_diagonal_race : R :=
+  4 * proj1_sig omi_pi_diagonal_race_limit.
+
+Theorem OMI_PI_from_diagonal_race_equals_polybius :
+  OMI_PI_from_diagonal_race = OMI_PI_from_polybius.
+Proof.
+  unfold OMI_PI_from_diagonal_race, omi_pi_diagonal_race_limit,
+    OMI_PI_from_polybius, omi_pi_polybius_limit.
+  simpl.
+  field.
+Qed.
+
+Theorem OMI_PI_from_diagonal_race_equals_PI :
+  OMI_PI_from_diagonal_race = PI.
+Proof.
+  rewrite OMI_PI_from_diagonal_race_equals_polybius.
+  apply OMI_PI_from_polybius_equals_PI.
+Qed.
+
+Theorem omi_pi_diagonal_accumulator_projection_series_converges :
+  Un_cv (fun n : nat => sum_f_R0 omi_pi_term_from_diagonal_accumulator n) (OMI_PI / 4).
+Proof.
+  eapply Un_cv_ext with
+    (un := fun n : nat => sum_f_R0 omi_pi_term_from_diagonal_race n).
+  - intro n.
+    symmetry.
+    apply sum_eq.
+    intros k _.
+    apply omi_pi_term_from_diagonal_accumulator_matches_race.
+  - apply omi_pi_diagonal_race_projection_series_converges.
+Qed.
+
+Definition omi_pi_diagonal_accumulator_limit :
+  {l : R | Un_cv (fun n : nat => sum_f_R0 omi_pi_term_from_diagonal_accumulator n) l} :=
+  exist _ (OMI_PI / 4) omi_pi_diagonal_accumulator_projection_series_converges.
+
+Definition OMI_PI_from_diagonal_accumulator : R :=
+  4 * proj1_sig omi_pi_diagonal_accumulator_limit.
+
+Theorem OMI_PI_from_diagonal_accumulator_equals_race :
+  OMI_PI_from_diagonal_accumulator = OMI_PI_from_diagonal_race.
+Proof.
+  unfold OMI_PI_from_diagonal_accumulator, omi_pi_diagonal_accumulator_limit,
+    OMI_PI_from_diagonal_race, omi_pi_diagonal_race_limit.
+  simpl.
+  field.
+Qed.
+
+Theorem OMI_PI_from_diagonal_accumulator_equals_PI :
+  OMI_PI_from_diagonal_accumulator = PI.
+Proof.
+  rewrite OMI_PI_from_diagonal_accumulator_equals_race.
+  apply OMI_PI_from_diagonal_race_equals_PI.
 Qed.
 
 Theorem omi_pi_bounds : 3 < OMI_PI < 4.
