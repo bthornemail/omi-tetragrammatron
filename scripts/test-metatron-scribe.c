@@ -39,7 +39,21 @@ int main(void) {
     memset(&s, 0, sizeof(s));
     s.cycle = 7;
     s.hash = 0x0123456789abcdefull;
+    if (metatron_scribe_receipt(&s, METATRON_SURFACE_CONS, &r)) return fail("hash-only slot return");
+    if (r.accepted || r.scribable || r.notation[0]) return fail("hash-only slot state");
+
+    memset(&s, 0, sizeof(s));
     strcpy(s.receipt, "{\"ok\":true}");
+    if (metatron_scribe_receipt(&s, METATRON_SURFACE_CONS, &r)) return fail("receipt-only slot return");
+    if (r.accepted || r.scribable || r.notation[0]) return fail("receipt-only slot state");
+
+    memset(&s, 0, sizeof(s));
+    s.cycle = 7;
+    s.hash = 0x0123456789abcdefull;
+    strcpy(s.receipt, "{\"ok\":true}");
+
+    if (!metatron_scribe_accepted_slot(&s, METATRON_SURFACE_CONS, &r)) return fail("accepted slot scribe");
+    if (!r.accepted || !r.scribable) return fail("accepted slot flags");
 
     if (metatron_scribe_receipt(&s, METATRON_SURFACE_UNKNOWN, &r)) return fail("unknown surface return");
     if (!r.accepted || r.scribable || r.notation[0]) return fail("unknown surface state");
@@ -68,6 +82,10 @@ int main(void) {
     memset(ring, 0, sizeof(ring));
     if (metatron_scribe_ring_latest(METATRON_SURFACE_CONS, &r)) return fail("empty ring latest return");
     if (r.accepted || r.scribable) return fail("empty ring latest state");
+    ring[1] = s;
+    ring[1].receipt[0] = 0;
+    if (metatron_scribe_ring_latest(METATRON_SURFACE_CONS, &r)) return fail("candidate ring latest return");
+    if (r.accepted || r.scribable) return fail("candidate ring latest state");
     ring[2] = s;
     ring[3] = s;
     ring[3].cycle = 9;

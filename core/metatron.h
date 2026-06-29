@@ -129,6 +129,7 @@ const ShapeDef *find_solid_with_data(int fano7, int role3);
 int check_incidence(void);
 const char *metatron_surface_name(MetatronSurfaceKind kind);
 MetatronSurfaceKind metatron_surface_parse(const char *name);
+int metatron_scribe_accepted_slot(const RingSlot *slot, MetatronSurfaceKind kind, MetatronScribeRecord *out);
 int metatron_scribe_receipt(const RingSlot *slot, MetatronSurfaceKind kind, MetatronScribeRecord *out);
 int metatron_scribe_ring_latest(MetatronSurfaceKind kind, MetatronScribeRecord *out);
 

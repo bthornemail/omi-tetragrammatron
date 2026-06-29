@@ -9,7 +9,7 @@ This file indexes the archived update documents in `dev-docs/archive/` and turns
 - Omicron V0 boot/context/dialect scaffold is implemented in `core/omicron.h` and `core/omicron.c`: config initialization, CLI mode selection, gauge pre-header staging, OMI-Lisp induction guard, system object binding checks, address candidate lowering, Omi-Log candidate parsing, and focused C tests. `core/omicron.c` is still monolithic, but legacy dispatch is boxed behind `OmicronConfig` and `omicron_boot`.
 - OMI citation candidate handoff has started: `OmiCitationCandidate` and `omi_construct_citation_candidate` copy normalized/lowered Omi-Log candidates into OMI-owned candidate state without validation, acceptance, ring storage, projection, or carrier I/O.
 - Tetragrammatron validation guardrail is active in `dev-docs/TETRAGRAMMATRON.md`: citation candidates are not accepted state, validation and ring storage remain separate, and only accepted state may be stored. V0 APIs now split `tetragrammatron_validate_citation_candidate` from `tetragrammatron_store_accepted_state`.
-- Metatron Scribe V0 is implemented as deterministic accepted-state-to-notation scribing with `--scribe <surface>`, declaration-only surfaces, and focused C tests.
+- Metatron Scribe V0 is implemented as deterministic stored-accepted-state-to-notation scribing with `--scribe <surface>`, declaration-only surfaces, accepted-slot gating, and focused C tests.
 - Barcode carrier scaffold exists in `portal/src/lib/jabcodeCarrier.ts`, ported from `dev-docs/archive/viewer/public/jabcode-carrier.js`. The canonical carrier family is `omi-barcode`; the custom current form is `omi-jabcode`. The current output is debug-only and must not be treated as an active standards JABCode carrier unless it is replaced with an implementation that follows `archive/JabCode.BSI-TR-03137.pdf`.
 - The archive contains broader design targets that are not yet fully implemented: full arena runtime, tokenizer/parser declarations, accepted-state-gated projection, adapter policy, repository role policy, P2P sync, hardware targets, and doctrine/docs consolidation.
 
@@ -75,14 +75,14 @@ Implementation phases:
 - Phase 2.7: started parser candidate construction with explicit input buffers, Omi-Log declaration heads, malformed-declaration fixtures, and deterministic candidate-head normalization, without treating bytes as acceptance.
 - Phase 2.8: started OMI citation candidate handoff from lowered Omi-Log candidates; add fuller parser form handling for declarations, dot relations, quote forms, and candidate construction.
 - Phase 2.9: started Tetragrammatron validation and explicit storage handoff: OMI citation candidates produce `TetragrammatronAcceptedState`, then `tetragrammatron_store_accepted_state` records an accepted state in the in-memory ring.
-- Phase 2.10: add projection gates for accepted state, declared effect, role/scope permission, and bridge authorization.
+- Phase 2.10: started projection gates with Metatron accepted-slot gating: Metatron scribes only stored accepted-state ring entries; declared effect, role/scope permission, and bridge authorization gates remain pending.
 
 Acceptance tests:
 - Struct sizes and endian helpers.
 - Gauge table active entries and 0x1E/0x78/0x7F behavior.
 - Bridge staging for 0x001E, 0x0078, 0x7C00, 0x007F, 0xAA55.
 - Tokenizer/parser fixture tests.
-- Projection denial before accepted receipt state.
+- Projection denial before stored accepted receipt state.
 - Existing `make smoke` must keep passing before and after the `omicron` rename.
 
 ## 3. Pre-Language, Notation, And OMI-Lisp

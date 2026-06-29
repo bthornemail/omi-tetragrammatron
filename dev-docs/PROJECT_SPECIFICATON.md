@@ -44,6 +44,7 @@ Tetragrammatron is the Validation Authority.
 
 Metatron is the Projection and Scribe-Transducer Authority.
 - Owns deterministic accepted-state-to-notation transduction, geometry, surfaces, coordinates, solids, Smith/Gnomonic/CSS-style projection meaning, and renderers.
+- V0 scribing reads stored accepted-state ring entries through accepted-slot gating; candidate-only state is not a projection input.
 - Does not validate, transport, or accept.
 
 IMO is the Carrier Authority.

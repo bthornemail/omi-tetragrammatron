@@ -44,6 +44,7 @@ The current C core implements Metatron Scribe V0 in `core/metatron.h` and `core/
 
 - `MetatronSurfaceKind`
 - `MetatronScribeRecord`
+- `metatron_scribe_accepted_slot`
 - deterministic surface name parsing
 - deterministic accepted-state-to-notation scribing
 - declaration-only surfaces for barcode, DOM, GPIO, symbolic, and projective targets
@@ -62,6 +63,26 @@ The current C core also implements the projection/composer subset:
 
 This is active V0 code, but it is not the full Omi-Surface registry or full OMI-Lisp declaration runtime.
 
+## V0 Projection Gate
+
+Metatron Scribe V0 reads stored accepted-state ring entries.
+
+The gate is intentionally stricter than "candidate exists":
+
+```text
+accepted-state object -> ring entry -> Metatron scribe record
+```
+
+Metatron must reject candidate-only objects. A `RingSlot` must contain both
+an accepted-state hash and receipt text before Metatron marks it accepted or
+scribable. Hash-only slots and receipt-text-only slots are not accepted-state
+projection inputs.
+
+Metatron does not validate.
+Metatron does not store.
+Metatron does not serialize.
+Metatron does not perform browser, network, hardware, or filesystem effects.
+
 ## V0 Technical Debt
 
 `core/omicron.c` currently uses local bridge declarations for `--scribe` integration because it remains a legacy monolithic source and cannot yet include the modular Metatron headers cleanly without conflicts.
@@ -76,6 +97,7 @@ unify `core/omicron.c` with the modular `core/metatron.h` API so the CLI does no
 The full Metatron runtime should:
 
 - read only accepted Omi-Ring state
+- read stored accepted-state ring entries before projection/scribing
 - select declared notation/surface readings
 - emit deterministic symbolic or geometric projection records
 - keep validation in Tetragrammatron
@@ -88,9 +110,13 @@ The full Metatron runtime should:
 Accepted relation stays invariant.
 Metatron adapts the accepted relation into notation surfaces.
 Projection does not accept.
+Metatron reads stored accepted state.
+IMO serializes later.
 Receipt accepts.
 ```
 
 Compatibility note: runtime names such as `metatron_scribe_receipt` and
 `MetatronScribeRecord` remain stable API names. In current doctrine, they mean
 accepted Omi-Ring state records, not primitive protocol objects.
+`metatron_scribe_receipt` is the compatibility name; the explicit V0 gate name
+is `metatron_scribe_accepted_slot`.

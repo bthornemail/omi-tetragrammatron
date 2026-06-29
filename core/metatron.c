@@ -336,8 +336,8 @@ MetatronSurfaceKind metatron_surface_parse(const char *s) {
     return METATRON_SURFACE_UNKNOWN;
 }
 
-static int metatron_slot_populated(const RingSlot *s) {
-    return s && (s->hash != 0 || s->receipt[0] != 0);
+static int metatron_slot_accepted(const RingSlot *s) {
+    return s && s->hash != 0 && s->receipt[0] != 0;
 }
 
 static void metatron_scribe_route(const RingSlot *s, MetatronScribeRecord *o) {
@@ -360,11 +360,11 @@ static void metatron_scribe_route(const RingSlot *s, MetatronScribeRecord *o) {
     o->local240 = (uint32_t)g.local240;
 }
 
-int metatron_scribe_receipt(const RingSlot *s, MetatronSurfaceKind k, MetatronScribeRecord *o) {
+int metatron_scribe_accepted_slot(const RingSlot *s, MetatronSurfaceKind k, MetatronScribeRecord *o) {
     if (!o) return 0;
     memset(o, 0, sizeof(*o));
     o->surface = k;
-    if (!metatron_slot_populated(s)) return 0;
+    if (!metatron_slot_accepted(s)) return 0;
     o->accepted = 1;
     o->cycle = s->cycle;
     o->hash = s->hash;
@@ -407,13 +407,17 @@ int metatron_scribe_receipt(const RingSlot *s, MetatronSurfaceKind k, MetatronSc
     return 1;
 }
 
+int metatron_scribe_receipt(const RingSlot *s, MetatronSurfaceKind k, MetatronScribeRecord *o) {
+    return metatron_scribe_accepted_slot(s, k, o);
+}
+
 int metatron_scribe_ring_latest(MetatronSurfaceKind k, MetatronScribeRecord *o) {
     const RingSlot *best = NULL;
     for (size_t i = 0; i < RING_SIZE; i++) {
-        if (!metatron_slot_populated(&ring[i])) continue;
+        if (!metatron_slot_accepted(&ring[i])) continue;
         if (!best || ring[i].cycle >= best->cycle) best = &ring[i];
     }
-    return metatron_scribe_receipt(best, k, o);
+    return metatron_scribe_accepted_slot(best, k, o);
 }
 
 void print_twin_geometry(const TwinGeometry *g) {
