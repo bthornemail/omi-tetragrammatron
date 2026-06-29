@@ -122,6 +122,7 @@ void omicron_config_init(OmicronConfig *cfg) {
     if(!cfg)return;
     memset(cfg,0,sizeof(*cfg));
     cfg->mode=OMICRON_MODE_CLI;
+    cfg->command=OMICRON_COMMAND_DEFAULT;
     cfg->dialect=OMICRON_DIALECT_OMICRON;
 }
 
@@ -133,6 +134,34 @@ const char *omicron_mode_name(OmicronMode m) {
         case OMICRON_MODE_EMBEDDED:return "embedded";
         case OMICRON_MODE_MODULE:return "module";
         case OMICRON_MODE_BITBOARD:return "bitboard";
+        default:return "unknown";
+    }
+}
+
+const char *omicron_command_name(OmicronCommand c) {
+    switch(c){
+        case OMICRON_COMMAND_DEFAULT:return "default";
+        case OMICRON_COMMAND_EVAL:return "eval";
+        case OMICRON_COMMAND_REPL:return "repl";
+        case OMICRON_COMMAND_RING:return "ring";
+        case OMICRON_COMMAND_BOOT:return "boot";
+        case OMICRON_COMMAND_AUTO:return "auto";
+        case OMICRON_COMMAND_RUN:return "run";
+        case OMICRON_COMMAND_CPU:return "cpu";
+        case OMICRON_COMMAND_GEOM:return "geom";
+        case OMICRON_COMMAND_RENDER_FRAME:return "render-frame";
+        case OMICRON_COMMAND_RENDER_PPM:return "render-ppm";
+        case OMICRON_COMMAND_SCRIBE:return "scribe";
+        case OMICRON_COMMAND_RENDER_OBJ:return "render-obj";
+        case OMICRON_COMMAND_RENDER_GLTF:return "render-gltf";
+        case OMICRON_COMMAND_SMITH:return "smith";
+        case OMICRON_COMMAND_TWIN:return "twin";
+        case OMICRON_COMMAND_SEED:return "seed";
+        case OMICRON_COMMAND_SERVE:return "serve";
+        case OMICRON_COMMAND_CHECK:return "check";
+        case OMICRON_COMMAND_HELP:return "help";
+        case OMICRON_COMMAND_WATCH:return "watch";
+        case OMICRON_COMMAND_EXPR:return "expr";
         default:return "unknown";
     }
 }
@@ -170,13 +199,39 @@ int omicron_induce_omi_lisp(const OmicronConfig *cfg) {
 
 int omicron_config_from_cli(OmicronConfig *cfg, int argc, char **argv) {
     if(!cfg)return 0;
+    cfg->argc=argc;
+    cfg->argv=argv;
+    cfg->command_arg=(argc>2&&argv)?argv[2]:NULL;
+    cfg->command_arg2=(argc>3&&argv)?argv[3]:NULL;
+    cfg->command=OMICRON_COMMAND_DEFAULT;
+    cfg->mode=OMICRON_MODE_CLI;
     if(argc>1&&argv&&argv[1]){
-        if(strcmp(argv[1],"--boot")==0)cfg->mode=OMICRON_MODE_SOFTWARE_BOOT;
-        else if(strcmp(argv[1],"--hardware-boot")==0)cfg->mode=OMICRON_MODE_HARDWARE_BOOT;
-        else if(strcmp(argv[1],"--embedded")==0)cfg->mode=OMICRON_MODE_EMBEDDED;
-        else if(strcmp(argv[1],"--module")==0)cfg->mode=OMICRON_MODE_MODULE;
-        else if(strcmp(argv[1],"--bitboard")==0)cfg->mode=OMICRON_MODE_BITBOARD;
-        else cfg->mode=OMICRON_MODE_CLI;
+        const char *a=argv[1];
+        if(strcmp(a,"--eval")==0&&argc>2)cfg->command=OMICRON_COMMAND_EVAL;
+        else if(strcmp(a,"--repl")==0)cfg->command=OMICRON_COMMAND_REPL;
+        else if(strcmp(a,"--ring")==0)cfg->command=OMICRON_COMMAND_RING;
+        else if(strcmp(a,"--boot")==0){cfg->command=OMICRON_COMMAND_BOOT;cfg->mode=OMICRON_MODE_SOFTWARE_BOOT;}
+        else if(strcmp(a,"--auto")==0)cfg->command=OMICRON_COMMAND_AUTO;
+        else if(strcmp(a,"--run")==0&&argc>2)cfg->command=OMICRON_COMMAND_RUN;
+        else if(strcmp(a,"--cpu")==0&&argc>2)cfg->command=OMICRON_COMMAND_CPU;
+        else if(strcmp(a,"--geom")==0)cfg->command=OMICRON_COMMAND_GEOM;
+        else if(strcmp(a,"--render-frame")==0)cfg->command=OMICRON_COMMAND_RENDER_FRAME;
+        else if(strcmp(a,"--render-ppm")==0)cfg->command=OMICRON_COMMAND_RENDER_PPM;
+        else if(strcmp(a,"--scribe")==0&&argc>2)cfg->command=OMICRON_COMMAND_SCRIBE;
+        else if(strcmp(a,"--render-obj")==0)cfg->command=OMICRON_COMMAND_RENDER_OBJ;
+        else if(strcmp(a,"--render-gltf")==0)cfg->command=OMICRON_COMMAND_RENDER_GLTF;
+        else if(strcmp(a,"--smith")==0)cfg->command=OMICRON_COMMAND_SMITH;
+        else if(strcmp(a,"--twin")==0)cfg->command=OMICRON_COMMAND_TWIN;
+        else if(strcmp(a,"--seed")==0&&argc>2)cfg->command=OMICRON_COMMAND_SEED;
+        else if(strcmp(a,"--serve")==0)cfg->command=OMICRON_COMMAND_SERVE;
+        else if(strcmp(a,"--check")==0)cfg->command=OMICRON_COMMAND_CHECK;
+        else if(strcmp(a,"--help")==0||strcmp(a,"-h")==0)cfg->command=OMICRON_COMMAND_HELP;
+        else if(strcmp(a,"--watch")==0)cfg->command=OMICRON_COMMAND_WATCH;
+        else if(strcmp(a,"--hardware-boot")==0)cfg->mode=OMICRON_MODE_HARDWARE_BOOT;
+        else if(strcmp(a,"--embedded")==0)cfg->mode=OMICRON_MODE_EMBEDDED;
+        else if(strcmp(a,"--module")==0)cfg->mode=OMICRON_MODE_MODULE;
+        else if(strcmp(a,"--bitboard")==0)cfg->mode=OMICRON_MODE_BITBOARD;
+        else {cfg->command=OMICRON_COMMAND_EXPR;cfg->command_arg=a;}
     }
     cfg->dialect=OMICRON_DIALECT_OMICRON;
     return 1;
@@ -2204,24 +2259,27 @@ static int check_incidence(void) {
 int main(int argc, char **argv) {
     signal(SIGINT,handle_signal); signal(SIGTERM,handle_signal);
     ring_load();
+    OmicronConfig cfg;
+    omicron_config_init(&cfg);
+    omicron_config_from_cli(&cfg,argc,argv);
 
     if(argc>1){
-        if(strcmp(argv[1],"--eval")==0&&argc>2){
-            SxResult pr=process_sexpr(argv[2],g_cycle); g_cycle++;
+        if(cfg.command==OMICRON_COMMAND_EVAL){
+            SxResult pr=process_sexpr(cfg.command_arg,g_cycle); g_cycle++;
             printf("%s\n",pr.receipt); int ok=pr.accepted; sx_free(&pr); return ok?0:1;
         }
-        if(strcmp(argv[1],"--repl")==0){
+        if(cfg.command==OMICRON_COMMAND_REPL){
             printf("OPENCORE SEED v2\n"); char line[8192];
             while(g_running&&fgets(line,sizeof(line),stdin)){size_t llen=strlen(line);if(llen>0&&line[llen-1]=='\n')line[llen-1]=0;if(strcmp(line,":quit")==0)break;if(strcmp(line,":ring")==0){ring_dump();continue;}if(line[0]==0)continue;g_cycle++;SxResult pr=process_sexpr(line,g_cycle);if(pr.accepted)printf("ACCEPT cyc=%llu shape=%s ev=%zu res=%s\n%s\n",(unsigned long long)g_cycle,pr.shape,pr.events,pr.result_canon,pr.receipt);else printf("REJECT cyc=%llu %s\n",(unsigned long long)g_cycle,pr.receipt);sx_free(&pr);}
             ring_save(); return 0;
         }
-        if(strcmp(argv[1],"--ring")==0){ring_dump();return 0;}
-        if(strcmp(argv[1],"--boot")==0){
+        if(cfg.command==OMICRON_COMMAND_RING){ring_dump();return 0;}
+        if(cfg.command==OMICRON_COMMAND_BOOT){
             CpuState cpu; cpu_init(&cpu);
             for(int i=0;i<BOOT_COUNT;i++){OmiInst inst;if(!parse_omi_addr(BOOT_ROM[i],&inst)){printf("boot: parse fail at %d\n",i);return 1;}cpu_run(&cpu,&inst);printf("boot[%d] opcode=0x%04x pc=%u car=0x%08x cdr=0x%08x pay=0x%08x epoch=%llu\n",i,inst.s3,cpu.pc,cpu.car_reg,cpu.cdr_reg,cpu.payload,(unsigned long long)cpu.epoch);if(cpu.halted)break;}
             printf("boot done pc=%u epoch=%llu\n",cpu.pc,(unsigned long long)cpu.epoch); return 0;
         }
-        if(strcmp(argv[1],"--auto")==0){
+        if(cfg.command==OMICRON_COMMAND_AUTO){
             printf("OPENCORE v2 — autonomous ring mode\n");
             uint64_t rounds=0; uint16_t last=0; const char *stop="running";
             CpuState cpu; cpu_init(&cpu);
@@ -2302,20 +2360,20 @@ int main(int argc, char **argv) {
             printf("auto stop=%s rounds=%llu cycles=%llu last=0x%04x\n",stop,(unsigned long long)rounds,(unsigned long long)g_cycle,last);
             write_ring_omi("omi.auto.ring"); ring_save(); return 0;
         }
-        if(strcmp(argv[1],"--run")==0&&argc>2){
-            FILE *f=fopen(argv[2],"rb"); if(!f){perror("open");return 1;}
+        if(cfg.command==OMICRON_COMMAND_RUN){
+            FILE *f=fopen(cfg.command_arg,"rb"); if(!f){perror("open");return 1;}
             char line[8192];
             while(g_running&&fgets(line,sizeof(line),f)){char *p=line;while(isspace((unsigned char)*p))p++;if(*p==0||*p==';')continue;line[strcspn(line,"\r\n")]=0;g_cycle++;SxResult pr=process_sexpr(p,g_cycle);if(pr.accepted)printf("ACCEPT cyc=%llu shape=%s res=%s\n%s\n",(unsigned long long)g_cycle,pr.shape,pr.result_canon,pr.receipt);else printf("REJECT cyc=%llu %s\n",(unsigned long long)g_cycle,pr.receipt);sx_free(&pr);}
             fclose(f); ring_save(); return 0;
         }
-        if(strcmp(argv[1],"--cpu")==0&&argc>2){
-            OmiInst inst; if(!parse_omi_addr(argv[2],&inst)){fprintf(stderr,"parse fail\n");return 1;}
+        if(cfg.command==OMICRON_COMMAND_CPU){
+            OmiInst inst; if(!parse_omi_addr(cfg.command_arg,&inst)){fprintf(stderr,"parse fail\n");return 1;}
             CpuState cpu; cpu_init(&cpu); cpu_run(&cpu,&inst);
             printf("pc=%u car=0x%08x cdr=0x%08x pay=0x%08x mask=0x%08x flags=0x%08x halted=%d epoch=%llu\n",
                 cpu.pc,cpu.car_reg,cpu.cdr_reg,cpu.payload,cpu.mask,cpu.flags,cpu.halted,(unsigned long long)cpu.epoch);
             return 0;
         }
-        if(strcmp(argv[1],"--geom")==0){
+        if(cfg.command==OMICRON_COMMAND_GEOM){
             printf("OPENCORE v2 — Geometry Frame\n");
             printf("Polybius 5x5: origin at (1,1)\n");
             for(int i=0;i<4;i++){int r,c;polybius_get_low_ququart(i,&r,&c);printf("  low ququart[%d]=(%d,%d)\n",i,r,c);}
@@ -2330,20 +2388,20 @@ int main(int argc, char **argv) {
             printf("5040 slot(fano=2,role=1,local=17)=%u\n",compute_slot5040(2,1,17));
             return 0;
         }
-        if(strcmp(argv[1],"--render-frame")==0){render_frame_json();return 0;}
-        if(strcmp(argv[1],"--render-ppm")==0){render_ppm();return 0;}
-        if(strcmp(argv[1],"--scribe")==0&&argc>2){
-            MetatronSurfaceKind k=metatron_surface_parse(argv[2]);
+        if(cfg.command==OMICRON_COMMAND_RENDER_FRAME){render_frame_json();return 0;}
+        if(cfg.command==OMICRON_COMMAND_RENDER_PPM){render_ppm();return 0;}
+        if(cfg.command==OMICRON_COMMAND_SCRIBE){
+            MetatronSurfaceKind k=metatron_surface_parse(cfg.command_arg);
             MetatronScribeRecord r;
             const RingSlot *best=NULL;
-            if(k==METATRON_SURFACE_UNKNOWN){fprintf(stderr,"scribe: unknown surface: %s\n",argv[2]);return 2;}
+            if(k==METATRON_SURFACE_UNKNOWN){fprintf(stderr,"scribe: unknown surface: %s\n",cfg.command_arg);return 2;}
             for(size_t i=0;i<RING_SIZE;i++){if(!ring[i].hash&&!ring[i].receipt[0])continue;if(!best||ring[i].cycle>=best->cycle)best=&ring[i];}
             metatron_scribe_receipt(best,k,&r);
             if(!r.accepted){fprintf(stderr,"scribe: no accepted receipt\n");return 3;}
-            if(!r.scribable){fprintf(stderr,"scribe: failed for surface: %s\n",argv[2]);return 4;}
+            if(!r.scribable){fprintf(stderr,"scribe: failed for surface: %s\n",cfg.command_arg);return 4;}
             printf("%s\n",r.notation); return 0;
         }
-        if(strcmp(argv[1],"--render-obj")==0){
+        if(cfg.command==OMICRON_COMMAND_RENDER_OBJ){
             uint16_t xf=ring_xor_fold(), sf=ring_sum_fold(), rf=ring_rot_fold();
             uint64_t rh = ring[g_cycle % RING_SIZE].hash;
             TwinGeometry g=resolve_hopf_ququart_route(
@@ -2352,9 +2410,9 @@ int main(int argc, char **argv) {
             g.cycle=g_cycle; g.xf=xf; g.sf=sf; g.rf=rf;
             render_obj(&g); return 0;
         }
-        if(strcmp(argv[1],"--render-gltf")==0){render_gltf();return 0;}
-        if(strcmp(argv[1],"--smith")==0){render_smith_svg();return 0;}
-        if(strcmp(argv[1],"--twin")==0){
+        if(cfg.command==OMICRON_COMMAND_RENDER_GLTF){render_gltf();return 0;}
+        if(cfg.command==OMICRON_COMMAND_SMITH){render_smith_svg();return 0;}
+        if(cfg.command==OMICRON_COMMAND_TWIN){
             printf("OPENCORE v2 \342\200\224 digital twin universe\n");
             uint16_t xf=ring_xor_fold(), sf=ring_sum_fold(), rf=ring_rot_fold();
             printf("ring: filled=%d xor=0x%04x sum=0x%04x rot=0x%04x\n",
@@ -2384,18 +2442,18 @@ int main(int argc, char **argv) {
             printf("twin: hopf flux=(%d,%d,%d)\n",(int)(xf%7),(int)(sf%7),(int)(rf%7));
             return 0;
         }
-        if(strcmp(argv[1],"--seed")==0&&argc>2){
-            FILE *f=fopen(argv[2],"wb"); if(!f){perror("create");return 1;}
+        if(cfg.command==OMICRON_COMMAND_SEED){
+            FILE *f=fopen(cfg.command_arg,"wb"); if(!f){perror("create");return 1;}
             fwrite("OMIBIN1\0",1,8,f); uint32_t c32=(uint32_t)BOOT_COUNT; fwrite(&c32,4,1,f);
             for(int i=0;i<BOOT_COUNT;i++){OmiInst inst;parse_omi_addr(BOOT_ROM[i],&inst);fwrite(&inst,32,1,f);}
-            fclose(f); printf("seed=%s instructions=%d\n",argv[2],BOOT_COUNT); return 0;
+            fclose(f); printf("seed=%s instructions=%d\n",cfg.command_arg,BOOT_COUNT); return 0;
         }
-        if(strcmp(argv[1],"--serve")==0){
-            int port = (argc > 2) ? atoi(argv[2]) : SERVE_PORT;
+        if(cfg.command==OMICRON_COMMAND_SERVE){
+            int port = cfg.command_arg ? atoi(cfg.command_arg) : SERVE_PORT;
             serve_http(port); return 0;
         }
-        if(strcmp(argv[1],"--check")==0){return check_incidence();}
-        if(strcmp(argv[1],"--help")==0||strcmp(argv[1],"-h")==0){
+        if(cfg.command==OMICRON_COMMAND_CHECK){return check_incidence();}
+        if(cfg.command==OMICRON_COMMAND_HELP){
             printf("OPENCORE v2 \342\200\224 deterministic autonomous AGI seed\n");
             printf("Usage: omicron.bin [mode] [args]\n");
             printf("Modes:\n");
@@ -2422,7 +2480,7 @@ int main(int argc, char **argv) {
             printf("  --help        this message\n");
             return 0;
         }
-        if(strcmp(argv[1],"--watch")==0){
+        if(cfg.command==OMICRON_COMMAND_WATCH){
             printf("OPENCORE v2 \342\200\224 ring watcher\n");
             ring_dump();
             RingSlot *prev=malloc(sizeof(ring)); if(!prev)return 1;

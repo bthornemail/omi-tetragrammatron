@@ -12,13 +12,20 @@ int main(void) {
     OmicronConfig cfg;
     uint8_t h[OMICRON_PREHEADER_LEN];
     char *boot_argv[] = {"omicron.bin", "--boot"};
+    char *eval_argv[] = {"omicron.bin", "--eval", "(cons 1 2)"};
+    char *eval_missing_argv[] = {"omicron.bin", "--eval"};
+    char *serve_argv[] = {"omicron.bin", "--serve", "8081"};
+    char *scribe_argv[] = {"omicron.bin", "--scribe", "cons"};
     char *bitboard_argv[] = {"omicron.bin", "--bitboard"};
+    char *expr_argv[] = {"omicron.bin", "(cons 1 2)"};
     static const unsigned char obj[] = {1,2,3,4};
 
     omicron_config_init(&cfg);
     if (cfg.mode != OMICRON_MODE_CLI) return fail("default mode");
+    if (cfg.command != OMICRON_COMMAND_DEFAULT) return fail("default command");
     if (cfg.dialect != OMICRON_DIALECT_OMICRON) return fail("default dialect");
     if (strcmp(omicron_mode_name(cfg.mode), "cli") != 0) return fail("mode name");
+    if (strcmp(omicron_command_name(cfg.command), "default") != 0) return fail("command name");
     if (strcmp(omicron_dialect_name(cfg.dialect), "omicron") != 0) return fail("dialect name");
 
     if (!omicron_stage_preheader(OMICRON_DIALECT_OMICRON, h)) return fail("omicron preheader");
@@ -29,8 +36,25 @@ int main(void) {
 
     if (!omicron_config_from_cli(&cfg, 2, boot_argv)) return fail("config boot cli");
     if (cfg.mode != OMICRON_MODE_SOFTWARE_BOOT) return fail("boot mode");
+    if (cfg.command != OMICRON_COMMAND_BOOT) return fail("boot command");
+    if (!omicron_config_from_cli(&cfg, 3, eval_argv)) return fail("config eval cli");
+    if (cfg.command != OMICRON_COMMAND_EVAL) return fail("eval command");
+    if (strcmp(cfg.command_arg, "(cons 1 2)") != 0) return fail("eval arg");
+    if (!omicron_config_from_cli(&cfg, 2, eval_missing_argv)) return fail("config eval missing cli");
+    if (cfg.command != OMICRON_COMMAND_EXPR) return fail("eval missing falls through");
+    if (strcmp(cfg.command_arg, "--eval") != 0) return fail("eval missing expr arg");
+    if (!omicron_config_from_cli(&cfg, 3, serve_argv)) return fail("config serve cli");
+    if (cfg.command != OMICRON_COMMAND_SERVE) return fail("serve command");
+    if (strcmp(cfg.command_arg, "8081") != 0) return fail("serve arg");
+    if (!omicron_config_from_cli(&cfg, 3, scribe_argv)) return fail("config scribe cli");
+    if (cfg.command != OMICRON_COMMAND_SCRIBE) return fail("scribe command");
+    if (strcmp(cfg.command_arg, "cons") != 0) return fail("scribe arg");
     if (!omicron_config_from_cli(&cfg, 2, bitboard_argv)) return fail("config bitboard cli");
     if (cfg.mode != OMICRON_MODE_BITBOARD) return fail("bitboard mode");
+    if (cfg.command != OMICRON_COMMAND_DEFAULT) return fail("bitboard command remains default");
+    if (!omicron_config_from_cli(&cfg, 2, expr_argv)) return fail("config expr cli");
+    if (cfg.command != OMICRON_COMMAND_EXPR) return fail("expr command");
+    if (strcmp(cfg.command_arg, "(cons 1 2)") != 0) return fail("expr arg");
 
     omicron_config_init(&cfg);
     if (!omicron_induce_omi_lisp(&cfg)) return fail("induce omi-lisp");

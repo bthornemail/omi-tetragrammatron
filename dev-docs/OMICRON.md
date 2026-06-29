@@ -38,6 +38,7 @@ The V0 scaffold is declared in `core/omicron.h` and implemented in `core/omicron
 
 Public types:
 - `OmicronMode`
+- `OmicronCommand`
 - `OmicronDialect`
 - `OmicronConfig`
 
@@ -49,6 +50,7 @@ Public functions:
 - `omicron_induce_omi_lisp`
 - `omicron_load_system_objects`
 - `omicron_mode_name`
+- `omicron_command_name`
 - `omicron_dialect_name`
 
 ## Dialects
@@ -107,7 +109,7 @@ V0 records the intended construction method:
 
 ## Object Surfaces
 
-Object declarations are context surfaces:
+System object declarations are context surfaces:
 
 ```text
 omi.o
@@ -136,7 +138,7 @@ That refactor must preserve existing CLI behavior.
 ## Omicron Monolith Reduction Plan
 
 - [ ] Keep current CLI behavior unchanged.
-- [ ] Move CLI argument interpretation into `omicron_config_from_cli`.
+- [x] Move CLI argument interpretation into `omicron_config_from_cli`.
 - [ ] Move boot pre-header setup into `omicron_stage_preheader`.
 - [ ] Move object binding into `omicron_load_system_objects`.
 - [ ] Move OMI-Lisp dialect setup into `omicron_induce_omi_lisp`.
