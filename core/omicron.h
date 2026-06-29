@@ -14,6 +14,8 @@
 #define OMICRON_ADDRESS_PATH_MAX 8u
 #define OMICRON_ADDRESS_SEGMENT_MAX 64u
 #define OMICRON_ADDRESS_CDR64_MAX 128u
+#define OMICRON_OMILOG_KEYWORD_MAX 16u
+#define OMICRON_OMILOG_ASSIGNMENT_MAX 128u
 
 typedef enum {
     OMICRON_MODE_CLI,
@@ -98,6 +100,17 @@ typedef struct {
     uint8_t lowered_candidate;
 } OmicronAddressCandidate;
 
+typedef struct {
+    OmicronAddressCandidate address;
+    char keyword[OMICRON_OMILOG_KEYWORD_MAX];
+    char assignment[OMICRON_OMILOG_ASSIGNMENT_MAX];
+    const char *source_block_start;
+    size_t source_block_len;
+    uint8_t has_source_block;
+    uint8_t has_o_expression_body;
+    uint8_t candidate_only;
+} OmiLogCandidate;
+
 void omicron_config_init(OmicronConfig *cfg);
 int omicron_config_from_cli(OmicronConfig *cfg, int argc, char **argv);
 int omicron_boot(OmicronConfig *cfg);
@@ -105,6 +118,7 @@ int omicron_stage_preheader(OmicronDialect dialect, uint8_t out[OMICRON_PREHEADE
 int omicron_induce_omi_lisp(OmicronConfig *cfg);
 int omicron_load_system_objects(const OmicronConfig *cfg);
 int omicron_parse_address_candidate(const char *src, OmicronAddressCandidate *out);
+int omilog_parse_candidate(const char *src, OmiLogCandidate *out);
 const char *omicron_mode_name(OmicronMode mode);
 const char *omicron_command_name(OmicronCommand command);
 const char *omicron_dialect_name(OmicronDialect dialect);

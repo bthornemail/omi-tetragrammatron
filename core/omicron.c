@@ -490,6 +490,85 @@ int omicron_parse_address_candidate(const char *src, OmicronAddressCandidate *ou
     return 1;
 }
 
+static const char *omilog_skip_horizontal(const char *p) {
+    while(p&&(*p==' '||*p=='\t'||*p=='\r'))p++;
+    return p;
+}
+
+static const char *omilog_skip_space(const char *p) {
+    while(p&&isspace((unsigned char)*p))p++;
+    return p;
+}
+
+static int omilog_copy_token(char *dst, size_t cap, const char *s, size_t n) {
+    if(!dst||!s||n==0||n>=cap)return 0;
+    memcpy(dst,s,n);
+    dst[n]=0;
+    return 1;
+}
+
+static int omilog_keyword_ok(const char *s, size_t n) {
+    if(!s||n==0||n>=OMICRON_OMILOG_KEYWORD_MAX)return 0;
+    for(size_t i=0;i<n;i++)if(!(s[i]>='A'&&s[i]<='Z'))return 0;
+    return 1;
+}
+
+static int omilog_has_oexpr(const char *s, size_t n) {
+    const char *open=NULL;
+    if(!s||n==0)return 0;
+    for(size_t i=0;i<n;i++){
+        if(s[i]=='('&&!open)open=s+i;
+        if(s[i]==')'&&open&&s+i>open)return 1;
+    }
+    return 0;
+}
+
+int omilog_parse_candidate(const char *src, OmiLogCandidate *out) {
+    const char *p, *head, *key, *assign, *line_end, *block, *close;
+    char address[OMICRON_ADDRESS_SOURCE_MAX];
+    size_t head_len, key_len, assign_len;
+    if(!src||!out)return 0;
+    memset(out,0,sizeof(*out));
+    p=omilog_skip_space(src);
+    if(!p||!*p)return 0;
+    head=p;
+    while(*p&&*p!=' '&&*p!='\t'&&*p!='\r'&&*p!='\n')p++;
+    head_len=(size_t)(p-head);
+    if(head_len==0||head_len>=sizeof(address))return 0;
+    memcpy(address,head,head_len);
+    address[head_len]=0;
+    if(!omicron_parse_address_candidate(address,&out->address))return 0;
+    p=omilog_skip_horizontal(p);
+    key=p;
+    while(*p&&*p!=' '&&*p!='\t'&&*p!='\r'&&*p!='\n')p++;
+    key_len=(size_t)(p-key);
+    if(!omilog_keyword_ok(key,key_len))return 0;
+    if(!omilog_copy_token(out->keyword,sizeof(out->keyword),key,key_len))return 0;
+    p=omilog_skip_horizontal(p);
+    assign=p;
+    while(*p&&*p!='\r'&&*p!='\n')p++;
+    line_end=p;
+    while(line_end>assign&&(line_end[-1]==' '||line_end[-1]=='\t'))line_end--;
+    assign_len=(size_t)(line_end-assign);
+    if(!omilog_copy_token(out->assignment,sizeof(out->assignment),assign,assign_len))return 0;
+    while(*p=='\r'||*p=='\n')p++;
+    block=omilog_skip_space(p);
+    if(block&&*block){
+        if(strncmp(block,"omi-",4)!=0)return 0;
+        close=strstr(block,"-imo");
+        if(!close)return 0;
+        out->source_block_start=block;
+        out->source_block_len=(size_t)((close+4)-block);
+        out->has_source_block=1;
+        out->has_o_expression_body=(uint8_t)omilog_has_oexpr(block,out->source_block_len);
+        p=close+4;
+        p=omilog_skip_space(p);
+        if(*p)return 0;
+    }
+    out->candidate_only=1;
+    return 1;
+}
+
 static void die(const char *msg) { fprintf(stderr, "FATAL: %s\n", msg); _exit(1); }
 
 static void *xmalloc(size_t n) { void *p = malloc(n ? n : 1); if (!p) die("malloc"); return p; }

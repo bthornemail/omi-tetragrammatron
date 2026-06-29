@@ -248,6 +248,7 @@ Required test classes:
 - gauge table and bitboard witnesses
 - bridge staging independence
 - OMI-Lisp notation parser fixtures
+- Omi-Log candidate parser fixtures
 - candidate validation and rejection
 - projection denial before receipt
 - same input produces same output
@@ -267,6 +268,7 @@ Do not:
 
 The project is specification-complete when:
 - OMI-Lisp notation can be parsed into deterministic candidate relations.
+- Omi-Log declarations lower into Omi-Ring candidates without creating accepted state.
 - Candidates validate through Tetragrammatron.
 - Accepted Omi-Ring states record identity in the ring.
 - Metatron scribing and projections derive only from accepted states.

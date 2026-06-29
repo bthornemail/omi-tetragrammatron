@@ -16,6 +16,7 @@ static int eq_frame(const uint16_t got[8], const uint16_t want[8]) {
 int main(void) {
     OmicronConfig cfg;
     OmicronAddressCandidate ac;
+    OmiLogCandidate lc;
     uint8_t h[OMICRON_PREHEADER_LEN];
     char *boot_argv[] = {"omicron.bin", "--boot"};
     char *eval_argv[] = {"omicron.bin", "--eval", "(cons 1 2)"};
@@ -157,6 +158,37 @@ int main(void) {
     if (omicron_parse_address_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128?0?0@3vz@T01J", &ac)) return fail("invalid base36");
     if (omicron_parse_address_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128?0?0@3VZ@T01!", &ac)) return fail("invalid base64url");
     if (omicron_parse_address_candidate("ip4:ip6:127.0.0.1/32", &ac)) return fail("ambiguous family");
+
+    if (!omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 MUST project-base36-orbital-symbols", &lc)) return fail("parse omilog head");
+    if (!lc.candidate_only) return fail("omilog candidate only");
+    if (strcmp(lc.keyword, "MUST") != 0) return fail("omilog keyword");
+    if (strcmp(lc.assignment, "project-base36-orbital-symbols") != 0) return fail("omilog assignment");
+    if (!lc.address.has_prefix || lc.address.prefix != 128) return fail("omilog prefix");
+    if (lc.has_source_block || lc.has_o_expression_body) return fail("omilog no source block");
+
+    {
+        const char *log =
+            "omi-0000-0000-0000-0000-0000-0000-0036-0072/128?0?0@3VZ@T01J FACT base36-car-cdr-closure-declared\n"
+            "\n"
+            "omi-\n"
+            "  (\n"
+            "    (car36 . \"3VZ\")\n"
+            "    (cdr64 . \"T01J\")\n"
+            "    (closure . \"@3VZ@T01J\")\n"
+            "  )\n"
+            "-imo";
+        if (!omilog_parse_candidate(log, &lc)) return fail("parse omilog block");
+        if (!lc.address.has_cons_closure || lc.address.car36_value != 5039) return fail("omilog closure");
+        if (!lc.has_source_block || !lc.source_block_start || lc.source_block_len == 0) return fail("omilog block flags");
+        if (strncmp(lc.source_block_start, "omi-", 4) != 0) return fail("omilog block start");
+        if (!lc.has_o_expression_body) return fail("omilog oexpr");
+    }
+
+    if (!omilog_parse_candidate("ip4:127.0.0.1/32 FACT local-surface-present", &lc)) return fail("parse omilog ip4");
+    if (!lc.address.has_prefix || lc.address.prefix != 32) return fail("omilog ip4 prefix");
+    if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 must lower-case-keyword", &lc)) return fail("omilog lowercase keyword");
+    if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 MUST", &lc)) return fail("omilog missing assignment");
+    if (omilog_parse_candidate("not-an-address MUST x", &lc)) return fail("omilog invalid address");
 
     printf("PASS omicron boot\n");
     return 0;

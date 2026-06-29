@@ -494,7 +494,8 @@ They do not make receipt the primitive protocol object.
 Implementation status:
 
 - Current S-expression evaluator exists in IMO.
-- Full OMI-Lisp notation parser is pending.
+- V0 Omi-Log candidate parser exists in Omicron for declaration heads and optional `omi-...-imo` source blocks.
+- Full OMI-Lisp notation parser is still pending.
 - Parser output must create Omi-Ring candidates only, not accepted receipt states.
 
 ## 14. Carrier Policy

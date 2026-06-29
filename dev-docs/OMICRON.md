@@ -49,6 +49,8 @@ Public functions:
 - `omicron_stage_preheader`
 - `omicron_induce_omi_lisp`
 - `omicron_load_system_objects`
+- `omicron_parse_address_candidate`
+- `omilog_parse_candidate`
 - `omicron_mode_name`
 - `omicron_command_name`
 - `omicron_dialect_name`
@@ -192,6 +194,46 @@ Review rule:
 
 ```text
 If a new Omicron parser field sounds like it validated, accepted, proved, stored, projected, or received state, the name is wrong unless the behavior is explicitly delegated outside Omicron.
+```
+
+## Omi-Log Candidate Parser
+
+`omilog_parse_candidate` is the V0 readable declaration scaffold.
+
+It parses:
+
+```text
+<address-candidate> <KEYWORD> <assignment>
+```
+
+and may also retain a following source block:
+
+```text
+omi-
+  (...)
+-imo
+```
+
+The parser lowers the declaration head through `omicron_parse_address_candidate`, records the uppercase keyword, records the assignment text, and marks whether a following `omi-...-imo` block contains an O-expression body.
+
+Output type:
+
+```text
+OmiLogCandidate
+```
+
+This is candidate-only state.
+
+It does not validate the declaration, accept an Omi-Ring state, write the receipt ring, route live tables, evaluate OMI-Lisp, project surfaces, perform carrier I/O, or create side effects.
+
+Implementation lock:
+
+```text
+Omi-Log declares.
+Omicron lowers.
+OMI cites.
+Tetragrammatron validates later.
+No accepted state is created in this parser.
 ```
 
 ## Boot Order
