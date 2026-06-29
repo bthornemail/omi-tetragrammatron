@@ -1,14 +1,22 @@
 # OMI Tetragrammatron
 
 A deterministic autonomous runtime built on four independent authorities
-joined by a single invariant: the **receipt**.
+joined by a single addressed witness: the **Omi-Ring**.
+
+Core vocabulary:
+
+```text
+Omi-Ring = addressed palindromic notation witness
+receipt = accepted state of that witness
+receipt ring = storage/replay surface for accepted Omi-Ring states
+```
 
 ```text
                     Metatron
              (Projection Authority)
                      ▲
                      │
-OMI ◄──────────── Receipt ────────────► IMO
+OMI ◄─────────── Omi-Ring ────────────► IMO
 (Citation)                               (Carrier)
                      │
                      ▼
@@ -46,8 +54,8 @@ Never:      Identity
 Owns DeltaC, Polybius, Diagonal Law, Rotation, Governor, 5040 ring,
 acceptance logic, three folds.
 
-Reads citations. Produces accepted receipts. Does not render, serialize,
-or parse.
+Reads citations. Produces accepted receipt states for Omi-Ring witnesses.
+Does not render, serialize, or parse.
 
 ---
 
@@ -63,8 +71,8 @@ Owns geometry (seed crystal tables, SHAPE_DB[21], vertex coordinates,
 quaternion/Hopf projection, Schläfli symbols, Betti numbers), all renderers
 (JSON frame, PPM, SVG, OBJ, glTF, Smith chart), incidence self-check.
 
-Reads accepted receipts. Produces surfaces. Does not validate, transport,
-or mutate citations.
+Reads accepted Omi-Ring state records. Produces surfaces. Does not validate,
+transport, or mutate citations.
 
 ---
 
@@ -113,20 +121,22 @@ Tetragrammatron
 Answers *What does an accepted citation become?*
 
 Tetragrammatron decides whether something is accepted. Metatron decides
-how an accepted receipt is projected into geometry, symbolics, or any
+how an accepted Omi-Ring state is projected into geometry, symbolics, or any
 other surface. Neither changes the underlying identity.
 
 ---
 
-## The Receipt
+## Omi-Ring And Receipt State
 
-The receipt is the only object every authority may share.
+The Omi-Ring is the addressed palindromic notation witness of a relation.
+The receipt is the accepted validation state of that witness.
+The receipt ring stores accepted Omi-Ring states.
 
 ```text
-Citation → Validation → Receipt → Projection → Carrier → Surface
+Omi-Ring witness → Citation → Validation → Accepted receipt state → Projection → Carrier → Surface
 ```
 
-It is simultaneously:
+An accepted Omi-Ring state may act as:
 
 - protocol witness
 - provenance record
@@ -136,21 +146,32 @@ It is simultaneously:
 - symbolic seed
 - transport payload
 
-Each authority may read the receipt. Everything else is private to its module.
+Each authority may read accepted Omi-Ring state records. Everything else is
+private to its module.
+
+Compatibility names:
+
+```text
+RingSlot.receipt, /receipt, generate_receipt, metatron_scribe_receipt,
+ReceiptLike, and Receipt* portal types are stable API names for accepted
+Omi-Ring state records.
+```
+
+These names do not make receipt the primitive protocol object.
 
 ---
 
 ## Architecture Flow
 
 ```
-User → IMO → OMI → Tetragrammatron → Receipt → Metatron → IMO → Surface
+User → IMO → OMI → Omi-Ring candidate → Tetragrammatron → accepted receipt state → Metatron → IMO → Surface
 ```
 
 1. IMO receives input (S-expression, OMI address, file, HTTP request)
 2. IMO calls OMI to parse and produce a citation
 3. OMI passes citation to Tetragrammatron for validation
-4. Tetragrammatron produces an accepted receipt
-5. Metatron reads the receipt and projects a surface
+4. Tetragrammatron accepts or rejects the Omi-Ring state
+5. Metatron reads the accepted state and projects a surface
 6. IMO carries the surface to its destination (stdout, file, HTTP response)
 
 ---
@@ -206,7 +227,8 @@ BQF(x, y) = 60x² + 16xy + 4y²
 slot5040 = fano7 × 720 + role3 × 240 + local240
 ```
 
-The receipt ring: 5040 fixed slots, 4096 bytes each, circular.
+The receipt ring stores accepted Omi-Ring states: 5040 fixed slots, 4096 bytes
+each, circular.
 
 Three folds across the ring: XOR, SUM, ROT.
 
@@ -250,11 +272,11 @@ S0-S1-S2-S3/S4/S5/S6/S7?PAYLOAD?MASK@CAR@CDR
 
 The architecture mirrors a Riemannian bundle.
 
-OMI notation is the **base space**. Each accepted receipt is a point in
-that space. Metatron attaches a **fiber** to every receipt — a Smith chart,
+OMI notation is the **base space**. Each accepted Omi-Ring state is a point in
+that space. Metatron attaches a **fiber** to every accepted state — a Smith chart,
 a Platonic solid, a Schläfli interpretation, a GPIO layout, an SVG, an
 ASCII projection. Changing the projection does not change the underlying
-receipt.
+Omi-Ring witness.
 
 The two dual pairs:
 
@@ -265,7 +287,7 @@ The two dual pairs:
 ```
 
 These are independent. Each pair preserves one invariant and passes the
-receipt unchanged across its axis.
+accepted Omi-Ring state unchanged across its axis.
 
 ---
 
@@ -275,10 +297,10 @@ The portal at `/` is a cosmological surface, not a protocol authority.
 
 ### Projection Surfaces
 
-All browser views derive from the same receipt. Each surface projects the receipt differently; none validates, accepts, or mutates canon.
+All browser views derive from accepted Omi-Ring state records. Each surface projects the accepted state differently; none validates, accepts, or mutates canon.
 
 ```text
-Receipt pair
+Accepted Omi-Ring state pair
   ↓
 cosmological sphere / orientation surface
   ↓
@@ -302,11 +324,11 @@ GnomonicSurface
   normalizes sphere points
   projects onto tangent plane
   draws straight geodesic lines in minimap SVG
-  does not validate, accept, or store state across receipts
+  does not validate, accept, or store state across accepted Omi-Ring records
 
 ReceiptSurfaceCascade
-  converts receipt to rational slope
-  computes mediant of receipt pairs
+  converts accepted Omi-Ring state to rational slope
+  computes mediant of accepted-state pairs
   witnesses determinant boundary
   orders mean pressure ladder
   resolves lane/band for Genaille and CSS
@@ -320,6 +342,7 @@ ReceiptSurfaceCascade
 Code is data.
 File is port.
 Notation is citation.
+Omi-Ring witnesses.
 Canon validates.
 Cosmology projects.
 Receipt accepts.
@@ -331,10 +354,10 @@ Receipt accepts.
 Do not let rendered cosmology write canon.
 Do not let file IO imply acceptance.
 Do not let code execution imply truth.
-Do not let notation imply receipt.
+Do not let notation imply accepted receipt state.
 All browser views are cosmology.
 All source files are ports.
 All code emitted through the page is data until validated.
 All OMI strings are notation until resolved as citations.
-Only receipt validation promotes them into canon.
+Only validation plus accepted receipt state promotes them into canon.
 ```

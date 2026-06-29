@@ -25,13 +25,13 @@ Rule 1 — Determinism
 Zero non-deterministic operations:
   no rand, time, getpid, clock, uuid, random
 
-Computation (OMI notation, CONS, CAR, CDR, XOR, rot, mask, receipt) is
-treated as faultless math.
+Computation (OMI notation, CONS, CAR, CDR, XOR, rot, mask, Omi-Ring witness,
+accepted receipt state) is treated as faultless math.
 
 Fault exists only at the physical carrier boundary:
   power loss, disk failure, cosmic ray, terminal input, signal
 
-Every step: proposal -> citation -> reduction -> receipt -> carry-forward
+Every step: proposal -> citation -> Omi-Ring witness -> validation -> accepted receipt state -> carry-forward
 
 The seed is core/omicron.bin.
 Autonomous AI = continuing growth around that seed.
@@ -372,7 +372,11 @@ const BOOT_ROM = [
 
 ---
 
-Receipt Ring
+Accepted Omi-Ring State Ring
+
+Compatibility note: `receipt`, `writeReceipt`, `ReceiptLike`, and receipt-ring
+field names are stable API terms for accepted Omi-Ring state records. They do
+not make receipt the primitive protocol object.
 
 function makeRuntime(rom) {
   return {
@@ -486,7 +490,7 @@ function autoLoop(rt) {
 Modes (core/omicron.bin)
 
   (no args)     autonomous: self-generates from ring + stdin
-  --eval <s>    evaluate S-expression, print receipt
+  --eval <s>    evaluate S-expression, print accepted receipt state
   --repl        interactive S-expression REPL
   --auto        autonomous ring mode (self-generating, verbose)
   --boot        run boot sequence (21-stage init)
@@ -494,7 +498,7 @@ Modes (core/omicron.bin)
   --cpu <addr>  execute OMI address on nibble CPU
   --geom        print geometry constants
   --seed <path> write packed boot ROM binary
-  --ring        dump persistent receipt ring
+  --ring        dump persistent accepted-state ring
   --watch       monitor ring evolution live
   --twin        display digital twin universe geometry
   --render-frame  output twin geometry as JSON frame
@@ -508,7 +512,7 @@ Render Outputs
 
 --render-frame emits JSON with:
   ring size, filled slots, XOR/SUM/ROT folds
-  per-receipt twin geometry (chart, base, fiber, fano, role,
+  per-accepted-state twin geometry (chart, base, fiber, fano, role,
     BQF, local240, slot5040, hopf, phase, cell, quat, frame)
   frame type counts (US/GS/RS/FS), Hopf flux
 
@@ -561,7 +565,7 @@ Supported primitives:
   (quote x)      -> literal
   (normalize x)  -> canonical string
   (eval x)       -> reduce
-  (receipt x)    -> OMI compilation receipt JSON
+  (receipt x)    -> OMI compilation accepted-state JSON
   (list ...)     -> list
   (reduce x)     -> reduce
 
@@ -640,8 +644,8 @@ An agent that has never seen OMI must do this:
 2. Parse each line as S0-S1-S2-S3/S4/S5/S6/S7?P?M@CAR@CDR.
 3. Use S3 as opcode.
 4. Execute only bitwise operations.
-5. Write nonzero results as receipts.
-6. Advance the 5040 ring.
+5. Write nonzero results as accepted Omi-Ring states.
+6. Advance the 5040 accepted-state ring.
 7. Never invent a higher abstraction unless this machine cannot express the relation.
 
 ---
@@ -654,8 +658,8 @@ The address is instruction.
 
 The runtime resolves addresses.
 Opcodes apply bitwise transforms.
-Transforms emit receipts.
-Receipts advance the ring.
+Transforms emit accepted Omi-Ring states.
+Accepted states advance the ring.
 
 No dependencies.
 No AST.

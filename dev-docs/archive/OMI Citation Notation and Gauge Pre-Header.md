@@ -1,5 +1,7 @@
 # OMI Citation Notation and Gauge Pre-Header
 
+> Current vocabulary note: this archive document is retained as historical source material. Active doctrine now distinguishes `Omi-Ring` from `receipt`: the Omi-Ring is the addressed palindromic notation witness, while a receipt is the accepted state of that witness. See `dev-docs/archive/Omi-Ring as Addressed Notation Witness.md` and `dev-docs/OMI_ADDRESSING.md`.
+
 ## A Palindromic Monotonic Annotation Protocol for the OMI Object Model
 
 Version: `0.1.0`  

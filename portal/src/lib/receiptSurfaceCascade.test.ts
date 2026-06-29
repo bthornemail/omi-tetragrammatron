@@ -10,7 +10,7 @@ import {
 } from './receiptSurfaceCascade'
 
 describe('receiptSurfaceCascade', () => {
-  it('converts receipts to rational positive forms', () => {
+  it('converts accepted-state records to rational positive forms', () => {
     const rational = receiptToRational({ angle: '90', centroid: { stop_metric: 5 } })
     expect(rational.a).toBeGreaterThan(0)
     expect(rational.b).toBeGreaterThan(0)

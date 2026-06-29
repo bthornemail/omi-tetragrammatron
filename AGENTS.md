@@ -13,7 +13,15 @@ not computation. It is permitted but must not affect deterministic output.
 
 ## Authorities
 
-The system has four authorities, two orthogonal axes, and one invariant.
+The system has four authorities, two orthogonal axes, and one addressed witness.
+
+Core vocabulary:
+
+```text
+Omi-Ring = addressed palindromic notation witness
+receipt = accepted state of that witness
+receipt ring = storage/replay surface for accepted Omi-Ring states
+```
 
 ```
                     Metatron
@@ -21,7 +29,7 @@ The system has four authorities, two orthogonal axes, and one invariant.
                      ▲
                      │
                      │
-OMI ◄──────────── Receipt ────────────► IMO
+OMI ◄─────────── Omi-Ring ────────────► IMO
 (Citation)                               (Carrier)
                      │
                      │
@@ -51,14 +59,17 @@ Answers: *What does an accepted citation become?*
 | Tetragrammatron | Validation | Truth | Identity |
 | Metatron | Projection | Interpretation | Truth |
 
-Tetragrammatron decides whether something is accepted. Metatron decides
-how an accepted receipt is projected. Neither changes identity.
+Tetragrammatron decides whether an Omi-Ring state is accepted. Metatron decides
+how an accepted state is projected. Neither changes identity.
 
-### The receipt — sole shared invariant
+### The Omi-Ring and accepted receipt state
 
-The receipt is the only object every authority may share. It is simultaneously
-the protocol witness, the provenance record, the replay unit, the synchronization
-unit, the geometric seed, the symbolic seed, and the transport payload.
+The Omi-Ring is the addressed palindromic notation witness of the relation.
+The receipt is the accepted validation state of that witness.
+The receipt ring stores accepted Omi-Ring states.
+
+Accepted Omi-Ring state records may serve as the provenance record, replay unit,
+synchronization unit, geometric seed, symbolic seed, and transport payload.
 
 Everything else is private to its module.
 
@@ -71,7 +82,7 @@ Four modules, single authority each, orchestrated by omicron.c:
                      Produces OMI Cells. Never validates. Never projects. Never transports.
 - core/tetragrammatron.h/.c — Validation Authority: DeltaC, Polybius, Diagonal Law, Rotation,
                      Governor, 5040 ring, acceptance, three folds, tetragrammatron_export/import
-                     (pure memory). Produces Receipts. Never renders. Never serializes. Never parses.
+                     (pure memory). Produces accepted Omi-Ring state records. Never renders. Never serializes. Never parses.
 - core/metatron.h/.c — Projection Authority: all geometry (seed crystal tables, SHAPE_DB[21],
                      vertex coordinates, resolve_vertex, cite_to_sphere, quaternion/Hopf,
                      Schläfli, Betti), 6 renderers (frame/PPM/SVG/OBJ/glTF/smith),
@@ -120,7 +131,7 @@ Proves:
 
 ## Architecture flow
 
-User → IMO → OMI → Tetragrammatron → Receipt → Metatron → IMO → Surface
+User → IMO → OMI → Omi-Ring candidate → Tetragrammatron → accepted receipt state → Metatron → IMO → Surface
 
 IMO orchestrates pipeline, calls Metatron for projection.
 Tetragrammatron provides tetragrammatron_export/import (pure memory);
@@ -159,6 +170,10 @@ Hopf: quaternion from theta/phi, thrust from quat components
 Fixed 5040 slots, 4096 bytes each, file at /tmp/omi_receipt_ring.bin
 Indexed by g_cycle % RING_SIZE
 Three folds: XOR, SUM, ROT
+
+`receipt`, `RingSlot.receipt`, `/receipt`, and `metatron_scribe_receipt` are
+stable compatibility names for accepted Omi-Ring state records. They do not make
+receipt the primitive protocol object.
 
 ## Fano routing (autonomous mode)
 

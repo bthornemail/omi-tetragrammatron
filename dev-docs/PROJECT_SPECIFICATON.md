@@ -12,12 +12,21 @@ This file is the active project specification for OMI / Tetragrammatron / Metatr
 Code is data.
 File is port.
 Notation is citation.
+Omi-Ring witnesses.
 Canon validates.
 Cosmology projects.
 Receipt accepts.
 ```
 
-No layer is authority by itself. Validation is the exclusive boundary between candidate state and accepted state. A receipt is the durable invariant shared across authorities.
+No layer is authority by itself. Validation is the exclusive boundary between candidate state and accepted state. The Omi-Ring is the addressed palindromic notation witness; a receipt is the accepted validation state of that witness.
+
+Compatibility rule:
+
+```text
+receipt = accepted validation state of an Omi-Ring
+receipt ring = storage/replay surface for accepted Omi-Ring states
+receipt-like = compatibility shape for accepted-state records
+```
 
 ## 2. Authorities
 
@@ -26,11 +35,11 @@ OMI is the Citation Authority.
 - Does not validate, project, transport, or accept.
 
 Tetragrammatron is the Validation Authority.
-- Owns deterministic validation, DeltaC/BQF/Polybius/Fano/slot5040 logic, receipt acceptance, and the 5040-slot receipt ring.
+- Owns deterministic validation, DeltaC/BQF/Polybius/Fano/slot5040 logic, receipt acceptance, and the 5040-slot accepted-state ring.
 - Does not render, parse carriers, transport, or mutate identity.
 
 Metatron is the Projection and Scribe-Transducer Authority.
-- Owns deterministic receipt-to-notation transduction, geometry, surfaces, coordinates, solids, Smith/Gnomonic/CSS-style projection meaning, and renderers.
+- Owns deterministic accepted-state-to-notation transduction, geometry, surfaces, coordinates, solids, Smith/Gnomonic/CSS-style projection meaning, and renderers.
 - Does not validate, transport, or accept.
 
 IMO is the Carrier Authority.
@@ -48,7 +57,7 @@ Omicron is the boot, context, dialect induction, and runtime application layer.
 
 ## 3. OMI-Lisp Language Model
 
-OMI-Lisp is the project language model: a deterministic notation-citation-receipt-projection protocol.
+OMI-Lisp is the project language model: a deterministic notation-citation-Omi-Ring-validation-projection protocol.
 
 The complete language specification is `dev-docs/archive/OMI-Lisp_Complete_Specification.md`.
 
@@ -56,7 +65,7 @@ Required language layers:
 - Pre-language: the 32 non-printing ASCII controls `0x00..0x1F` stage address places.
 - Separator spine: `FS/GS/RS/US` define file/group/record/unit topology.
 - Minimal notation: `omi---imo`.
-- Receipt grammar: `o---o/---/?---?@---@`.
+- Omi-Ring grammar: `o---o/---/?---?@---@`.
 - Machine frame: `o-S0-S1-S2-S3/S4/S5/S6/S7?PAYLOAD?MASK@CAR@CDR`.
 - Dot notation: visible CAR/CDR relation syntax across memory, hardware, events, intents, declarations, receipts, and lazy evaluation.
 
@@ -66,7 +75,7 @@ Required semantic rules:
 - Lazy evaluation applies down to hardware.
 - No side effects before accepted receipt.
 - Events and intents are symmetric candidate forms.
-- Receipts preserve identity across carriers and projections.
+- Accepted Omi-Ring states preserve identity across carriers and projections.
 
 ## 4. Addressing Model
 
@@ -124,8 +133,8 @@ carrier input
   -> IMO recognizes and normalizes representation
   -> OMI cites identity and constructs candidate relation
   -> Tetragrammatron validates candidate
-  -> receipt ring records accepted result
-  -> Metatron scribes/projects accepted receipt
+  -> receipt ring records accepted Omi-Ring state
+  -> Metatron scribes/projects accepted state
   -> IMO carries projected surface/output
 ```
 
@@ -164,7 +173,7 @@ Carrier behavior may deliver inputs, but deterministic output must depend only o
 
 Core runtime source files:
 - `core/omi.h` / `core/omi.c`: Citation Authority and deterministic instruction core.
-- `core/tetragrammatron.h` / `core/tetragrammatron.c`: Validation Authority and receipt ring.
+- `core/tetragrammatron.h` / `core/tetragrammatron.c`: Validation Authority and accepted-state ring.
 - `core/metatron.h` / `core/metatron.c`: Projection Authority and geometry surfaces.
 - `core/imo.h` / `core/imo.c`: Carrier Authority, parsers, files, server, and ports.
 - `core/omicron.h` / `core/omicron.c`: boot/context/dialect scaffold and orchestration application, replacing legacy `opencode.c`.
@@ -221,7 +230,7 @@ Versioning model:
 - File diffs are carriers.
 - OMI-Lisp declarations are candidates.
 - Validation determines acceptance.
-- Receipts are accepted version identity.
+- Receipts are accepted Omi-Ring version identity.
 - `.imo` files may carry normalized candidate or accepted declarations.
 
 ## 11. Required Tests
@@ -259,7 +268,7 @@ Do not:
 The project is specification-complete when:
 - OMI-Lisp notation can be parsed into deterministic candidate relations.
 - Candidates validate through Tetragrammatron.
-- Accepted receipts record identity in the ring.
-- Metatron scribing and projections derive only from accepted receipts.
+- Accepted Omi-Ring states record identity in the ring.
+- Metatron scribing and projections derive only from accepted states.
 - IMO carries input/output without owning truth.
 - The public portal can bootstrap LLM agents from `agent-docs/` without overriding root repository policy.

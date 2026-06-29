@@ -94,9 +94,9 @@ Owns:
 - Polybius layout
 - Fano routing data
 - slot5040 computation
-- 5040-slot receipt ring
+- 5040-slot accepted-state ring
 - ring folds: XOR, SUM, ROT
-- receipt export/import as pure memory
+- accepted-state export/import as pure memory
 - chiral diagonal law
 
 Does not own:
@@ -123,7 +123,7 @@ Projection / Scribe-Transducer
 
 Owns:
 
-- deterministic receipt-to-notation transduction
+- deterministic accepted-state-to-notation transduction
 - geometry constants and derived constants
 - `SHAPE_DB[21]`
 - seed solids and incidence data
@@ -160,7 +160,7 @@ Owns:
 - `.omi` ring export
 - S-expression parser/compiler/reducer
 - OMI lane collection for FS/GS/RS/US
-- receipt JSON generation
+- accepted-state JSON generation through compatibility receipt APIs
 - SHA-1 and base64 helpers
 - HTTP/SSE/WebSocket server
 - BOOT_ROM
@@ -479,11 +479,23 @@ Cosmology projects.
 Receipt accepts.
 ```
 
+Compatibility note:
+
+```text
+Omi-Ring = addressed palindromic notation witness
+receipt = accepted state of that witness
+receipt ring = storage/replay surface for accepted Omi-Ring states
+```
+
+Existing runtime names such as `RingSlot.receipt`, `/receipt`, and
+`metatron_scribe_receipt` are compatibility names for accepted-state records.
+They do not make receipt the primitive protocol object.
+
 Implementation status:
 
 - Current S-expression evaluator exists in IMO.
 - Full OMI-Lisp notation parser is pending.
-- Parser output must create candidates only, not accepted receipts.
+- Parser output must create Omi-Ring candidates only, not accepted receipt states.
 
 ## 14. Carrier Policy
 
@@ -505,7 +517,7 @@ Carrier boundary:
 
 - Carrier decode is not acceptance.
 - Projection is not acceptance.
-- Only validation plus receipt accepts.
+- Only validation plus accepted receipt state accepts.
 
 ## 15. Determinism Guardrails
 
@@ -553,6 +565,6 @@ For codebase changes:
 Known structural changes still pending:
 
 - Implement full OMI-Lisp notation parser.
-- Connect candidates to Tetragrammatron validation and receipt storage.
+- Connect Omi-Ring candidates to Tetragrammatron validation and accepted-state storage.
 - Enforce projection gates across adapters.
 - Decide whether to implement official JABCode compliance or leave it out of active carriers.

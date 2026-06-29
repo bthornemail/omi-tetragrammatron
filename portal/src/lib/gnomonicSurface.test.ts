@@ -13,7 +13,7 @@ describe('gnomonicSurface', () => {
     expect(projectPoint({ x: 1, y: 0, z: 0 }).visible).toBe(false)
   })
 
-  it('projects receipt points deterministically', () => {
+  it('projects accepted-state points deterministically', () => {
     const p = receiptToSpherePoint({ angle: '0', centroid: { stop_metric: 10 } })
     expect(p.x).toBeGreaterThan(0.99)
     const line = receiptPairToGnomonicLine(

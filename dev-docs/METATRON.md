@@ -1,12 +1,12 @@
 # METATRON
 
-Metatron is the scribe-transducer of accepted OMI receipts.
+Metatron is the scribe-transducer of accepted Omi-Ring states.
 
 It is not the validator.
 It is not only the renderer.
 It is not carrier I/O.
 
-Metatron reads Tetragrammatron-accepted receipt state and adapts the invariant `omi---imo` relation into alternate notation surfaces.
+Metatron reads Tetragrammatron-accepted receipt state of an Omi-Ring witness and adapts the invariant `omi---imo` relation into alternate notation surfaces.
 
 ## Authority Rule
 
@@ -23,7 +23,7 @@ Metatron does not accept state. It does not validate truth. It does not mutate c
 
 ## Scribe Role
 
-Scribing means deterministic receipt-to-notation transduction.
+Scribing means deterministic accepted-state-to-notation transduction.
 
 An accepted relation may be adapted into:
 
@@ -45,7 +45,7 @@ The current C core implements Metatron Scribe V0 in `core/metatron.h` and `core/
 - `MetatronSurfaceKind`
 - `MetatronScribeRecord`
 - deterministic surface name parsing
-- deterministic receipt-to-notation scribing
+- deterministic accepted-state-to-notation scribing
 - declaration-only surfaces for barcode, DOM, GPIO, symbolic, and projective targets
 - `--scribe <surface>` CLI inspection through `core/omicron.c`
 
@@ -75,12 +75,12 @@ unify `core/omicron.c` with the modular `core/metatron.h` API so the CLI does no
 
 The full Metatron runtime should:
 
-- read only accepted receipt state
+- read only accepted Omi-Ring state
 - select declared notation/surface readings
 - emit deterministic symbolic or geometric projection records
 - keep validation in Tetragrammatron
 - keep carrier I/O in IMO
-- deny side-effect projection before receipt acceptance
+- deny side-effect projection before accepted receipt state
 
 ## Lock
 
@@ -90,3 +90,7 @@ Metatron adapts the accepted relation into notation surfaces.
 Projection does not accept.
 Receipt accepts.
 ```
+
+Compatibility note: runtime names such as `metatron_scribe_receipt` and
+`MetatronScribeRecord` remain stable API names. In current doctrine, they mean
+accepted Omi-Ring state records, not primitive protocol objects.

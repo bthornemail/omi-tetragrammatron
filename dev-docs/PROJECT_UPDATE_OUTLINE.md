@@ -7,9 +7,9 @@ This file indexes the archived update documents in `dev-docs/archive/` and turns
 - C core scaffold has started in `core/`: `core/omi.h`/`core/omi.c` now expose hardened fixed-width types, arena/gauge/bridge scaffold APIs, bitboard masks, and conservative projection gates.
 - Runtime application rename is complete: `core/omicron.c`, `core/omicron.o`, and `core/omicron.bin` replaced the legacy first-version `opencode` names.
 - Omicron V0 boot/context/dialect scaffold is implemented in `core/omicron.h` and `core/omicron.c`: config initialization, CLI mode selection, gauge pre-header staging, OMI-Lisp induction guard, system object binding checks, and focused C tests. `core/omicron.c` is still monolithic; `main()` has not yet been reduced to the new scaffold.
-- Metatron Scribe V0 is implemented as deterministic receipt-to-notation scribing with `--scribe <surface>`, declaration-only surfaces, and focused C tests.
+- Metatron Scribe V0 is implemented as deterministic accepted-state-to-notation scribing with `--scribe <surface>`, declaration-only surfaces, and focused C tests.
 - Barcode carrier scaffold exists in `portal/src/lib/jabcodeCarrier.ts`, ported from `dev-docs/archive/viewer/public/jabcode-carrier.js`. The canonical carrier family is `omi-barcode`; the custom current form is `omi-jabcode`. The current output is debug-only and must not be treated as an active standards JABCode carrier unless it is replaced with an implementation that follows `archive/JabCode.BSI-TR-03137.pdf`.
-- The archive contains broader design targets that are not yet fully implemented: full arena runtime, tokenizer/parser declarations, receipt-gated projection, adapter policy, repository role policy, P2P sync, hardware targets, and doctrine/docs consolidation.
+- The archive contains broader design targets that are not yet fully implemented: full arena runtime, tokenizer/parser declarations, accepted-state-gated projection, adapter policy, repository role policy, P2P sync, hardware targets, and doctrine/docs consolidation.
 
 ## 1. Canon And Authority Model
 
@@ -24,9 +24,9 @@ Primary archive sources:
 
 Core decisions to carry forward:
 - Keep the four authorities separate: OMI citation, Tetragrammatron validation, Metatron projection, IMO carrier.
-- Preserve the receipt as the only shared invariant.
+- Preserve the Omi-Ring as the addressed palindromic notation witness and the receipt as the accepted state of that witness.
 - Encode determinism only; adapter and I/O behavior may carry nondeterministic world events but must not become deterministic computation.
-- Treat recognition, citation, closure, projection, bridge staging, and scan/render as non-acceptance. Validation plus receipt is the acceptance boundary.
+- Treat recognition, citation, Omi-Ring formation, closure, projection, bridge staging, and scan/render as non-acceptance. Validation plus accepted receipt state is the acceptance boundary.
 
 Deliverables:
 - Main `README.md` canon section.
@@ -72,15 +72,15 @@ Implementation phases:
 - Phase 2.6: reduce `core/omicron.c` in place so `main()` uses `OmicronConfig` and dispatches authority modules without changing CLI behavior.
 - Phase 2.7: add tokenizer state that reads explicit input buffers and witnesses bytes without treating bytes as acceptance.
 - Phase 2.8: add parser form handling for declarations, dot relations, quote forms, and candidate construction.
-- Phase 2.9: connect validation candidates to Tetragrammatron-owned receipt storage without moving carrier I/O into OMI.
-- Phase 2.10: add projection gates for accepted receipt, declared effect, role/scope permission, and bridge authorization.
+- Phase 2.9: connect Omi-Ring validation candidates to Tetragrammatron-owned accepted-state storage without moving carrier I/O into OMI.
+- Phase 2.10: add projection gates for accepted state, declared effect, role/scope permission, and bridge authorization.
 
 Acceptance tests:
 - Struct sizes and endian helpers.
 - Gauge table active entries and 0x1E/0x78/0x7F behavior.
 - Bridge staging for 0x001E, 0x0078, 0x7C00, 0x007F, 0xAA55.
 - Tokenizer/parser fixture tests.
-- Projection denial before receipt acceptance.
+- Projection denial before accepted receipt state.
 - Existing `make smoke` must keep passing before and after the `omicron` rename.
 
 ## 3. Pre-Language, Notation, And OMI-Lisp
@@ -101,7 +101,7 @@ Implementation targets:
 - Fast-fail parser helpers for raw OMI gauge carriers.
 - Round-trip display form for OMI-IMO frames.
 - Dot relation parser that maps to CAR/CDR closure.
-- Clear separation between byte witness, declaration candidate, validation, receipt, and projection.
+- Clear separation between byte witness, Omi-Ring candidate, validation, accepted receipt state, and projection.
 
 Non-goals for first pass:
 - No accepting declarations directly from notation.
@@ -110,7 +110,7 @@ Non-goals for first pass:
 
 ## 4. Receipts, Versioning, And Repository Policy
 
-Purpose: define how updates, skills, agents, and collaboration requests become scoped candidates and accepted receipts.
+Purpose: define how updates, skills, agents, and collaboration requests become scoped Omi-Ring candidates and accepted receipt states.
 
 Primary archive sources:
 - `archive/REPO.md - First Draft.md`
@@ -131,7 +131,7 @@ Implementation targets:
 
 Acceptance criteria:
 - Pure/read-only/repo-write/network/hardware/security-sensitive effects are explicit.
-- Side effects require accepted receipt and policy allowance.
+- Side effects require accepted receipt state and policy allowance.
 - LLM/agent behavior remains advisory unless validated and recorded.
 
 ## 5. Carriers, Adapters, And Browser Surfaces
@@ -164,7 +164,7 @@ Future optional work:
 
 ## 6. Metatron Scribe, Geometry, And Surface Model
 
-Purpose: align geometry surfaces with receipt projection while preserving Metatron as the scribe-transducer of accepted receipts. Rendering is one output of scribing, not the whole role.
+Purpose: align geometry surfaces with accepted-state projection while preserving Metatron as the scribe-transducer of accepted Omi-Ring states. Rendering is one output of scribing, not the whole role.
 
 Primary archive sources:
 - `archive/Reasoning Behind the OMI Protocol.md`
@@ -179,9 +179,9 @@ Active canon:
 
 Implementation targets:
 - Keep existing geometry renderers and incidence checks stable.
-- Promote Metatron as receipt-to-notation transducer without making it validation authority.
-- Clarify Omi-surfaces as projection fibers over accepted receipts.
-- Expand surface vocabulary only after receipt/projection gates are in place.
+- Promote Metatron as accepted-state-to-notation transducer without making it validation authority.
+- Clarify Omi-surfaces as projection fibers over accepted Omi-Ring states.
+- Expand surface vocabulary only after accepted-state/projection gates are in place.
 - Avoid turning visual surfaces into validation or acceptance authorities.
 
 Potential tests:
@@ -203,7 +203,7 @@ Implementation targets:
 - Hardware root bootstrap modes: local genesis, known seed receipt, signed envelope, hardware root, trusted peer.
 - eMMC 512-bit boot envelope as carrier, not authority.
 - ESP32 adapter declarations and receipt-gated hardware projection.
-- P2P receipt exchange that imports candidates, validates locally, and records local receipts.
+- P2P receipt exchange that imports Omi-Ring candidates, validates locally, and records local accepted states.
 
 Non-goals until policy gates exist:
 - No direct hardware actuation from parsed declarations.
@@ -238,7 +238,7 @@ Archive handling:
 3. Merge REPO addenda and role-repo policy drafts into `agent-docs/REPO.md`, keeping portal policy separate from root policy. Completed.
 4. Add pre-header and frame parser helpers with pure round-trip tests.
 5. Add tokenizer/parser candidate construction for declarations.
-6. Connect candidate validation to Tetragrammatron-owned receipt storage.
+6. Connect Omi-Ring candidate validation to Tetragrammatron-owned accepted-state storage.
 7. Implement projection gate enforcement for adapters.
 8. Consolidate root README/AGENTS/SKILLS active docs separately from portal/agent docs.
 9. Decide whether to implement official JABCode compliance or leave JABCode out of active carriers.

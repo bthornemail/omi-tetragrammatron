@@ -86,7 +86,7 @@ function App() {
       <header className="topbar">
         <div>
           <p className="eyebrow">OMI portal</p>
-          <h1>Receipt-Gated Runtime Surface</h1>
+          <h1>Omi-Ring Accepted-State Surface</h1>
         </div>
         <span className={status === 'runtime connected' ? 'status live' : 'status'}>{status}</span>
       </header>
@@ -144,7 +144,7 @@ function App() {
 
         <article className="panel">
           <div className="panel-head">
-            <h2>Receipt Surface</h2>
+            <h2>Accepted-State Surface</h2>
             <code>{surface.detClass}</code>
           </div>
           <div className="surface-vars">

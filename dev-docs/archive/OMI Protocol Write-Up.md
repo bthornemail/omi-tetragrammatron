@@ -1,5 +1,7 @@
 # OMI Protocol Write-Up
 
+> Current vocabulary note: this archive document is retained as historical source material. Active doctrine now distinguishes `Omi-Ring` from `receipt`: the Omi-Ring is the addressed palindromic notation witness, while a receipt is the accepted state of that witness. See `dev-docs/archive/Omi-Ring as Addressed Notation Witness.md` and `dev-docs/OMI_ADDRESSING.md`.
+
 ## Omicron Object Model / Tetragrammatron Receipt Protocol
 
 ### 0. Protocol Sentence

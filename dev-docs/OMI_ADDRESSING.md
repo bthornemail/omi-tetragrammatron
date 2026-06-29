@@ -169,7 +169,7 @@ Short lock:
 ```text
 Frame is memory.
 Path is derivation.
-Receipt is accepted traversal.
+Receipt is accepted traversal state.
 ```
 
 ## Prefix Resolution
@@ -482,7 +482,7 @@ selector(Frame, 0x28).
 overlay(Frame, euler).
 ```
 
-The path describes how data becomes eligible for receipt. It does not accept the relation.
+The path describes how data becomes eligible for accepted receipt state. It does not accept the relation.
 
 ## V0 Implementation Target
 
@@ -506,7 +506,7 @@ lowered hexadecimal candidate frame
 It should not:
 
 - validate
-- store receipts
+- store accepted receipt states
 - perform longest-prefix routing over live tables
 - execute Horn clauses
 - project surfaces
@@ -535,7 +535,7 @@ Suggested C ownership:
 OMI owns canonical address parsing and normalization.
 Omicron owns dialect induction and readable address lowering.
 Tetragrammatron owns validation and acceptance.
-Metatron owns accepted receipt scribing and projection.
+Metatron owns accepted-state scribing and projection.
 IMO owns carrier parsing, files, server, and output.
 ```
 
