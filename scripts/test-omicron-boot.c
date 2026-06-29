@@ -173,6 +173,15 @@ int main(void) {
     if (strcmp(normalized, "omi-0000-0000-0000-0000-0000-0000-0036-0072/128 MUST project-base36-orbital-symbols") != 0) return fail("omilog normalized value");
     if (!omilog_parse_candidate(normalized, &lc2)) return fail("omilog roundtrip parse");
     if (strcmp(lc2.address.source, lc.address.source) != 0 || strcmp(lc2.keyword, lc.keyword) != 0 || strcmp(lc2.assignment, lc.assignment) != 0) return fail("omilog roundtrip fields");
+
+    /*
+     * Tetragrammatron validation guardrail:
+     *
+     * OmiCitationCandidate is still candidate state.
+     * Citation text and citation hash are not acceptance.
+     * Future validation may produce accepted-state objects.
+     * Ring storage must remain a separate explicit step.
+     */
     if (!omi_construct_citation_candidate(&lc, &cc)) return fail("omi citation candidate");
     if (!cc.candidate_only) return fail("omi citation candidate only");
     if (strcmp(cc.citation_text, normalized) != 0) return fail("omi citation text");

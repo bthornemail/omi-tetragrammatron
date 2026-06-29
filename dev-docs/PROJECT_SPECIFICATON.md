@@ -37,6 +37,7 @@ OMI is the Citation Authority.
 
 Tetragrammatron is the Validation Authority.
 - Owns deterministic validation, DeltaC/BQF/Polybius/Fano/slot5040 logic, receipt acceptance, and the 5040-slot accepted-state ring.
+- Active guardrail: `dev-docs/TETRAGRAMMATRON.md`.
 - Does not render, parse carriers, transport, or mutate identity.
 
 Metatron is the Projection and Scribe-Transducer Authority.
@@ -271,7 +272,7 @@ The project is specification-complete when:
 - OMI-Lisp notation can be parsed into deterministic candidate relations.
 - Omi-Log declarations lower into Omi-Ring candidates without creating accepted state.
 - OMI constructs citation candidates from lowered declaration candidates without validating or accepting them.
-- Candidates validate through Tetragrammatron.
+- Candidates validate through Tetragrammatron with validation and ring storage kept as separate steps.
 - Accepted Omi-Ring states record identity in the ring.
 - Metatron scribing and projections derive only from accepted states.
 - IMO carries input/output without owning truth.
