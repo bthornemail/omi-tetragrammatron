@@ -1,7 +1,42 @@
 
-:::writing{variant="document" id="54839"}
 # OMI Glossary
+
 ## Omicron Object Model, Omi-Gauge, Omi-Lisp, Omi-CONS, and Projection Surfaces
+
+Status: calibrated for current OMI doctrine
+
+Source: previous OMI glossary, retained as historical vocabulary
+
+Current calibration rule:
+
+```text
+Omi-* name = development word
+Omi relation = protocol form
+Receipt = accepted state
+```
+
+All entries should be read through:
+
+```text
+(name . face)
+(face . role)
+(role . edge)
+(edge . receipt-path)
+```
+
+Names do not create modules.
+
+Markers do not create authority.
+
+Projections do not accept state.
+
+Rendering does not accept state.
+
+Bridges do not accept state.
+
+Validation judges.
+
+Receipt accepts.
 
 ## A
 
@@ -22,9 +57,11 @@ Aegean pointers do not need variable names. Their codepoints carry their values,
 
 ### Agreement
 
-The OMI principle that a relation becomes valid only after it is accepted by receipt.
+The OMI principle that a relation becomes accepted only after validation and receipt.
 
-Agreement does not erase difference. It binds orientation without collapse.
+Agreement does not erase difference.
+
+It binds orientation without collapse.
 
 ### Agreement Without Collapse
 
@@ -57,12 +94,12 @@ Its dual coordination shell is Catalan.
 
 ### Authority
 
-The accepted OMI address and receipt-bound relation.
+A receipt-bound accepted relation.
 
 Authority is not the rendered character, glyph, SVG, DOM element, barcode, matrix, or floating-point measurement.
 
 ```text
-authority = accepted o---o center
+authority = accepted o---o relation
 projection = visible/rendered face
 ```
 
@@ -70,13 +107,23 @@ projection = visible/rendered face
 
 ## B
 
-### Base64 Pure Function Surface
+### Base64
 
-A transport-facing carrier surface for compact function or payload representation.
+A transport encoding for payload bytes.
 
-It does not define identity. It carries bytes or function selectors after an OMI address has already been formed.
+It may carry CAR/CDR payloads, worker scripts, matrices, or other external data after an OMI relation has already been scoped.
 
-Canonical placement:
+Base64 does not define OMI identity.
+
+Base64 does not accept state.
+
+Encoding is adapter metadata.
+
+Topology is protocol metadata.
+
+Receipt is acceptance metadata.
+
+Canonical payload placement:
 
 ```text
 omi-<frame>/<control>/<scale>/<relation>/<unit>-imo?<payload>
@@ -96,7 +143,11 @@ It comes from:
 1 / 73 = 0.01369863...
 ```
 
-The law has period 8. The smallest prime with decimal period 8 is 73. Therefore Block B is not chosen; it is recovered.
+The law has period 8. The smallest prime with decimal period 8 is 73. Therefore Block B may be read as a recovered witness pattern.
+
+In OMI, Block B is witness bookkeeping, not authority.
+
+It does not accept state.
 
 ### BOM / Bridge Order Marker
 
@@ -305,6 +356,20 @@ masking bounds the state
 
 The Delta law is the transformer. It does not know geometry. It only moves state.
 
+Width is part of the law.
+
+Masking is part of the law.
+
+Unbounded integers are not the OMI Delta law.
+
+A valid Delta law declaration must specify width, mask, rotation rule, constant `C`, overflow behavior, and test vectors.
+
+The Delta law transforms state.
+
+It does not accept state.
+
+Receipt accepts validated results.
+
 ### Derived Character
 
 A character produced from an earned row value through an active LUT.
@@ -469,7 +534,7 @@ Floating point may render, accelerate, or approximate, but it does not define id
 
 ```text
 floating point = projection
-receipt = authority
+receipt = accepted relation witness
 ```
 
 ### Fold
@@ -599,7 +664,13 @@ A runtime nearest-neighbor or distance measurement projection.
 
 HNSW navigates a relation after Omi-Nomogram and Omi-Gauge have selected and resolved the relation.
 
-It is not authority.
+HNSW result is not acceptance.
+
+Nearest-neighbor search is not acceptance.
+
+It is a measurement/projection surface, not authority.
+
+Validation and receipt accept.
 
 ### Hopf Terms
 
@@ -703,7 +774,7 @@ The epistemic state:
 11
 ```
 
-In high-order Omi-CONS256, the Omicron closure marker may act as a known-known acceptance bit.
+In high-order Omi-CONS256, the Omicron closure marker may act as a known-known witness bit.
 
 ---
 
@@ -783,11 +854,18 @@ This is a conceptual rupture, not an ordinary numeric literal.
 
 ### Native OMI Gauge
 
-The core bounded OMI gauge.
+The local OMI gauge region used for pre-language control, local declaration, and deterministic interpretation.
 
 ```text
-0x00–0x7F
+0x00..0x20 = pre-language control envelope
+0x00..0x3F = Tetragrammatron governor region
+0x00..0x7F = local declaration region
+0xF*       = external gauge pre-header family
 ```
+
+Gauge values recognize, stage, or orient.
+
+They do not accept state.
 
 ### Native OMI Frame
 
@@ -874,7 +952,7 @@ Agreement/witness view in Omi-CONS.
 
 ### Omi-CONS
 
-The post-address data-formatting frame of allowed epistemology.
+The post-address payload binding frame of allowed epistemology.
 
 Canonical compact form:
 
@@ -882,19 +960,37 @@ Canonical compact form:
 ?car:<OR>;cdr:<XOR>;cid:<XNOR>
 ```
 
+CAR carries the source/head payload.
+
+CDR carries the continuation/tail payload.
+
+CID witnesses lawful agreement between CAR and CDR.
+
+Omi-CONS attaches payload after the OMI address has been scoped.
+
+It does not replace FS/GS/RS/US identity.
+
+Receipt accepts the lawful attachment.
+
 ### Omi-CONS256
 
-A 256-bit symbolic meta-object envelope.
+A candidate post-address symbolic meta-object envelope.
 
-Canonical bands:
+It is distinct from the canonical 256-bit OMI---IMO frame.
+
+Canonical OMI---IMO frame:
 
 ```text
-bits 0–19 = ENCODE()
-bits 20–31 = DECODE()
-bits 32–63 = JOIN()
-bits 64–127 = COMPOSE()
-bits 128–255 = META-OBJECT()
+8 × 16-bit scope fields
++
+4 × 32-bit relation fields
+=
+256 bits
 ```
+
+Omi-CONS256 may describe a payload organization above or beside that frame.
+
+It must not redefine the canonical OMI---IMO frame.
 
 ### Omi-Compass
 
@@ -924,13 +1020,21 @@ Orientation, shadow, pointer, and right-angle synchronization surface.
 
 ### Omi-Gauge
 
-The 64-lane spatial resolver.
+A spatial resolver face.
 
 ```text
 64 × 64 × 16 = 65,536
 ```
 
-It resolves `16xy` before `60x²` is measured.
+It may map row, x, y, and local cell positions into a 2^16 gauge surface.
+
+It computes or resolves candidate positions.
+
+It does not accept them.
+
+Validation judges.
+
+Receipt accepts.
 
 ### Omi-Hash
 
@@ -942,9 +1046,17 @@ A hash says bytes match.
 
 Package/carrier projection for universal edges.
 
-### Omi-Jab
+### Omi-Barcode
 
-Polychromatic/contextual carrier surface.
+Canonical barcode carrier face.
+
+A barcode surface carries or recovers representation.
+
+It does not validate, accept, or create authority.
+
+Barcode differences are resolved through OMI/IMO addressing, receipt context, payload relation, file relation, code relation, data relation, and port relation.
+
+Omi-JabCode is a polychromatic matrix barcode face under Omi-Barcode.
 
 ### Omi-Lisp
 
@@ -972,6 +1084,12 @@ Canonical row:
 0x30–0x3F
 ```
 
+The nomogram selects the scale.
+
+It does not accept state.
+
+Receipt accepts.
+
 ### Omi-Notation
 
 The streamable, loggable a-list of pointer/reference tuples.
@@ -986,12 +1104,16 @@ The Unicode external ceiling sentinel:
 
 ### Omi-Point
 
-The smallest accepted relation between encoded states.
+The minimal OMI relation.
 
 ```text
 omi---imo
 o---o
 ```
+
+As notation, it is a candidate relation.
+
+After validation and receipt, it becomes the smallest accepted relation.
 
 ### Omi-Receipt
 
@@ -1014,6 +1136,10 @@ Secondary projection tied back to a source rule.
 Operational behavior of Omi-Nomogram.
 
 It describes how the selected scales align, fold, invert, and compute.
+
+It does not accept state.
+
+Receipt accepts.
 
 ### Omi-Tape
 
@@ -1119,11 +1245,21 @@ A safe Unicode private-use rendering of the OMI gauge.
 
 ### Projection
 
-A rendered face of authority.
+A rendered face of an OMI relation.
 
 Projection may be visual, symbolic, geometric, audio, DOM, barcode, matrix, or payload.
 
 Projection is not authority.
+
+Projection exposes a face.
+
+Receipt accepts the relation.
+
+This surface may render, carry, expose, or orient an OMI relation.
+
+It does not accept state.
+
+Validation and receipt accept.
 
 ---
 
@@ -1173,7 +1309,9 @@ Meaning:
 
 A lawful witness of accepted relation.
 
-Receipt is the final authority.
+Receipt records acceptance after validation.
+
+Receipt is the durable witness, provenance record, replay unit, synchronization unit, geometric seed, symbolic seed, and transport payload.
 
 ### Reference
 
@@ -1270,6 +1408,30 @@ Not approximate coordinate.
 ---
 
 ## T
+
+### Tetragrammatron
+
+The four-scope naming body plus validation anchor.
+
+```text
+FS = file scope
+GS = group scope
+RS = record scope
+US = unit scope
+V  = validation / resolution anchor
+```
+
+The four scopes form the tetrahedral scope body.
+
+The validation anchor lifts the scope body into the 5-cell local resolution body.
+
+The Tetragrammatron names scope.
+
+The 5-cell resolves local incidence.
+
+The 11-cell orients signed relation flow.
+
+Validation and receipt accept.
 
 ### Transformer
 
@@ -1409,7 +1571,7 @@ Surrogate bridge:
 
 ### Witness
 
-A proof or receipt surface showing lawful attachment or relation.
+A witness or receipt surface showing lawful attachment or relation.
 
 Example:
 
@@ -1459,6 +1621,20 @@ OMI does not begin from ordinary numeric zero.
 
 It begins from NULL as axis and uses receipt-bound symbolic position.
 
+### 5040 Ring
+
+A receipt coordination ring.
+
+It may support slot lookup, comparison, conflict inspection, lineage replay, and peer synchronization.
+
+It does not globally decide truth.
+
+It does not accept state.
+
+Local validation decides.
+
+Receipt accepts.
+
 ### 0x3C
 
 Sexagesimal gate.
@@ -1489,13 +1665,26 @@ Handoff / pipe / runtime transition sentinel.
 
 ### 0xAA55
 
-Acceptance seal.
+External boot bridge witness.
 
 ```text
-before 0xAA55 = symbolic derivation
-at 0xAA55 = executable acceptance
-after 0xAA55 = operational runtime
+before 0xAA55 = symbolic derivation may be staged
+at 0xAA55 = external boot bridge may be recognized
+after 0xAA55 = runtime projection may be requested
+receipt = accepted boot state
 ```
+
+In synthetic boot, OMI may stage this bridge word.
+
+In external boot, OMI must observe this bridge word if the carrier requires it.
+
+0xAA55 is not acceptance.
+
+It is not authority.
+
+It is a bridge marker between OMI boot framing and external boot conventions.
+
+Validation and receipt accept boot state.
 
 ### 0xFFFFFF
 
@@ -1511,13 +1700,12 @@ Dot is the one relation.
 Delta is the transformer.
 Rows earn abstract values.
 LUTs render values into characters or geometry.
-Omi-Gauge resolves the 64-lane spatial field.
+Omi-Gauge resolves candidate positions in the 64-lane spatial field.
 Omi-Nomogram selects the function scale.
 Omi-Matrix instantiates relation fields.
 Omi-Gnomon orients the result.
 Surrogate RPC bridges world-length payloads.
 Omi-CONS carries allowed epistemology through CAR, CDR, and CID.
+Validation judges.
 Receipt accepts.
 ```
-:::
-
