@@ -102,6 +102,33 @@ V0 induction requires:
 
 OMI-Lisp induction does not parse or evaluate user declarations. It does not validate relations, accept receipts, project surfaces, load files, or perform side effects.
 
+## CIDR Address Dialect
+
+The active addressing scaffold is `dev-docs/OMI_ADDRESSING.md`.
+
+Omicron owns induction and lowering for the non-authoritative CIDR address dialect:
+
+```text
+CIDR notation
+ip4-notation
+ip6-notation
+Base36 CAR labels
+Base64url CDR carriers
+@CAR36@CDR64 closure
+```
+
+Canonical rule:
+
+```text
+Hex validates.
+CIDR resolves.
+Omicron induces the dialect.
+```
+
+Omicron may parse readable dialect forms and lower them into canonical hexadecimal OMI candidate frames.
+
+Omicron does not validate, accept, store receipts, project effects, or treat IP/Base36/Base64 syntax as authority.
+
 ## Boot Order
 
 V0 records the intended construction method:

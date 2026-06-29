@@ -42,6 +42,12 @@ core/omi.h
 core/omi.c
 ```
 
+Active addressing spec:
+
+```text
+dev-docs/OMI_ADDRESSING.md
+```
+
 Authority:
 
 ```text
@@ -58,6 +64,8 @@ Owns:
 - nibble CPU
 - current arena/gauge/bridge scaffold APIs
 - bitboard masks and bridge constants
+- Omi-Ring addressed notation witness scaffold
+- CIDR-style slash derivation as CONS/CAR/CDR address surface
 
 Does not own:
 

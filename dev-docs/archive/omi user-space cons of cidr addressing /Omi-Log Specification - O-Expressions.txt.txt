@@ -1,0 +1,1041 @@
+# Omi-Log: O-Expressions for the Omicron Object Model
+
+## A Specification for Addressed Cons Expressions, Source Blocks, WLOG-Safe Rewrite Logic, and `.omi → .imo` Compilation
+
+**Status:** Canonical Draft / v1.0.0-RC1 Alignment
+**Project:** Omi Object Model / Universal Life Protocol
+**Scope:** Omi-Log source syntax, O-expressions, addressed declarations, `.omi` source files, `.imo` compiled object files, cons dot notation, source blocks, closures, combinators, emoji carriers, WLOG-safe rewrites, OMIOM cascade resolution, and the validation/projection boundary.
+
+---
+
+## Abstract
+
+Omi-Log is the addressed O-expression language of the Omicron Object Model.
+
+It is not Prolog.
+It is not Datalog.
+It is not plain Lisp.
+
+Omi-Log is a source language for `.omi` files. It gives OMI a way to express addressed declarations, lookup functions, source blocks, cons structures, association lists, emoji rewrite pairs, closure bodies, and combinator bodies.
+
+The canonical Omi-Log record has an addressed head and an optional source body:
+
+```text
+omi-address/prefix KEYWORD assignment
+
+omi-
+  O-expression body
+-imo
+```
+
+The address line acts like a selector.
+
+The `omi- / -imo` region acts like a declaration body.
+
+This mirrors CSS:
+
+```text
+CSS selector        → OMI address line
+CSS declaration     → omi- / -imo source block
+CSS property/value  → O-expression pair
+CSSOM              → OMIOM
+```
+
+The readable source form is `.omi`.
+
+The compiled native object form is `.imo`.
+
+```text
+.omi = readable Omi-Log source
+.imo = compiled mirrored OMI object
+```
+
+The compiled `.imo` form is restricted to the native OMI character plane: ASCII `0x00..0x3F` plus Unicode symbolic carriers such as emoji. Human-readable Latin identifiers belong in `.omi` source and must compile into low-ASCII operators, positional references, addressed atoms, or Unicode carrier symbols before entering the pre-runtime kernel.
+
+The central safety law is:
+
+```text
+Q_frame(S) validates.
+Omi-Log expresses.
+Q_xy(x,y) projects.
+```
+
+No O-expression, emoji, source block, hyphen count, or palindromic token may validate an invalid frame.
+
+---
+
+# 1. Purpose
+
+Omi-Log exists because OMI needs a declaration language that can express five different kinds of canon without logical bleeding:
+
+```text
+RULES.omi        → declares normative obligations
+FACTS.omi        → grounds implemented/tested facts
+CLOSURES.omi     → seals bounded completion
+COMBINATORS.omi  → composes lawful operations
+CONS.omi         → reduces cons cells, dot notation, and mnemonic forms
+```
+
+The governing doctrine is:
+
+```text
+RULES declare.
+FACTS ground.
+CLOSURES seal.
+COMBINATORS compose.
+CONS reduce.
+```
+
+Omi-Log gives each file a shared expression syntax while preserving separate responsibilities.
+
+---
+
+# 2. Source and Object Split
+
+Omi-Log separates readable source from native object form.
+
+## 2.1 `.omi` Source
+
+`.omi` files are readable source files.
+
+They may contain:
+
+```text
+OMI addresses
+keywords
+readable aliases
+comments
+source blocks
+dot notation
+association lists
+Unicode symbols
+emoji carrier tokens
+human-readable names
+```
+
+Example:
+
+```text
+omi-0000-0000-0000-0000-0000-0000-0c05-0002/128 CONS omi-palindromic-mnemonic-token
+
+omi-
+  (
+    (token . omi---imo)
+    (dot . (omi . (--- . imo)))
+    (expanded . (Omicron . (Tetragrammaton . Metatron)))
+    (authority . projection-only)
+    (forbids . token-authorizes-invalid-frame)
+  )
+-imo
+```
+
+## 2.2 `.imo` Object
+
+`.imo` files are compiled mirrored OMI object files.
+
+They are not intended to be hand-authored at first.
+
+They use the native OMI character plane:
+
+```text
+allowed:
+  ASCII 0x00..0x3F
+  Unicode symbolic carrier code points, including emoji
+
+forbidden in native syntax:
+  A-Z
+  a-z
+  @
+  [
+  ]
+  _
+  {
+  }
+  ~
+  arbitrary readable identifiers
+```
+
+Readable `.omi` source compiles into `.imo` native object form.
+
+```text
+.omi → .imo
+source → object
+readable → native
+omi → imo
+```
+
+---
+
+# 3. Native Character Plane
+
+Native `.imo` syntax uses only the first 64 ASCII code positions and Unicode carrier symbols.
+
+The allowed ASCII plane is:
+
+```text
+0x00..0x1F  control annotations
+0x20..0x2F  punctuation and cons/delimiter grammar
+0x30..0x39  positional digit references
+0x3A..0x3F  scope, relation, comparison, and query markers
+```
+
+The most important control characters are:
+
+```text
+FS 0x1C  file / frame / storage boundary
+GS 0x1D  group / graph / global boundary
+RS 0x1E  record / relation / routing boundary
+US 0x1F  unit / symbol / terminal boundary
+```
+
+These allow `.imo` to carry invisible structural dimensions in a 2D document.
+
+Visible `.omi` source blocks:
+
+```text
+omi-
+  ...
+-imo
+```
+
+may compile into native traversal markers such as:
+
+```text
+RS ... US
+```
+
+or equivalent low-ASCII structural boundaries.
+
+---
+
+# 4. Native Operator Mapping
+
+Readable Omi-Log keywords lower into low-ASCII native operators.
+
+```text
+MUST     → !
+FACT     → =
+CLOSE    → )
+COMBINE  → +
+CONS     → .
+EQUALS   → =
+QUERY    → ?
+SCOPE    → :
+SEPARATOR→ ;
+PREFIX   → /
+QUOTE    → '
+FOLD     → -
+```
+
+The five declarative files therefore have native operator identities:
+
+```text
+RULES.omi        → !
+FACTS.omi        → =
+CLOSURES.omi     → )
+COMBINATORS.omi  → +
+CONS.omi         → .
+```
+
+The readable `.omi` layer may use names.
+
+The compiled `.imo` layer uses structural operators.
+
+---
+
+# 5. OMI Source Blocks
+
+The source block is the body of an addressed declaration:
+
+```text
+omi-
+  body
+-imo
+```
+
+It is not the same as the token `omi---imo`.
+
+Definitions:
+
+```text
+omi- source block opener
+-imo source block closer
+omi---imo palindromic mnemonic token
+```
+
+A record with a source block has this shape:
+
+```text
+HEAD
+
+omi-
+  BODY
+-imo
+```
+
+Where:
+
+```text
+HEAD = omi-address/prefix KEYWORD assignment
+BODY = O-expression body
+```
+
+Together:
+
+```text
+(address . (keyword . body))
+```
+
+The source block is not runtime authority. It is a declaration body.
+
+---
+
+# 6. O-Expressions
+
+An O-expression is an addressed OMI expression inside an Omi-Log source block.
+
+The basic O-expression is a cons pair:
+
+```text
+(key . value)
+```
+
+An association list is a list of pairs:
+
+```text
+((key . value)
+ (key2 . value2)
+ (key3 . value3))
+```
+
+An emoji rewrite pair is a symbolic carrier pair:
+
+```text
+(omi-🛹 . omi-🏷️)
+```
+
+An addressed O-expression may include OMI pointers:
+
+```text
+(selector . omi-ca55-0000-0000-0000-0000-0000-0004-0003/128)
+```
+
+O-expressions borrow Lisp notation but do not inherit Lisp evaluation by default.
+
+```text
+Lisp expressions compute.
+O-expressions declare addressed structure.
+```
+
+---
+
+# 7. Evaluation Discipline
+
+O-expressions are unevaluated by default.
+
+This is similar in spirit to Lisp F-expressions, which receive unevaluated arguments, but Omi-Log is not simply Lisp.
+
+```text
+F-expression = unevaluated function expression
+O-expression = unevaluated addressed OMI expression
+```
+
+Example:
+
+```text
+(rewrite .
+  '((omi-🛹 . omi-🏷️)
+    (omi-🦺 . omi-🚐)
+    (omi-⏰ . omi-🤴🏿)))
+```
+
+The quote indicates the rewrite table is carried as data.
+
+Parsing preserves the form.
+
+A later compiler phase may lower it into a lookup table, trie, CSSOM-like declaration map, Datalog facts, JavaScript `Map`, WASM table, or eBPF map.
+
+---
+
+# 8. The Five Omi-Log Files
+
+## 8.1 `RULES.omi`
+
+Declares normative obligations.
+
+Form:
+
+```text
+omi-address/prefix MUST invariant-name
+```
+
+Role:
+
+```text
+RULES declare.
+```
+
+A rule may have an Omi-Log source block explaining the obligation.
+
+It does not claim implementation.
+
+## 8.2 `FACTS.omi`
+
+Grounds implementation.
+
+Form:
+
+```text
+omi-address/prefix FACT fact-name
+```
+
+Role:
+
+```text
+FACTS ground.
+```
+
+A fact may point to source files, tests, docs, or projections.
+
+A fact does not create new obligations.
+
+## 8.3 `CLOSURES.omi`
+
+Seals bounded completion.
+
+Form:
+
+```text
+omi-address/prefix CLOSE closure-name
+```
+
+Role:
+
+```text
+CLOSURES seal.
+```
+
+A closure says when a structure is complete, bounded, or forbidden from escaping its scope.
+
+## 8.4 `COMBINATORS.omi`
+
+Declares lawful composition.
+
+Form:
+
+```text
+omi-address/prefix COMBINE combinator-name
+```
+
+Role:
+
+```text
+COMBINATORS compose.
+```
+
+A combinator body declares input, form, output, and properties.
+
+It does not validate frames by itself.
+
+## 8.5 `CONS.omi`
+
+Declares pair reduction, dot notation, alists, and mnemonic forms.
+
+Form:
+
+```text
+omi-address/prefix CONS cons-name
+```
+
+Role:
+
+```text
+CONS reduce.
+```
+
+CONS records define structural pairing, nesting, dot notation, and palindromic OMI forms.
+
+They do not validate frames.
+
+---
+
+# 9. The Palindromic Mnemonic Token
+
+The central mnemonic token is:
+
+```text
+omi---imo
+```
+
+It expands first as:
+
+```text
+(omi . (--- . imo))
+```
+
+And canonically as:
+
+```text
+(Omicron . (Tetragrammaton . Metatron))
+```
+
+This abstracts the binary16 field structure:
+
+```text
+sign bit     → Omicron Sign-Bit
+exponent     → Tetragrammaton Exponent
+significand  → Metatron Significand
+```
+
+In Omi-Log:
+
+```text
+Omicron heads.
+Tetragrammaton scales.
+Metatron witnesses.
+```
+
+The hyphens mark mnemonic delimiter depth. Hyphen count may be used as a scale hint or source-block cue, but it does not validate a frame.
+
+Forbidden:
+
+```text
+hyphen count validates frame
+omi---imo validates frame
+dot notation validates frame
+```
+
+Allowed:
+
+```text
+hyphen count hints scale
+omi---imo names a cons mnemonic
+dot notation declares structure
+```
+
+---
+
+# 10. The Authority Boundary
+
+Omi-Log must obey the OMI validation/projection boundary:
+
+```text
+Q_frame(S) validates the 128-bit carrier.
+Omi-Log structures the addressed declaration body.
+Q_xy(x,y) projects decoded state into geometry.
+```
+
+Forbidden authority collapses:
+
+```text
+emoji validates frame
+omi---imo validates frame
+hyphen count validates frame
+dot notation validates frame
+source block validates frame
+color validates frame
+Base36 validates frame
+```
+
+Allowed projections:
+
+```text
+emoji carries symbolic state
+omi---imo names a cons mnemonic
+hyphen count hints scale
+dot notation declares structure
+source block carries lookup body
+color projects state
+Base36 names orbit position
+```
+
+The rule is:
+
+```text
+No projection without validation.
+No expression without address.
+No WLOG without closure.
+```
+
+---
+
+# 11. WLOG-Safe Rewrites
+
+Omi-Log uses “without loss of generality” only when symmetry has been proven by closure.
+
+A WLOG-safe rewrite requires:
+
+```text
+rewrite body
+symmetry closure
+transport rule
+forbidden proof-by-example boundary
+```
+
+A single rewrite pair is only an example:
+
+```text
+(omi-🛹 . omi-🏷️)
+```
+
+A rewrite table is a declared transformation:
+
+```text
+(rewrite . '((omi-🛹 . omi-🏷️)))
+```
+
+A WLOG-safe rewrite is a rewrite table plus a closure proving symmetry:
+
+```text
+(closure . four-fold-selector-symmetry)
+```
+
+Canonical rule:
+
+```text
+WLOG requires symmetry closure.
+```
+
+Without a closure, a rewrite is local.
+
+With a closure, a rewrite may generalize across the proven symmetry class.
+
+---
+
+# 12. Emoji Carrier Tokens
+
+Emoji may appear inside O-expressions as symbolic carrier atoms.
+
+Example:
+
+```text
+(omi-⏰ . omi-🤴🏿)
+```
+
+Emoji carrier validity is resolved through Unicode vendor data, such as:
+
+```text
+./vendor/emoji/*.txt
+```
+
+The distinction is:
+
+```text
+Unicode validates the emoji carrier.
+Q_frame validates the OMI frame.
+Omi-Log attaches the expression to an address.
+Q_xy projects decoded state.
+```
+
+Emoji may annotate, route, or act as lookup keys. They may not validate OMI state by themselves.
+
+---
+
+# 13. Lookup Functions
+
+Omi-Log source blocks are lookup-function bodies.
+
+A lookup function is an addressed mapping:
+
+```text
+source key → target value
+```
+
+Example:
+
+```text
+omi-ca55-0000-0000-0000-0000-0000-0004-0003/128 MUST derive-shadow-canvas-from-four-fold-selector
+
+omi-
+  (
+    (selector . omi-ca55-0000-0000-0000-0000-0000-0004-0003/128)
+    (source . omi-0000-0000-0000-0000-0000-0000-0c05-0002/128)
+    (rewrite .
+      '((omi-🛹 . omi-🏷️)
+        (omi-🦺 . omi-🚐)
+        (omi-⏰ . omi-🤴🏿)))
+  )
+-imo
+```
+
+This may compile into:
+
+```text
+hash map
+trie
+prefix table
+CSSOM-like rule table
+Datalog facts
+Prolog relations
+JavaScript Map
+WASM table
+eBPF map
+```
+
+The Omi-Log body remains declarative until compiled.
+
+---
+
+# 14. OMIOM: OMI Object Model
+
+Omi-Log parses into OMIOM records.
+
+A minimal OMIOM record has:
+
+```text
+address
+prefixBits
+keyword
+assignment
+sourceBlock
+oExpressions
+authority
+lookupIndex
+```
+
+CSSOM stores parsed CSS rules.
+
+OMIOM stores parsed OMI declarations.
+
+CSS specificity:
+
+```text
+id > class > element
+```
+
+OMI specificity:
+
+```text
+/128 > /112 > /96 > /64 > /48 > default
+```
+
+So OMIOM declaration resolution is prefix-scoped.
+
+A more specific address overrides or refines a broader one.
+
+---
+
+# 15. Formal Grammar
+
+A minimal grammar:
+
+```text
+document      := record*
+record        := head source_block?
+head          := omi_address prefix keyword assignment
+source_block  := "omi-" body "-imo"
+body          := raw | o_expression*
+o_expression  := atom | pair | list | quote
+pair          := "(" atom "." body ")"
+list          := "(" body* ")"
+quote         := "'" body
+keyword       := MUST | FACT | CLOSE | COMBINE | CONS | EQUALS
+```
+
+This grammar is intentionally permissive at source level.
+
+The source parser preserves raw text.
+
+The object compiler lowers source into native `.imo`.
+
+---
+
+# 16. Native `.imo` Lowering
+
+The `.omi` to `.imo` compiler performs these steps:
+
+```text
+1. Parse OMI declaration heads.
+2. Attach omi- / -imo source blocks.
+3. Parse or preserve O-expressions.
+4. Resolve readable aliases.
+5. Resolve emoji carrier tokens against vendor data.
+6. Lower keywords into low-ASCII operators.
+7. Lower section structure into FS/GS/RS/US traversal markers.
+8. Emit native .imo object.
+```
+
+The compiled `.imo` object must obey:
+
+```text
+ASCII 0x00..0x3F only for native structure
+Unicode emoji/symbolic carriers only for annotation/carrier atoms
+no arbitrary Latin identifiers
+```
+
+Readable names are source-level conveniences.
+
+Native object form is structural.
+
+---
+
+# 17. Parser and Compiler Record Shapes
+
+A parsed Omi-Log source record should include:
+
+```text
+{
+  address,
+  prefixBits,
+  keyword,
+  assignment,
+  rhs,
+  segments,
+  segmentHex,
+  sourceBlock,
+  source,
+  line
+}
+```
+
+The source block should include:
+
+```text
+{
+  opener: "omi-",
+  closer: "-imo",
+  raw,
+  startLine,
+  endLine,
+  syntax
+}
+```
+
+The native `.imo` object should include:
+
+```text
+{
+  carHeader,
+  cdrBody,
+  nativeOperators,
+  carrierAtoms,
+  sourceMap
+}
+```
+
+The source map links compiled object positions back to `.omi` source lines.
+
+---
+
+# 18. Error Classes
+
+Omi-Log should define clear parser/compiler errors:
+
+```text
+MalformedHead
+UnknownKeyword
+UnclosedSourceBlock
+NestedSourceBlock
+InvalidOExpression
+InvalidEmojiCarrier
+ForbiddenNativeAscii
+MissingClosureForWlog
+AuthorityBoundaryViolation
+```
+
+The most important errors are:
+
+```text
+UnclosedSourceBlock
+ForbiddenNativeAscii
+MissingClosureForWlog
+AuthorityBoundaryViolation
+```
+
+These prevent the language from becoming ambiguous or unsafe.
+
+---
+
+# 19. Canonical Rules
+
+```text
+# [Rule 0x84]: Omi-Log O-Expression Source Language
+omi-0000-0000-0000-0000-0000-0000-0084-0001/128 MUST parse-omi-log-o-expressions
+
+# [Rule 0x85]: WLOG-Safe Rewrite Closure
+omi-0000-0000-0000-0000-0000-0000-0085-0001/128 MUST require-closure-for-wlog-safe-rewrite
+
+# [Rule 0x86]: O-Expression Authority Boundary
+omi-0000-0000-0000-0000-0000-0000-0086-0001/128 MUST preserve-o-expression-authority-boundary
+
+# [Rule 0x87]: OMIOM Prefix Cascade
+omi-0000-0000-0000-0000-0000-0000-0087-0001/128 MUST resolve-omi-log-records-by-prefix-specificity
+
+# [Rule 0x88]: OMI Source/Object Split
+omi-0000-0000-0000-0000-0000-0000-0088-0001/128 MUST compile-readable-omi-source-to-native-imo-object
+
+# [Rule 0x89]: IMO Native Character Plane
+omi-0000-0000-0000-0000-0000-0000-0089-0001/128 MUST restrict-imo-native-syntax-to-low-ascii-and-unicode-carriers
+
+# [Rule 0x8A]: OMI/IMO Authority Boundary
+omi-0000-0000-0000-0000-0000-0000-008a-0001/128 MUST preserve-omi-source-imo-object-authority-boundary
+```
+
+---
+
+# 20. Canonical Facts
+
+Facts should only be added after implementation and tests exist:
+
+```text
+omi-0000-0000-0000-0000-0000-0000-0084-1001/128 FACT omi-log-o-expression-parser-implemented
+omi-0000-0000-0000-0000-0000-0000-0085-1001/128 FACT wlog-safe-rewrite-closure-tested
+omi-0000-0000-0000-0000-0000-0000-0086-1001/128 FACT o-expression-authority-boundary-tested
+omi-0000-0000-0000-0000-0000-0000-0087-1001/128 FACT omiom-prefix-cascade-implemented
+omi-0000-0000-0000-0000-0000-0000-0088-1001/128 FACT readable-omi-source-compiles-to-native-imo-object
+omi-0000-0000-0000-0000-0000-0000-0089-1001/128 FACT imo-native-character-plane-tested
+omi-0000-0000-0000-0000-0000-0000-008a-1001/128 FACT omi-imo-authority-boundary-tested
+```
+
+---
+
+# 21. Test Plan
+
+A conforming Omi-Log implementation should test:
+
+```text
+.omi parser accepts readable keywords and aliases.
+.omi parser attaches omi- / -imo source blocks.
+.omi parser preserves emoji and dot notation.
+O-expression reader parses pairs, lists, quotes, and atoms.
+Emoji carrier tokens resolve through vendor data.
+WLOG-safe rewrite fails without closure.
+WLOG-safe rewrite passes with closure.
+OMIOM cascade resolves more specific prefixes first.
+.omi compiler emits .imo output.
+.imo output contains no native ASCII bytes above 0x3F except Unicode carrier sequences.
+.imo rejects 0x40 @ in native control positions.
+.imo preserves emoji carrier tokens.
+.imo round-trips back to OMIOM records.
+Q_frame remains validator.
+Q_xy remains projector.
+```
+
+---
+
+# 22. Implementation Phases
+
+## Phase 1 — Source Parser
+
+Implement:
+
+```text
+parseOmiClause()
+parseOmiDocument()
+parseOmiSourceBlock()
+```
+
+## Phase 2 — O-Expression Reader
+
+Implement:
+
+```text
+pairs
+lists
+quotes
+atoms
+emoji atoms
+OMI address atoms
+```
+
+## Phase 3 — OMIOM Index
+
+Build indexes:
+
+```text
+address → records
+prefix → records
+keyword → records
+assignment → records
+emoji carrier → records
+```
+
+## Phase 4 — `.omi → .imo` Compiler
+
+Lower readable source into native object form.
+
+## Phase 5 — Closure Checker
+
+Enforce:
+
+```text
+No WLOG without closure.
+```
+
+## Phase 6 — Native Loader
+
+Load compiled `.imo` objects into the pre-runtime kernel.
+
+## Phase 7 — Projection
+
+Route decoded state into:
+
+```text
+Q_xy
+local240
+slot5040
+DOM/CSSOM
+```
+
+---
+
+# 23. Acceptance Criteria
+
+Omi-Log is canon-ready when:
+
+```text
+All five .omi files parse.
+omi- / -imo source blocks attach to declaration heads.
+O-expression bodies are preserved.
+Basic O-expression bodies parse.
+Emoji carrier tokens resolve through vendor data.
+WLOG-safe rewrite requires closure.
+Readable .omi source compiles to native .imo object.
+Native .imo object respects the low-ASCII/Unicode carrier plane.
+Existing RULES.omi and FACTS.omi behavior remains compatible.
+Q_frame remains the validation gate.
+Q_xy remains the projection law.
+Tests pass.
+Build passes.
+```
+
+---
+
+# 24. Final Doctrine
+
+Omi-Log is the O-expression language of OMI.
+
+It gives `.omi` files a way to express:
+
+```text
+addressed declarations
+lookup functions
+cons structures
+alist tables
+emoji rewrite pairs
+closure bodies
+combinator bodies
+WLOG-safe rewrite symmetry
+native .imo object lowering
+```
+
+The final doctrine is:
+
+```text
+OMI address selects.
+omi- opens.
+O-expression declares.
+-imo closes.
+.omi sources.
+.imo traverses.
+Closure permits WLOG.
+Q_frame validates.
+Q_xy projects.
+```
+
+---
+
+# 25. One-Sentence Summary
+
+Omi-Log is the addressed O-expression language of the Omicron Object Model: a CSSOM-like, Lisp-inspired, WLOG-safe declaration system where `.omi` files contain readable addressed source blocks, `.imo` files contain compiled low-ASCII/Unicode native objects, O-expressions carry cons/alist/emoji rewrite bodies, closures justify symmetry-based generalization, and no expression becomes runtime authority unless it is grounded by pointer, rule, implementation, test, and replay/projection path.
+

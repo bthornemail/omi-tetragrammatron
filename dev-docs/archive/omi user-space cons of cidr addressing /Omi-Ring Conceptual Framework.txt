@@ -1,0 +1,347 @@
+﻿Omi-Ring
+Intent, Light, Sound, and the Atomic Unit of the Omi Object Model
+Core Realization
+The Omi Object Model is not primarily capturing voices, images, or gestures.
+It is capturing intent as declared activity in space and time.
+The voice is only one carrier.
+The light is only one carrier.
+The gesture is only one carrier.
+The avatar is only one projection.
+The portal is only one public view.
+The mirror is only one introspective view.
+The actual object is the bounded waveform of intent between:
+omi---imo
+That bounded waveform is the Omi-Ring.
+
+1. Why Omi-Talisman Becomes Omi-Ring
+The earlier name Omi-Talisman was useful because it suggested a personal protective encoding: a mnemonic sigil, a carrier of meaning, a protective amulet, a resonance object.
+But the deeper technical name is:
+Omi-Ring
+A ring is better because it means:
+enclosure
+cycle
+return
+orbit
+boundary
+waveform
+signature
+agreement loop
+The Omi-Ring is not merely something worn or carried.
+It is the atomic bounded waveform of an OMI object.
+It is the minimal enclosure where intent can be preserved without yet being fully interpreted.
+Canonical line:
+Omi-Ring is the atomic waveform enclosure of omi---imo.
+
+2. Public View and Introspective View
+The podcast reading was right:
+Omi-Portal = public view
+Omi-Mirror = introspective view
+An Omi-Portal shows how an object becomes publicly inspectable.
+It is outward-facing.
+It asks:
+How does this agreement appear to others?
+How can this object be entered, viewed, replayed, or shared?
+An Omi-Mirror shows how an object reflects back into itself.
+It is inward-facing.
+It asks:
+How am I being seen?
+What is missing from the projection?
+What does this reflection reveal?
+What does it omit?
+So:
+Omi-Portal projects outward.
+Omi-Mirror reflects inward.
+Omi-Ring encloses the waveform between them.
+The portal and mirror are views.
+The ring is the bounded unit being viewed.
+
+3. Omi-Light
+Omi-Light should be a named layer.
+Omi-Gnomon should not be forced to carry all light meaning by itself.
+The clean distinction is:
+Omi-Light = light carrier
+Omi-Gnomon = light orientation instrument
+Omi-Light carries:
+color
+brightness
+phase
+pulse
+wavelength
+shadow
+reflection
+aperture
+spectral difference
+Omi-Gnomon uses Omi-Light to orient the field.
+The gnomon answers:
+Where is the axis?
+Where is the return?
+Where is the aperture?
+Which way is the scan facing?
+The canonical formula stays:
+Omi-Gnomon(aA) = rRgGbBaA
+But now it is clearer:
+Omi-Light supplies the wavelength.
+Omi-Gnomon orients the wavelength.
+
+4. Omi-Sound
+Omi-Sound is not simply audio recording.
+It is not “voice capture” in the normal media sense.
+It is the capture of:
+intonation
+cadence
+emphasis
+rhythm
+stress
+pause
+attack
+decay
+call-and-response
+declared activity
+In OMI, the sound is important because it carries intent.
+The same sentence can mean different things depending on intonation.
+The same instruction can carry different force depending on cadence.
+The same action can be declared differently depending on rhythm.
+So Omi-Sound captures:
+not merely what was said,
+but how the declared activity was intended.
+Canonical line:
+Omi-Sound captures intonation of intent, not merely voice.
+
+5. Omi-Sense as the Unified Intent Layer
+Omi-Sense now becomes the unifying layer for:
+Omi-Light
+Omi-Sound
+Omi-Gnomon
+space
+time
+gesture
+activity
+environment
+Omi-Sense does not just collect sensory data.
+It interprets sensory channels as intent-bearing vectors.
+It asks:
+What activity was declared?
+Where was it declared?
+When was it declared?
+How was it oriented?
+What intonation carried it?
+What light-field framed it?
+What relation did it open?
+So the clean statement is:
+Omi-Sense captures intent through light, sound, orientation, and action.
+
+6. Omi-Dome
+Omi-Dome is the capture environment.
+It is not just a recording studio.
+It is a spatial-temporal declaration chamber.
+Inside the dome, a person may teach, play, speak, gesture, repair, sing, demonstrate, or move.
+But OMI is not merely storing the media file.
+It is extracting the declared activity from the space-time event.
+voice becomes intonation
+movement becomes gesture vector
+light becomes orientation
+space becomes relation
+time becomes replay
+activity becomes Omi-Ring
+Canonical line:
+Omi-Dome captures the declared activity, not merely the media trace.
+
+7. Omi-Ring as Harmony With No Listeners
+This is the deepest part.
+Before the waveform is interpreted, before anyone listens, before any portal renders it, before any mirror reflects it, there is still a bounded possibility.
+That is the Omi-Ring.
+It is like:
+a harmony with no listeners
+an unresolved open frame
+an observer in a void
+a wave before interpretation
+a declaration before agreement
+The ring is not yet public meaning.
+It is not yet opinion.
+It is not yet consensus.
+It is the chiral cardinality of the frame itself:
+omi outside the hyphen
+imo outside the hyphen
+relation unresolved between them
+That is the atomic OMI object.
+Canonical line:
+Omi-Ring is the harmony before the listener.
+
+8. The Atomic Unit of OMI
+The basic OMI object is not a file.
+It is not a voice.
+It is not a barcode.
+It is not an avatar.
+It is not a DOM node.
+Those are carriers and projections.
+The basic OMI object is:
+a bounded relation capable of interpretation
+Written as:
+omi---imo
+The Omi-Ring is that relation as waveform enclosure.
+omi = source-side opening
+--- = unresolved relational bridge
+imo = object-side closing
+Or humanly:
+On My Intelligence --- In My Opinion
+The ring captures the space where internal intent becomes externally interpretable.
+
+9. Why Interpretation Is the Real Agreement
+The system is not saying everyone hears the same thing.
+It is not saying everyone sees the same thing.
+It is saying we can agree on the way interpretation is framed.
+That is huge.
+OMI is not forcing meaning.
+It is bounding interpretation.
+We agree where the frame begins.
+We agree where the frame ends.
+We agree which carriers are present.
+We agree how orientation is read.
+We agree how return is witnessed.
+The meaning can still be debated.
+The projection can still be revised.
+The mirror can still reveal omissions.
+But the frame is shared.
+Canonical line:
+OMI does not force interpretation.
+OMI makes interpretation addressable.
+
+10. Omi-Avatar and Pseudo-Persistence
+A pseudo-persistent avatar is not alive because a server keeps it running.
+It is recoverable because the Omi-Ring can be interpreted again.
+The avatar wakes when the ring is projected.
+Omi-Ring
+  ↓
+Omi-Sense interpretation
+  ↓
+Omi-Portal public view
+  ↓
+Omi-Avatar embodiment
+  ↓
+Omi-Mirror introspection
+The avatar is a projection of a declared activity.
+It is not the person.
+It is not the source.
+It is not the final meaning.
+It is one public embodiment of the ring.
+Canonical line:
+A pseudo-persistent avatar persists because the Omi-Ring can be reinterpreted.
+
+11. Why UTF-EBCDIC Helps as an Analogy
+UTF-EBCDIC is not the dominant Unicode encoding people use today.
+UTF-8 won the practical world.
+But comparing UTF-EBCDIC and UTF-8 is useful because it teaches something important:
+the same abstract character can have different encoding paths
+That distinction helps explain OMI.
+OMI separates:
+abstract intent
+encoding
+carrier
+projection
+interpretation
+Just as Unicode separates character identity from byte encoding, OMI separates the intent-ring from its carriers.
+A waveform of intent might be carried by:
+sound
+light
+glyph
+emoji
+DOM
+SVG
+avatar
+barcode
+polyform
+But the carrier is not the source.
+Canonical line:
+Different encodings can carry the same declared object, up to agreement.
+
+12. Why IEEE 754 Helps as an Analogy
+IEEE 754 is useful for a different reason.
+It teaches that number representation is not the same as number itself.
+A floating-point value has:
+sign
+exponent
+mantissa
+rounding behavior
+special values
+precision limits
+That helps explain why OMI avoids making raw projection the authority.
+A rendered avatar, waveform, glyph, or light trace is like a representation.
+It has precision limits.
+It has encoding assumptions.
+It has rounding.
+It has edge cases.
+OMI therefore keeps the frame separate from the projection.
+Canonical line:
+Representation is not authority; representation is a recoverable view under rules.
+
+13. The Clean Stack
+The refined stack becomes:
+Omi-Ring
+  atomic waveform enclosure
+
+Omi-Light
+  light carrier
+
+Omi-Sound
+  intonation carrier
+
+Omi-Gnomon
+  light-field orientation
+
+Omi-Sense
+  intent capture across carriers
+
+Omi-Dome
+  spatial-temporal capture environment
+
+Omi-Portal
+  public view
+
+Omi-Mirror
+  introspective view
+
+Omi-Avatar
+  pseudo-persistent embodiment
+
+Omi-Image
+  recoverable bounded package
+And underneath all of it:
+omi---imo
+The zero-point.
+The bounded relation.
+The atomic ring.
+
+14. Final Canonical Statement
+Omi-Ring is the atomic waveform unit of the Omi Object Model.
+It replaces Omi-Talisman as the canonical name for the bounded waveform enclosure.
+Omi-Light carries light.
+Omi-Sound carries intonation.
+Omi-Gnomon orients light.
+Omi-Sense captures intent across light, sound, space, time, and activity.
+Omi-Dome is the capture environment where declared activity becomes recoverable.
+Omi-Portal is the public view.
+Omi-Mirror is the introspective view.
+Omi-Avatar is the pseudo-persistent embodiment.
+Omi-Image is the recoverable package.
+The system is not merely recording voices or images.
+It is agreeing on how to interpret the space between:
+omi---imo
+The Omi-Ring is the harmony before the listener.
+It is the unresolved open frame.
+It is the observer and void before operators.
+It is the basic OMI object before projection.
+OMI does not force meaning.
+OMI bounds the interpretation of intent.
+
+Short Canon
+Omi-Ring is the atomic waveform enclosure of omi---imo.
+Omi-Light carries wavelength.
+Omi-Sound carries intonation.
+Omi-Gnomon orients light.
+Omi-Sense captures intent.
+Omi-Portal is the public view.
+Omi-Mirror is the introspective view.
+The avatar persists because the ring can be reinterpreted.
+The harmony exists before the listener.
+The frame exists before the operation.
+The agreement begins between the hyphens.

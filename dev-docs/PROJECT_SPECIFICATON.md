@@ -68,7 +68,54 @@ Required semantic rules:
 - Events and intents are symmetric candidate forms.
 - Receipts preserve identity across carriers and projections.
 
-## 4. Processing Pipeline
+## 4. Addressing Model
+
+The active addressing scaffold is `dev-docs/OMI_ADDRESSING.md`.
+
+OMI addressing treats CIDR-style notation as a readable CONS surface:
+
+```text
+address/prefix = (address . prefix)
+```
+
+Canonical rule:
+
+```text
+Frame identifies.
+Slash derives.
+Path selects.
+Clauses validate.
+Receipt accepts.
+```
+
+The Omi-Ring is the bounded addressed notation witness of an `omi---imo` relation. A receipt is only the accepted validation state of that witness. The receipt ring stores and replays accepted Omi-Ring states.
+
+Required V0 surface forms:
+
+```text
+omi---imo
+omi-<frame>
+imo-<frame>
+omi-<frame>-imo
+omi-<frame>/<path...>-imo
+```
+
+The path is derivation, not identity. Prefix depth is the resolution horizon. Slash derivation, path selection, and Omi-Ring formation do not accept state.
+
+Omicron owns non-authoritative address dialect induction and lowering:
+
+```text
+CIDR notation
+ip4-notation
+ip6-notation
+@CAR36@CDR64 closure
+```
+
+All readable dialect forms must lower to canonical hexadecimal OMI candidate frames before validation.
+
+Omi-Log is the readable `.omi` source surface for addressed declarations. It may use CIDR scopes, O-expressions, readable keywords, and CONS closure notation, but every record must lower into canonical OMI object form before validation.
+
+## 5. Processing Pipeline
 
 Canonical pipeline:
 
@@ -91,7 +138,7 @@ Hard boundaries:
 - Projection is not acceptance.
 - Only validation plus receipt accepts.
 
-## 5. Determinism
+## 6. Determinism
 
 The implementation must encode determinism and must not encode nondeterminism.
 
@@ -113,7 +160,7 @@ Permitted carrier behavior:
 
 Carrier behavior may deliver inputs, but deterministic output must depend only on declared inputs and declared rules.
 
-## 6. Runtime Files
+## 7. Runtime Files
 
 Core runtime source files:
 - `core/omi.h` / `core/omi.c`: Citation Authority and deterministic instruction core.
@@ -126,7 +173,7 @@ Legacy compatibility:
 - Archive-only `opencode` references remain historical.
 - Current CLI behavior must remain stable after the rename.
 
-## 7. Public Portal
+## 8. Public Portal
 
 The `portal/` directory is the public React/TypeScript web-portal interface. Its policy docs are distinct from root repository docs and live in `agent-docs/`.
 
@@ -142,7 +189,7 @@ Agent REPO target:
 - Keep `agent-docs/REPO.md` scoped to public LLM-agent bootstrapping and role/repo policy through the published portal.
 - Do not merge portal public-interface policy into root `README.md`, root `AGENTS.md`, or root `SKILLS.md`.
 
-## 8. Carriers And Adapters
+## 9. Carriers And Adapters
 
 Carriers transport representation. They do not validate or accept.
 
@@ -161,7 +208,7 @@ Adapter policy:
 - Browser, serial, DOM/CSSOM/Canvas/WebGL, ESP32, file, network, and P2P adapters must be receipt-gated for side effects.
 - Hardware and network projection require accepted receipt, declared effect, role/scope permission, and bridge authorization.
 
-## 9. Repository And Version Policy
+## 10. Repository And Version Policy
 
 Root repository docs govern the runtime repository:
 - `README.md`
@@ -177,7 +224,7 @@ Versioning model:
 - Receipts are accepted version identity.
 - `.imo` files may carry normalized candidate or accepted declarations.
 
-## 10. Required Tests
+## 11. Required Tests
 
 Every phase must keep these passing:
 - `make smoke`
@@ -196,7 +243,7 @@ Required test classes:
 - projection denial before receipt
 - same input produces same output
 
-## 11. Non-Goals
+## 12. Non-Goals
 
 Do not:
 - add dependencies without approval
@@ -207,7 +254,7 @@ Do not:
 - implement partial JABCode while calling it standards-compliant
 - collapse portal public-interface policy into root repository policy
 
-## 12. Completion Standard
+## 13. Completion Standard
 
 The project is specification-complete when:
 - OMI-Lisp notation can be parsed into deterministic candidate relations.

@@ -8,8 +8,14 @@ static int fail(const char *m) {
     return 1;
 }
 
+static int eq_frame(const uint16_t got[8], const uint16_t want[8]) {
+    for (int i = 0; i < 8; i++) if (got[i] != want[i]) return 0;
+    return 1;
+}
+
 int main(void) {
     OmicronConfig cfg;
+    OmicronAddressCandidate ac;
     uint8_t h[OMICRON_PREHEADER_LEN];
     char *boot_argv[] = {"omicron.bin", "--boot"};
     char *eval_argv[] = {"omicron.bin", "--eval", "(cons 1 2)"};
@@ -84,6 +90,50 @@ int main(void) {
     if (omicron_load_system_objects(&cfg)) return fail("mismatched object pair");
     if (omicron_boot(&cfg) != 4) return fail("boot object failure code");
     if ((cfg.flags & OMICRON_FLAG_OBJECTS_BOUND) != 0) return fail("failed boot object flag cleared");
+
+    if (!omicron_parse_address_candidate("omi---imo", &ac)) return fail("parse omi ring");
+    if (!ac.has_open || !ac.has_close) return fail("omi ring bounds");
+    if (ac.has_frame || ac.has_prefix || ac.path_count != 0) return fail("omi ring empty surface");
+    if (!ac.lowered_candidate) return fail("omi ring candidate");
+
+    {
+        const uint16_t f[8] = {0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0036,0x0072};
+        if (!omicron_parse_address_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072-imo", &ac)) return fail("parse bounded frame");
+        if (!ac.has_open || !ac.has_close || !ac.has_frame) return fail("bounded frame flags");
+        if (!eq_frame(ac.frame, f) || !eq_frame(ac.lowered_frame, f)) return fail("bounded frame values");
+        if (ac.has_prefix || ac.path_count != 0) return fail("bounded frame no path");
+    }
+
+    {
+        const uint16_t f[8] = {0x0500,0x03bf,0x000c,0x2b05,0x2f05,0x0002,0x039f,0x05ff};
+        if (!omicron_parse_address_candidate("omi-0500-03bf-000c-2b05-2f05-0002-039f-05ff/128/hardware/i2c:0x28/euler-imo", &ac)) return fail("parse derived frame");
+        if (!ac.has_prefix || ac.prefix != 128) return fail("derived prefix");
+        if (ac.path_count != 4) return fail("derived path count");
+        if (strcmp(ac.path[1], "hardware") != 0 || strcmp(ac.path[2], "i2c:0x28") != 0 || strcmp(ac.path[3], "euler") != 0) return fail("derived path values");
+        if (!eq_frame(ac.frame, f)) return fail("derived frame values");
+    }
+
+    {
+        const uint16_t f[8] = {0,0,0,0,0,0,0x7f00,0x0001};
+        if (!omicron_parse_address_candidate("ip4:127.0.0.1/32", &ac)) return fail("parse ip4");
+        if (!ac.has_frame || !ac.has_prefix || ac.prefix != 32) return fail("ip4 flags");
+        if (!eq_frame(ac.lowered_frame, f)) return fail("ip4 lowered");
+    }
+
+    {
+        const uint16_t f[8] = {0x0000,0x0000,0x0000,0x0000,0x0000,0xffff,0x7f00,0x0001};
+        if (!omicron_parse_address_candidate("ip6:0000:0000:0000:0000:0000:ffff:7f00:0001/128", &ac)) return fail("parse ip6");
+        if (!ac.has_frame || !ac.has_prefix || ac.prefix != 128) return fail("ip6 flags");
+        if (!eq_frame(ac.lowered_frame, f)) return fail("ip6 lowered");
+    }
+
+    if (!omicron_parse_address_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128?0?0@3VZ@T01J", &ac)) return fail("parse closure");
+    if (!ac.has_payload_mask || ac.payload != 0 || ac.mask != 0) return fail("payload mask");
+    if (!ac.has_cons_closure || ac.car36_value != 5039) return fail("car36");
+    if (ac.cdr64_len != 3 || ac.cdr64_bytes[0] != 0x4f || ac.cdr64_bytes[1] != 0x4d || ac.cdr64_bytes[2] != 0x49) return fail("cdr64");
+    if (omicron_parse_address_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128?0?0@3vz@T01J", &ac)) return fail("invalid base36");
+    if (omicron_parse_address_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128?0?0@3VZ@T01!", &ac)) return fail("invalid base64url");
+    if (omicron_parse_address_candidate("ip4:ip6:127.0.0.1/32", &ac)) return fail("ambiguous family");
 
     printf("PASS omicron boot\n");
     return 0;

@@ -309,6 +309,7 @@ Examples:
 ```text
 omi---imo
 o---o
+/---/
 ?---?
 @---@
 ```

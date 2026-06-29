@@ -259,6 +259,237 @@ int omicron_boot(OmicronConfig *cfg) {
     return 0;
 }
 
+static int omicron_hex_digit(int c) {
+    if(c>='0'&&c<='9')return c-'0';
+    if(c>='a'&&c<='f')return c-'a'+10;
+    if(c>='A'&&c<='F')return c-'A'+10;
+    return -1;
+}
+
+static int omicron_parse_u16_hex_part(const char *s, size_t n, uint16_t *out) {
+    uint32_t v=0;
+    if(!s||!out||n==0||n>4)return 0;
+    for(size_t i=0;i<n;i++){
+        int d=omicron_hex_digit((unsigned char)s[i]);
+        if(d<0)return 0;
+        v=(v<<4)|(uint32_t)d;
+    }
+    *out=(uint16_t)v;
+    return 1;
+}
+
+static int omicron_parse_u32_hex_part(const char *s, size_t n, uint32_t *out) {
+    uint32_t v=0;
+    if(!s||!out||n==0||n>8)return 0;
+    for(size_t i=0;i<n;i++){
+        int d=omicron_hex_digit((unsigned char)s[i]);
+        if(d<0)return 0;
+        v=(v<<4)|(uint32_t)d;
+    }
+    *out=v;
+    return 1;
+}
+
+static int omicron_parse_dec_part(const char *s, size_t n, uint16_t max, uint16_t *out) {
+    uint32_t v=0;
+    if(!s||!out||n==0)return 0;
+    for(size_t i=0;i<n;i++){
+        if(!isdigit((unsigned char)s[i]))return 0;
+        v=(v*10u)+(uint32_t)(s[i]-'0');
+        if(v>max)return 0;
+    }
+    *out=(uint16_t)v;
+    return 1;
+}
+
+static int omicron_parse_hex_frame_dash(const char *s, size_t n, uint16_t out[8]) {
+    size_t start=0, idx=0;
+    if(!s||!out||n==0)return 0;
+    for(size_t i=0;i<=n;i++){
+        if(i==n||s[i]=='-'){
+            if(idx>=8||!omicron_parse_u16_hex_part(s+start,i-start,&out[idx]))return 0;
+            idx++;
+            start=i+1;
+        }
+    }
+    return idx==8;
+}
+
+static int omicron_parse_hex_frame_colon(const char *s, size_t n, uint16_t out[8]) {
+    size_t start=0, idx=0;
+    if(!s||!out||n==0)return 0;
+    for(size_t i=0;i<=n;i++){
+        if(i==n||s[i]==':'){
+            if(idx>=8||!omicron_parse_u16_hex_part(s+start,i-start,&out[idx]))return 0;
+            idx++;
+            start=i+1;
+        }
+    }
+    return idx==8;
+}
+
+static int omicron_parse_ipv4(const char *s, size_t n, uint16_t out[8]) {
+    size_t start=0, idx=0;
+    unsigned v[4]={0,0,0,0};
+    if(!s||!out||n==0)return 0;
+    for(size_t i=0;i<=n;i++){
+        if(i==n||s[i]=='.'){
+            uint16_t p=0;
+            if(idx>=4||!omicron_parse_dec_part(s+start,i-start,255u,&p))return 0;
+            v[idx++]=p;
+            start=i+1;
+        }
+    }
+    if(idx!=4)return 0;
+    memset(out,0,8*sizeof(out[0]));
+    out[6]=(uint16_t)((v[0]<<8)|v[1]);
+    out[7]=(uint16_t)((v[2]<<8)|v[3]);
+    return 1;
+}
+
+static int omicron_base36_value(const char *s, size_t n, uint64_t *out) {
+    uint64_t v=0;
+    if(!s||!out||n==0)return 0;
+    for(size_t i=0;i<n;i++){
+        unsigned d;
+        if(s[i]>='0'&&s[i]<='9')d=(unsigned)(s[i]-'0');
+        else if(s[i]>='A'&&s[i]<='Z')d=(unsigned)(s[i]-'A'+10);
+        else return 0;
+        if(v>(UINT64_MAX-d)/36u)return 0;
+        v=(v*36u)+d;
+    }
+    *out=v;
+    return 1;
+}
+
+static int omicron_b64url_digit(int c) {
+    if(c>='A'&&c<='Z')return c-'A';
+    if(c>='a'&&c<='z')return c-'a'+26;
+    if(c>='0'&&c<='9')return c-'0'+52;
+    if(c=='-')return 62;
+    if(c=='_')return 63;
+    return -1;
+}
+
+static int omicron_base64url_decode(const char *s, size_t n, uint8_t *out, size_t cap, size_t *out_len) {
+    uint32_t buf=0;
+    int bits=0;
+    size_t len=0;
+    if(!s||!out||!out_len||n==0||n%4u==1u)return 0;
+    for(size_t i=0;i<n;i++){
+        if(s[i]=='='){
+            for(size_t j=i;j<n;j++)if(s[j]!='=')return 0;
+            break;
+        }
+        int d=omicron_b64url_digit((unsigned char)s[i]);
+        if(d<0)return 0;
+        buf=(buf<<6)|(uint32_t)d;
+        bits+=6;
+        while(bits>=8){
+            bits-=8;
+            if(len>=cap)return 0;
+            out[len++]=(uint8_t)((buf>>bits)&0xffu);
+        }
+    }
+    *out_len=len;
+    return 1;
+}
+
+static int omicron_copy_part(char dst[OMICRON_ADDRESS_SEGMENT_MAX], const char *s, size_t n) {
+    if(!dst||!s||n==0||n>=OMICRON_ADDRESS_SEGMENT_MAX)return 0;
+    memcpy(dst,s,n);
+    dst[n]=0;
+    return 1;
+}
+
+int omicron_parse_address_candidate(const char *src, OmicronAddressCandidate *out) {
+    char buf[OMICRON_ADDRESS_SOURCE_MAX];
+    char *body=buf, *q, *at, *slash;
+    size_t n;
+    int family=0;
+    if(!src||!out)return 0;
+    n=strlen(src);
+    if(n==0||n>=OMICRON_ADDRESS_SOURCE_MAX)return 0;
+    memset(out,0,sizeof(*out));
+    memcpy(out->source,src,n+1);
+    memcpy(buf,src,n+1);
+    at=strchr(buf,'@');
+    if(at){
+        char *at2=strchr(at+1,'@');
+        if(!at2||strchr(at2+1,'@'))return 0;
+        if(!omicron_base36_value(at+1,(size_t)(at2-at-1),&out->car36_value))return 0;
+        if(!omicron_base64url_decode(at2+1,strlen(at2+1),out->cdr64_bytes,OMICRON_ADDRESS_CDR64_MAX,&out->cdr64_len))return 0;
+        out->has_cons_closure=1;
+        *at=0;
+    }
+    q=strchr(buf,'?');
+    if(q){
+        char *q2=strchr(q+1,'?');
+        char *q3=q2?strchr(q2+1,'?'):NULL;
+        if(!q2||q3)return 0;
+        if(!omicron_parse_u32_hex_part(q+1,(size_t)(q2-q-1),&out->payload))return 0;
+        if(!omicron_parse_u32_hex_part(q2+1,strlen(q2+1),&out->mask))return 0;
+        out->has_payload_mask=1;
+        *q=0;
+    }
+    if(strcmp(buf,"omi---imo")==0){
+        out->has_open=1;
+        out->has_close=1;
+        out->lowered_candidate=1;
+        return 1;
+    }
+    if(strncmp(body,"ip4:",4)==0){family=4;body+=4;}
+    else if(strncmp(body,"ip6::",5)==0){family=6;body+=5;}
+    else if(strncmp(body,"ip6:",4)==0){family=6;body+=4;}
+    else if(strncmp(body,"omi-",4)==0){family=1;out->has_open=1;body+=4;}
+    else if(strncmp(body,"imo-",4)==0){family=1;out->has_close=1;body+=4;}
+    else return 0;
+    if(family==1){
+        size_t blen=strlen(body);
+        if(blen>4&&strcmp(body+blen-4,"-imo")==0){
+            out->has_close=1;
+            body[blen-4]=0;
+        }
+    }
+    slash=strchr(body,'/');
+    if(slash){
+        char *p=slash+1;
+        *slash=0;
+        while(*p){
+            char *next=strchr(p,'/');
+            size_t pn=next?(size_t)(next-p):strlen(p);
+            if(pn==0||out->path_count>=OMICRON_ADDRESS_PATH_MAX)return 0;
+            if(!omicron_copy_part(out->path[out->path_count],p,pn))return 0;
+            if(out->path_count==0){
+                uint16_t max=(family==4)?32u:128u;
+                uint16_t pref=0;
+                if(omicron_parse_dec_part(p,pn,max,&pref)){
+                    out->prefix=pref;
+                    out->has_prefix=1;
+                }
+            }
+            out->path_count++;
+            if(!next)break;
+            p=next+1;
+        }
+    }
+    if(family==4){
+        if(!omicron_parse_ipv4(body,strlen(body),out->frame))return 0;
+    }else if(family==6){
+        if(strchr(body,'-')){
+            if(!omicron_parse_hex_frame_dash(body,strlen(body),out->frame))return 0;
+        }else{
+            if(!omicron_parse_hex_frame_colon(body,strlen(body),out->frame))return 0;
+        }
+    }else{
+        if(!omicron_parse_hex_frame_dash(body,strlen(body),out->frame))return 0;
+    }
+    out->has_frame=1;
+    memcpy(out->lowered_frame,out->frame,sizeof(out->frame));
+    out->lowered_candidate=1;
+    return 1;
+}
+
 static void die(const char *msg) { fprintf(stderr, "FATAL: %s\n", msg); _exit(1); }
 
 static void *xmalloc(size_t n) { void *p = malloc(n ? n : 1); if (!p) die("malloc"); return p; }
