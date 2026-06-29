@@ -48,7 +48,7 @@ Validation is the boundary between candidate state and accepted state.
 
 ## Validation And Storage Split
 
-The next implementation boundary must keep validation and storage separate:
+The implementation keeps validation and storage separate:
 
 ```text
 validate candidate -> accepted-state object
@@ -61,9 +61,9 @@ Storage records an already accepted state.
 
 Projection still waits for accepted state.
 
-## Future API Direction
+## V0 Validation API
 
-A future validation API should be named to preserve the boundary:
+The V0 validation-only API is:
 
 ```c
 int tetragrammatron_validate_citation_candidate(
@@ -72,9 +72,32 @@ int tetragrammatron_validate_citation_candidate(
 );
 ```
 
-This function should not write the ring in the first pass.
+It constructs:
 
-Ring storage should remain explicit and separate.
+```c
+typedef struct {
+    uint64_t citation_hash;
+    uint16_t result;
+    uint32_t slot5040;
+    uint8_t accepted;
+} TetragrammatronAcceptedState;
+```
+
+This function does not write the ring.
+
+## V0 Storage API
+
+The V0 explicit storage API is:
+
+```c
+int tetragrammatron_store_accepted_state(
+    const TetragrammatronAcceptedState *state
+);
+```
+
+This function records an already accepted state in the in-memory accepted-state ring.
+
+It does not validate candidates, parse source, project surfaces, serialize files, or perform carrier I/O.
 
 Forbidden names for candidate-stage APIs:
 
@@ -99,5 +122,7 @@ tetragrammatron_store_accepted_state
 OMI citation candidates are not accepted state.
 Tetragrammatron validates.
 Accepted state may then be stored.
+IMO serializes later.
+Metatron projects later.
 Receipt accepts.
 ```

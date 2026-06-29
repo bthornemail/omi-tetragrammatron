@@ -71,6 +71,35 @@ void tetragrammatron_import(const RingSlot *in, size_t count) {
     memcpy(ring, in, n * sizeof(RingSlot));
 }
 
+int tetragrammatron_validate_citation_candidate(const OmiCitationCandidate *candidate, TetragrammatronAcceptedState *out) {
+    uint16_t r;
+    int fano7, role3, local240;
+    if(!candidate||!out)return 0;
+    memset(out,0,sizeof(*out));
+    if(!candidate->candidate_only||candidate->citation_hash==0||!candidate->citation_text[0])return 0;
+    if(!candidate->has_frame&&!candidate->has_cons_closure)return 0;
+    r=(uint16_t)((candidate->citation_hash ^ (candidate->citation_hash >> 16) ^ (candidate->citation_hash >> 32) ^ (candidate->citation_hash >> 48)) & 0xffffu);
+    fano7=(int)(candidate->citation_hash % 7u);
+    role3=(int)((candidate->citation_hash >> 8) % 3u);
+    local240=(int)(r % 240u);
+    out->citation_hash=candidate->citation_hash;
+    out->result=r;
+    out->slot5040=compute_slot5040(fano7,role3,local240);
+    out->accepted=1;
+    return 1;
+}
+
+int tetragrammatron_store_accepted_state(const TetragrammatronAcceptedState *state) {
+    char receipt[128];
+    size_t idx;
+    if(!state||!state->accepted||state->citation_hash==0)return 0;
+    idx=ring_idx();
+    snprintf(receipt,sizeof(receipt),"accepted-state;slot5040=%u;result=0x%04x",(unsigned)state->slot5040,(unsigned)state->result);
+    ring_store(state->citation_hash,receipt);
+    ring[idx].result=state->result;
+    return 1;
+}
+
 ChiralDir tetra_chiral_pi(uint64_t hash) {
     int dplus = 0, dminus = 0, dp = -1, dm = -1;
     for (int i = 0; i < 16; i++) {

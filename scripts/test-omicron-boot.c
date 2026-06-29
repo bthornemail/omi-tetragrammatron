@@ -3,6 +3,7 @@
 #include <string.h>
 #include "omi.h"
 #include "omicron.h"
+#include "tetragrammatron.h"
 
 static int fail(const char *m) {
     fprintf(stderr, "FAIL: %s\n", m);
@@ -20,6 +21,7 @@ int main(void) {
     OmiLogCandidate lc;
     OmiLogCandidate lc2;
     OmiCitationCandidate cc;
+    TetragrammatronAcceptedState accepted;
     uint8_t h[OMICRON_PREHEADER_LEN];
     char normalized[512];
     char *boot_argv[] = {"omicron.bin", "--boot"};
@@ -188,6 +190,19 @@ int main(void) {
     if (cc.citation_hash != fnv1a64((const unsigned char *)normalized, strlen(normalized))) return fail("omi citation hash");
     if (!cc.has_frame || !cc.has_prefix || cc.prefix != 128) return fail("omi citation flags");
     if (cc.frame[6] != 0x0036 || cc.frame[7] != 0x0072) return fail("omi citation frame");
+    memset(ring, 0, sizeof(ring));
+    g_cycle = 0;
+    if (!tetragrammatron_validate_citation_candidate(&cc, &accepted)) return fail("tetragrammatron validation");
+    if (!accepted.accepted) return fail("tetragrammatron accepted flag");
+    if (accepted.citation_hash != cc.citation_hash) return fail("tetragrammatron citation hash");
+    if (accepted.result != (uint16_t)((cc.citation_hash ^ (cc.citation_hash >> 16) ^ (cc.citation_hash >> 32) ^ (cc.citation_hash >> 48)) & 0xffffu)) return fail("tetragrammatron result");
+    if (accepted.slot5040 >= RING_SIZE) return fail("tetragrammatron slot range");
+    if (count_filled_ring_slots() != 0) return fail("validation must not store ring");
+    if (!tetragrammatron_store_accepted_state(&accepted)) return fail("tetragrammatron store accepted state");
+    if (count_filled_ring_slots() != 1) return fail("store writes one ring slot");
+    if (ring[0].hash != accepted.citation_hash) return fail("stored hash");
+    if (ring[0].result != accepted.result) return fail("stored result");
+    if (strstr(ring[0].receipt, "accepted-state;slot5040=") == NULL) return fail("stored receipt label");
 
     if (!omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 FACT candidate-only-fact", &lc)) return fail("parse omilog fact");
     if (!omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 DECLARE candidate-only-declaration", &lc)) return fail("parse omilog declare");
@@ -226,6 +241,10 @@ int main(void) {
     if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 FACT authority-block\nomi-\n  ((receipt . \"accepted\"))\n-imo", &lc)) return fail("omilog authority block");
     memset(&lc, 0, sizeof(lc));
     if (omi_construct_citation_candidate(&lc, &cc)) return fail("omi citation rejects empty");
+    memset(&cc, 0, sizeof(cc));
+    if (tetragrammatron_validate_citation_candidate(&cc, &accepted)) return fail("tetragrammatron rejects empty");
+    memset(&accepted, 0, sizeof(accepted));
+    if (tetragrammatron_store_accepted_state(&accepted)) return fail("tetragrammatron rejects empty store");
 
     printf("PASS omicron boot\n");
     return 0;
