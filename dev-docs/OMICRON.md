@@ -158,7 +158,7 @@ That refactor must preserve existing CLI behavior.
 - [x] Move boot pre-header setup into `omicron_stage_preheader`.
 - [x] Move object binding into `omicron_load_system_objects`.
 - [x] Move OMI-Lisp dialect setup into `omicron_induce_omi_lisp`.
-- [ ] Make `main()` only construct `OmicronConfig` and call `omicron_boot`.
+- [x] Box legacy dispatch behind `OmicronConfig` and `omicron_boot`.
 - [ ] Delete local duplicate declarations only after modular headers can be included cleanly.
 
 The special test harness that compiles `core/omicron.c` with `main` renamed exists only because `core/omicron.c` still owns the legacy entrypoint. Remove that harness once `main()` is reduced and Omicron can be tested through the public scaffold without entrypoint rewriting.

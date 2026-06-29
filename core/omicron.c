@@ -2269,12 +2269,12 @@ static int check_incidence(void) {
     return ok ? 0 : 1;
 }
 
-int main(int argc, char **argv) {
-    signal(SIGINT,handle_signal); signal(SIGTERM,handle_signal);
-    ring_load();
-    OmicronConfig cfg;
-    omicron_config_init(&cfg);
-    omicron_config_from_cli(&cfg,argc,argv);
+static int omicron_command_needs_boot_context(OmicronCommand c) {
+    return c==OMICRON_COMMAND_BOOT||c==OMICRON_COMMAND_AUTO||c==OMICRON_COMMAND_DEFAULT;
+}
+
+static int omicron_dispatch_legacy(const OmicronConfig *cfgp, int argc, char **argv) {
+    const OmicronConfig cfg = cfgp ? *cfgp : (OmicronConfig){0};
 
     if(argc>1){
         if(cfg.command==OMICRON_COMMAND_EVAL){
@@ -2288,7 +2288,6 @@ int main(int argc, char **argv) {
         }
         if(cfg.command==OMICRON_COMMAND_RING){ring_dump();return 0;}
         if(cfg.command==OMICRON_COMMAND_BOOT){
-            if(omicron_boot(&cfg)!=0)return 1;
             CpuState cpu; cpu_init(&cpu);
             for(int i=0;i<BOOT_COUNT;i++){OmiInst inst;if(!parse_omi_addr(BOOT_ROM[i],&inst)){printf("boot: parse fail at %d\n",i);return 1;}cpu_run(&cpu,&inst);printf("boot[%d] opcode=0x%04x pc=%u car=0x%08x cdr=0x%08x pay=0x%08x epoch=%llu\n",i,inst.s3,cpu.pc,cpu.car_reg,cpu.cdr_reg,cpu.payload,(unsigned long long)cpu.epoch);if(cpu.halted)break;}
             printf("boot done pc=%u epoch=%llu\n",cpu.pc,(unsigned long long)cpu.epoch); return 0;
@@ -2297,7 +2296,6 @@ int main(int argc, char **argv) {
             printf("OPENCORE v2 — autonomous ring mode\n");
             uint64_t rounds=0; uint16_t last=0; const char *stop="running";
             CpuState cpu; cpu_init(&cpu);
-            if(omicron_boot(&cfg)!=0){printf("boot failed\n");ring_save();return 1;}
             for(int i=0;i<BOOT_COUNT;i++){OmiInst inst;if(!parse_omi_addr(BOOT_ROM[i],&inst)){stop="boot-fail";break;}cpu_run(&cpu,&inst);if(cpu.halted)break;}
             printf("boot: pc=%u epoch=%llu\n",cpu.pc,(unsigned long long)cpu.epoch);
             if(strcmp(stop,"boot-fail")==0){printf("boot failed\n");ring_save();return 1;}
@@ -2538,7 +2536,6 @@ int main(int argc, char **argv) {
     printf("OPENCORE v2 \342\200\224 autonomous AGI seed\n");
     printf("Self-generating from ring memory. External proposals accepted.\n");
     CpuState cpu; cpu_init(&cpu);
-    if(omicron_boot(&cfg)!=0){printf("boot failed\n");ring_save();return 1;}
     for(int i=0;i<BOOT_COUNT;i++){OmiInst inst;if(parse_omi_addr(BOOT_ROM[i],&inst))cpu_run(&cpu,&inst);}
     ring[ring_idx()].hash=OMI_FRAME; ring[ring_idx()].cycle=g_cycle++;
 
@@ -2590,4 +2587,18 @@ int main(int argc, char **argv) {
         }
     }
     write_ring_omi("omi.auto.ring"); ring_save(); return 0;
+}
+
+int main(int argc, char **argv) {
+    OmicronConfig cfg;
+    int rc;
+    signal(SIGINT,handle_signal); signal(SIGTERM,handle_signal);
+    ring_load();
+    omicron_config_init(&cfg);
+    omicron_config_from_cli(&cfg,argc,argv);
+    if(omicron_command_needs_boot_context(cfg.command)){
+        rc=omicron_boot(&cfg);
+        if(rc!=0)return rc;
+    }
+    return omicron_dispatch_legacy(&cfg,argc,argv);
 }
