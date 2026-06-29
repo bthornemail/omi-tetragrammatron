@@ -28,10 +28,12 @@ int main(void) {
     e = omi_gauge_get(&a, 0x78);
     if (!e) return fail("gauge 0x78 exists");
     if (!(e->flags & OMI_GAUGE_FLAG_ACTIVE)) return fail("gauge active flag");
-    if (e->bridge != OMI_BRIDGE_SYSTEM_WITNESS) return fail("gauge 0x78 bridge");
+    if (e->reserved != 0) return fail("gauge reserved clear");
+    if (omi_bridge_is_recognized(&a, OMI_BRIDGE_EXTERNAL)) return fail("bridge recognized before resolve");
 
     br = omi_bridge_resolve(&a, OMI_BRIDGE_EXTERNAL, OMI_HANDLE_NIL);
     if (!br.recognized || !br.staged || br.action != 5) return fail("external bridge result");
+    if (!omi_bridge_is_recognized(&a, OMI_BRIDGE_EXTERNAL)) return fail("external recognized");
     if (!omi_bridge_is_staged(&a, OMI_BRIDGE_EXTERNAL)) return fail("external staged");
     if (OMI_GET16(&a, OMI_OFFSET_BOOT_BRIDGE + OMI_BRIDGE_OFFSET_EXTERNAL) != OMI_BRIDGE_EXTERNAL) return fail("external bridge slot");
     if (OMI_GET32(&a, OMI_OFFSET_BOOT_BRIDGE + OMI_BRIDGE_OFFSET_BOOT_PAGE) != 0) return fail("bridge slots independent");
@@ -51,6 +53,9 @@ int main(void) {
 
     b = omi_gauge_process(&a, 0x7f, OMI_HANDLE_NIL);
     if (!(b & (1ull << OMI_BB_SEAL_7F_BIT))) return fail("seal bit");
+
+    if (omi_boot_sequence(&a, OMI_BOOT_EXTERNAL) != OMI_BRIDGE_BOOT_PAGE) return fail("external boot sequence");
+    if (!omi_bridge_is_staged(&a, OMI_BRIDGE_BOOT_PAGE)) return fail("boot sequence staged");
 
     if (omi_projection_allowed(&a, OMI_MAKE_HANDLE(OMI_HANDLE_TAG_RECEIPT, 1), OMI_EFFECT_HARDWARE)) return fail("projection must deny unaccepted receipt");
     if (!omi_symbol_intern(&a, "effect")) return fail("symbol intern");

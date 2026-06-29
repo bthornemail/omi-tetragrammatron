@@ -167,9 +167,9 @@ void omi_gauge_init(omi_arena_t *a) {
         e->diag=gauge_diag((omi_u16)i); e->action=gauge_action((omi_u8)i); e->opcode=(omi_u16)((i&0xfu)<<8);
         e->place=(i<0x20)?(omi_u16)i:0xffffu; e->flags=OMI_GAUGE_FLAG_ACTIVE;
         e->payload_seed=i; e->mask_seed=0xffffu; e->car_seed=i<<8; e->cdr_seed=i<<16;
-        if(i==0x1e){e->bridge=OMI_BRIDGE_RECORD_CLOSE;e->action=OMI_ACTION_RECORD_CLOSE;e->diag=OMI_DIAG_BALANCED;}
-        else if(i==0x78){e->bridge=OMI_BRIDGE_SYSTEM_WITNESS;e->diag=OMI_DIAG_BALANCED;e->opcode=0x0078u;}
-        else if(i==0x7f){e->bridge=OMI_BRIDGE_LOCAL_SEAL;e->diag=OMI_DIAG_PLUS;e->opcode=0x007fu;}
+        if(i==0x1e){e->action=OMI_ACTION_RECORD_CLOSE;e->diag=OMI_DIAG_BALANCED;}
+        else if(i==0x78){e->diag=OMI_DIAG_BALANCED;e->opcode=0x0078u;}
+        else if(i==0x7f){e->diag=OMI_DIAG_PLUS;e->opcode=0x007fu;}
     }
 }
 
@@ -205,13 +205,27 @@ omi_u64 omi_gauge_process(omi_arena_t *a, omi_u8 c, omi_handle_t env) {
     omi_ruler_t r; omi_gauge_derive_ruler(e,env,&r);
     omi_u64 b=OMI_GET64(a,OMI_OFFSET_BITBOARD); b=(b&~OMI_BB_GAUGE_MASK)|(omi_u64)c;
     if(e->diag==OMI_DIAG_PLUS)b|=(1ull<<OMI_BB_DPLUS_SHIFT); else if(e->diag==OMI_DIAG_MINUS)b|=(1ull<<OMI_BB_DMINUS_SHIFT);
-    if(e->bridge==OMI_BRIDGE_RECORD_CLOSE)b|=(1ull<<OMI_BB_BRIDGE_1E_BIT);
-    if(e->bridge==OMI_BRIDGE_SYSTEM_WITNESS)b|=(1ull<<OMI_BB_BRIDGE_78_BIT);
+    if(c==0x1e)b|=(1ull<<OMI_BB_BRIDGE_1E_BIT);
+    if(c==0x78)b|=(1ull<<OMI_BB_BRIDGE_78_BIT);
     if(c==0x7f)b|=(1ull<<OMI_BB_SEAL_7F_BIT);
     if(omi_bridge_is_staged(a,OMI_BRIDGE_BOOT_PAGE))b|=(1ull<<OMI_BB_BOOT_7C00_BIT);
     if(omi_bridge_is_staged(a,OMI_BRIDGE_EXTERNAL))b|=(1ull<<OMI_BB_BRIDGE_AA55_BIT);
     if(e->action==OMI_ACTION_PLACE)omi_gauge_stage_place(a,c); else if(e->action==OMI_ACTION_REGISTER_INJECT)omi_gauge_stage_register(a,c); else if(e->action==OMI_ACTION_KERNEL_READ)omi_gauge_stage_kernel(a,c);
     OMI_SET64(a,OMI_OFFSET_BITBOARD,b); return b;
+}
+
+omi_u32 omi_boot_sequence(omi_arena_t *a, omi_boot_mode_t mode) {
+    if(!a)return 0;
+    for(omi_u8 i=0;i<0x20u;i++)omi_gauge_stage_place(a,i);
+    for(omi_u8 i=0x20u;i<0x30u;i++)omi_gauge_stage_register(a,i);
+    for(omi_u8 i=0x30u;i<0x40u;i++)omi_gauge_stage_kernel(a,i);
+    omi_bridge_resolve(a,OMI_BRIDGE_SYSTEM_WITNESS,OMI_HANDLE_NIL);
+    omi_bridge_resolve(a,OMI_BRIDGE_BOOT_PAGE,OMI_HANDLE_NIL);
+    omi_bridge_resolve(a,OMI_BRIDGE_LOCAL_SEAL,OMI_HANDLE_NIL);
+    if(mode==OMI_BOOT_SYNTHETIC)omi_bridge_resolve(a,OMI_BRIDGE_EXTERNAL,OMI_HANDLE_NIL);
+    a->boot_staged=1;
+    if(!arena_ok(a,OMI_OFFSET_BOOT_BRIDGE+OMI_BRIDGE_OFFSET_BOOT_PAGE,4))return 0;
+    return OMI_GET32(a,OMI_OFFSET_BOOT_BRIDGE+OMI_BRIDGE_OFFSET_BOOT_PAGE);
 }
 
 void omi_bridge_init(omi_arena_t *a) {
@@ -234,8 +248,14 @@ omi_bridge_result_t omi_bridge_resolve(omi_arena_t *a, omi_u16 w, omi_handle_t e
 }
 
 omi_u8 omi_bridge_is_recognized(omi_arena_t *a, omi_u16 w) {
-    (void)a;
-    return (omi_u8)(w==OMI_BRIDGE_RECORD_CLOSE||w==OMI_BRIDGE_SYSTEM_WITNESS||w==OMI_BRIDGE_BOOT_PAGE||w==OMI_BRIDGE_LOCAL_SEAL||w==OMI_BRIDGE_EXTERNAL);
+    switch(w){
+    case OMI_BRIDGE_RECORD_CLOSE:if(!arena_ok(a,OMI_OFFSET_BOOT_BRIDGE+OMI_BRIDGE_OFFSET_RECORD_CLOSE,2))return 0;return (omi_u8)(OMI_GET16(a,OMI_OFFSET_BOOT_BRIDGE+OMI_BRIDGE_OFFSET_RECORD_CLOSE)==w);
+    case OMI_BRIDGE_SYSTEM_WITNESS:if(!arena_ok(a,OMI_OFFSET_BOOT_BRIDGE+OMI_BRIDGE_OFFSET_SYSTEM_WITNESS,4))return 0;return (omi_u8)(OMI_GET32(a,OMI_OFFSET_BOOT_BRIDGE+OMI_BRIDGE_OFFSET_SYSTEM_WITNESS)==w);
+    case OMI_BRIDGE_BOOT_PAGE:if(!arena_ok(a,OMI_OFFSET_BOOT_BRIDGE+OMI_BRIDGE_OFFSET_BOOT_PAGE,4))return 0;return (omi_u8)(OMI_GET32(a,OMI_OFFSET_BOOT_BRIDGE+OMI_BRIDGE_OFFSET_BOOT_PAGE)==w);
+    case OMI_BRIDGE_LOCAL_SEAL:if(!arena_ok(a,OMI_OFFSET_BOOT_BRIDGE+OMI_BRIDGE_OFFSET_LOCAL_SEAL,4))return 0;return (omi_u8)(OMI_GET32(a,OMI_OFFSET_BOOT_BRIDGE+OMI_BRIDGE_OFFSET_LOCAL_SEAL)==w);
+    case OMI_BRIDGE_EXTERNAL:if(!arena_ok(a,OMI_OFFSET_BOOT_BRIDGE+OMI_BRIDGE_OFFSET_EXTERNAL,2))return 0;return (omi_u8)(OMI_GET16(a,OMI_OFFSET_BOOT_BRIDGE+OMI_BRIDGE_OFFSET_EXTERNAL)==w);
+    default:return 0;
+    }
 }
 
 omi_u8 omi_bridge_is_staged(omi_arena_t *a, omi_u16 w) {

@@ -18,6 +18,18 @@ implmented in docs folder
 
 implmented in docs folder
 
+### dev-docs/archive/Normative Errata.md
+
+implemented in current C scaffold source and tests; moved here as historical implementation direction
+
+### dev-docs/archive/Master Header - (omi.h) - Hardened Implementation.md
+
+superseded by implemented errata and current source; moved here as historical scaffold draft
+
+### dev-docs/archive/Clippings.md
+
+moved here as research notes; useful surface/fiber language but not active canon
+
 ### dev-docs/archive/REPO.md - First Draft.md
 
 implmented in agent-docs folder

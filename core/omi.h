@@ -136,7 +136,7 @@ static inline void omi_store64le(omi_u8 *p, omi_u64 v) { omi_store32le(p, (omi_u
 
 typedef struct {
     omi_u8 code, cls, diag, action;
-    omi_u16 opcode, bridge, place, flags;
+    omi_u16 opcode, place, flags, reserved;
     omi_u32 payload_seed, mask_seed, car_seed, cdr_seed, next;
 } omi_gauge_entry_t;
 
@@ -191,7 +191,8 @@ typedef enum {
     TOKEN_SYMBOL,
     TOKEN_STRING,
     TOKEN_OMI,
-    TOKEN_BOOT
+    TOKEN_BOOT,
+    TOKEN_UNKNOWN
 } omi_token_type_t;
 
 typedef struct {
@@ -206,11 +207,17 @@ typedef enum {
 } omi_lex_mode_t;
 
 typedef struct {
+    const omi_u8 *input;
     omi_u32 input_ptr, input_len;
     omi_handle_t env;
     omi_lex_mode_t mode;
     omi_u8 in_declaration, in_comment;
 } omi_tokenizer_state_t;
+
+typedef enum {
+    OMI_BOOT_SYNTHETIC,
+    OMI_BOOT_EXTERNAL
+} omi_boot_mode_t;
 
 typedef enum {
     OMI_EFFECT_NONE = 0,
@@ -274,6 +281,7 @@ void omi_gauge_stage_place(omi_arena_t *arena, omi_u8 code);
 void omi_gauge_stage_register(omi_arena_t *arena, omi_u8 code);
 void omi_gauge_stage_kernel(omi_arena_t *arena, omi_u8 code);
 omi_u64 omi_gauge_process(omi_arena_t *arena, omi_u8 code, omi_handle_t env);
+omi_u32 omi_boot_sequence(omi_arena_t *arena, omi_boot_mode_t mode);
 
 void omi_bridge_init(omi_arena_t *arena);
 omi_bridge_result_t omi_bridge_resolve(omi_arena_t *arena, omi_u16 word, omi_handle_t env);

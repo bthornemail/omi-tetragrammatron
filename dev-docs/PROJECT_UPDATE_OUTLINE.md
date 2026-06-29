@@ -49,11 +49,13 @@ Agent REPO merge target:
 Purpose: evolve the current scaffold into the fuller reference runtime without breaking existing CLI behavior.
 
 Primary archive sources:
-- `archive/ Master Header - (omi.h) - Hardened Implementation.md`
 - `archive/Reference-Final Implementation - Complete Files.md`
-- `archive/Normative Errata.md`
 - `archive/The OMI Uniform Bitboard.md`
 - `archive/The Uniform Bitboard, Pre-Language, OMI-Lisp, and Pseudo-Persistent Open World Substrate.md`
+
+Depreciated implementation sources:
+- `depreciated/Master Header - (omi.h) - Hardened Implementation.md`
+- `depreciated/Normative Errata.md`
 
 Implementation phases:
 - Phase 2.1: finish scaffold cleanup with warning-safe helper functions and tests.
@@ -158,9 +160,11 @@ Purpose: align geometry surfaces with receipt projection while preserving Metatr
 
 Primary archive sources:
 - `archive/Metatron Scribe.md`
-- `archive/Clippings.md`
 - `archive/Reasoning Behind the OMI Protocol.md`
 - `archive/OMI as a New Paradigm.md`
+
+Depreciated research notes:
+- `depreciated/Clippings.md`
 
 Implementation targets:
 - Keep existing geometry renderers and incidence checks stable.

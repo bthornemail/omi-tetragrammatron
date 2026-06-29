@@ -1,4 +1,36 @@
 
+# DEPRECATED / RESEARCH NOTES
+
+This document is retained for historical context only.
+
+It is not current canon.
+
+Current authority order:
+
+```text
+Doctrine of Determinism
+Constants Without Constants
+Omi Surface Projection Faces
+OMI Glossary
+current source code and tests
+```
+
+Reason for depreciation:
+
+```text
+This document is a mixed research clipping file.
+It contains useful carrier/surface/fiber/projective language, but also older speculative framing.
+Use it as research notes, not as active protocol authority.
+Recognition is not acceptance.
+Citation is not acceptance.
+Closure is not acceptance.
+Projection is not acceptance.
+Validation judges.
+Receipt accepts.
+```
+
+---
+
 
 What you're converging toward is a separation between **invariant structure** and **derived interpretation**.
 

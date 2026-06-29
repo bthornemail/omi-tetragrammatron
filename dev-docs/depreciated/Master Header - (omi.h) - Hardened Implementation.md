@@ -1,3 +1,35 @@
+# DEPRECATED / SUPERSEDED
+
+This document is retained for historical context only.
+
+It is not current canon.
+
+Current authority order:
+
+```text
+Doctrine of Determinism
+Constants Without Constants
+Omi Surface Projection Faces
+OMI Glossary
+current source code and tests
+```
+
+Reason for depreciation:
+
+```text
+This document contains older implementation language superseded by the implemented errata.
+Bridge semantics moved out of gauge entries.
+Gauge returns witness only.
+Parser work requires full form parsing.
+Receipt storage only follows validation.
+Projection is gated after receipt.
+0x1E closure is not acceptance.
+Validation judges.
+Receipt accepts.
+```
+
+---
+
 Excellent catches. Let me provide the hardened, production-ready implementation with all these issues fixed.
 
 ---

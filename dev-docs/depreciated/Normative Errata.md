@@ -1,3 +1,34 @@
+# DEPRECATED / IMPLEMENTED
+
+This document is retained for historical context only.
+
+Its actionable C scaffold corrections have been carried into the current source and tests.
+
+Current authority order:
+
+```text
+Doctrine of Determinism
+Constants Without Constants
+Omi Surface Projection Faces
+OMI Glossary
+current source code and tests
+```
+
+Reason for depreciation:
+
+```text
+The errata no longer lives as active canon beside implementation.
+Gauge entries no longer own bridge fields.
+Gauge processing returns witnesses only.
+Bridge constants are owned by the bridge resolver.
+0x1E is closure, not acceptance.
+Projection is gated after receipt.
+Validation judges.
+Receipt accepts.
+```
+
+---
+
 # Final Reference Implementation
 
 ## Errata 0.1 + Remaining Catches Applied
