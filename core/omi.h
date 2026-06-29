@@ -189,7 +189,6 @@ typedef struct {
     omi_u16 prefix;
     omi_u32 payload, mask;
     omi_u64 car36_value;
-    omi_u64 citation_hash;
     size_t cdr64_len;
     omi_u8 has_frame, has_prefix, path_count;
     omi_u8 has_payload_mask, has_cons_closure;

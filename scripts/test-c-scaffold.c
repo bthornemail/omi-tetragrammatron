@@ -57,7 +57,7 @@ int main(void) {
     if (omi_boot_sequence(&a, OMI_BOOT_EXTERNAL) != OMI_BRIDGE_BOOT_PAGE) return fail("external boot sequence");
     if (!omi_bridge_is_staged(&a, OMI_BRIDGE_BOOT_PAGE)) return fail("boot sequence staged");
 
-    if (omi_projection_allowed(&a, OMI_MAKE_HANDLE(OMI_HANDLE_TAG_RECEIPT, 1), OMI_EFFECT_HARDWARE)) return fail("projection must deny unaccepted receipt");
+    if (omi_projection_allowed(&a, OMI_MAKE_HANDLE(OMI_HANDLE_TAG_RECEIPT, 1), OMI_EFFECT_HARDWARE)) return fail("projection must deny unvalidated state");
     if (!omi_symbol_intern(&a, "effect")) return fail("symbol intern");
     if (omi_symbol_intern(&a, "effect") != omi_symbol_intern(&a, "effect")) return fail("symbol intern deterministic");
 

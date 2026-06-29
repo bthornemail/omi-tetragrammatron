@@ -100,8 +100,9 @@ typedef enum {
 
 typedef struct {
     MetatronSurfaceKind surface;
-    uint8_t accepted, scribable, reserved0, reserved1;
-    uint64_t cycle, hash;
+    uint8_t validated, scribable, reserved0, reserved1;
+    uint64_t cycle;
+    uint16_t result;
     uint32_t slot5040;
     uint32_t frame_type, fiber_q, fiber_phase, fano7, role3, local240;
     char notation[512];
@@ -129,7 +130,7 @@ const ShapeDef *find_solid_with_data(int fano7, int role3);
 int check_incidence(void);
 const char *metatron_surface_name(MetatronSurfaceKind kind);
 MetatronSurfaceKind metatron_surface_parse(const char *name);
-int metatron_scribe_accepted_slot(const RingSlot *slot, MetatronSurfaceKind kind, MetatronScribeRecord *out);
+int metatron_scribe_validated_slot(const RingSlot *slot, MetatronSurfaceKind kind, MetatronScribeRecord *out);
 int metatron_scribe_receipt(const RingSlot *slot, MetatronSurfaceKind kind, MetatronScribeRecord *out);
 int metatron_scribe_ring_latest(MetatronSurfaceKind kind, MetatronScribeRecord *out);
 

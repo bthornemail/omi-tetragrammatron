@@ -1,12 +1,12 @@
 # METATRON
 
-Metatron is the scribe-transducer of accepted Omi-Ring states.
+Metatron is the scribe-transducer of validated Omi-Ring carry-forward states.
 
 It is not the validator.
 It is not only the renderer.
 It is not carrier I/O.
 
-Metatron reads Tetragrammatron-accepted receipt state of an Omi-Ring witness and adapts the invariant `omi---imo` relation into alternate notation surfaces.
+Metatron reads Tetragrammatron-validated state of an Omi-Ring witness and adapts the invariant `omi---imo` relation into alternate notation surfaces.
 
 ## Authority Rule
 
@@ -16,16 +16,16 @@ Tetragrammatron validates.
 Metatron scribes.
 IMO carries.
 Surfaces project.
-Receipt accepts.
+Validation carries forward.
 ```
 
 Metatron does not accept state. It does not validate truth. It does not mutate citation identity. It does not own files, network, browser ports, or hardware transport.
 
 ## Scribe Role
 
-Scribing means deterministic accepted-state-to-notation transduction.
+Scribing means deterministic validated-state-to-notation transduction.
 
-An accepted relation may be adapted into:
+A validated relation may be adapted into:
 
 - CONS / CAR / CDR declaration forms
 - OMI-Lisp notation
@@ -44,9 +44,9 @@ The current C core implements Metatron Scribe V0 in `core/metatron.h` and `core/
 
 - `MetatronSurfaceKind`
 - `MetatronScribeRecord`
-- `metatron_scribe_accepted_slot`
+- `metatron_scribe_validated_slot`
 - deterministic surface name parsing
-- deterministic accepted-state-to-notation scribing
+- deterministic validated-state-to-notation scribing
 - declaration-only surfaces for barcode, DOM, GPIO, symbolic, and projective targets
 - `--scribe <surface>` CLI inspection through `core/omicron.c`
 
@@ -65,18 +65,17 @@ This is active V0 code, but it is not the full Omi-Surface registry or full OMI-
 
 ## V0 Projection Gate
 
-Metatron Scribe V0 reads stored accepted-state ring entries.
+Metatron Scribe V0 reads stored validated-state ring entries.
 
 The gate is intentionally stricter than "candidate exists":
 
 ```text
-accepted-state object -> ring entry -> Metatron scribe record
+validated-state object -> ring entry -> Metatron scribe record
 ```
 
-Metatron must reject candidate-only objects. A `RingSlot` must contain both
-an accepted-state hash and receipt text before Metatron marks it accepted or
-scribable. Hash-only slots and receipt-text-only slots are not accepted-state
-projection inputs.
+Metatron must reject candidate-only objects. A `RingSlot` must contain a
+stored validated-state record before Metatron marks it validated or scribable.
+Legacy metadata-only slots are not projection inputs.
 
 Metatron does not validate.
 Metatron does not store.
@@ -96,27 +95,27 @@ unify `core/omicron.c` with the modular `core/metatron.h` API so the CLI does no
 
 The full Metatron runtime should:
 
-- read only accepted Omi-Ring state
-- read stored accepted-state ring entries before projection/scribing
+- read only validated Omi-Ring state
+- read stored validated-state ring entries before projection/scribing
 - select declared notation/surface readings
 - emit deterministic symbolic or geometric projection records
 - keep validation in Tetragrammatron
 - keep carrier I/O in IMO
-- deny side-effect projection before accepted receipt state
+- deny side-effect projection before validated carry-forward state
 
 ## Lock
 
 ```text
-Accepted relation stays invariant.
-Metatron adapts the accepted relation into notation surfaces.
+Validated relation stays invariant.
+Metatron adapts the validated relation into notation surfaces.
 Projection does not accept.
-Metatron reads stored accepted state.
+Metatron reads stored validated state.
 IMO serializes later.
-Receipt accepts.
+Validation carries forward.
 ```
 
 Compatibility note: runtime names such as `metatron_scribe_receipt` and
 `MetatronScribeRecord` remain stable API names. In current doctrine, they mean
-accepted Omi-Ring state records, not primitive protocol objects.
+validated Omi-Ring state records, not primitive protocol objects.
 `metatron_scribe_receipt` is the compatibility name; the explicit V0 gate name
-is `metatron_scribe_accepted_slot`.
+is `metatron_scribe_validated_slot`.

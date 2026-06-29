@@ -16,11 +16,11 @@ typedef struct {
 } RingSlot;
 
 typedef struct {
-    uint64_t citation_hash;
     uint16_t result;
+    uint16_t relation_fold;
     uint32_t slot5040;
-    uint8_t accepted;
-} TetragrammatronAcceptedState;
+    uint8_t validated;
+} TetragrammatronValidatedState;
 
 extern RingSlot ring[RING_SIZE];
 extern uint64_t g_cycle;
@@ -59,8 +59,8 @@ int count_filled_ring_slots(void);
 size_t tetragrammatron_export(RingSlot *out, size_t max);
 void tetragrammatron_import(const RingSlot *in, size_t count);
 
-int tetragrammatron_validate_citation_candidate(const OmiCitationCandidate *candidate, TetragrammatronAcceptedState *out);
-int tetragrammatron_store_accepted_state(const TetragrammatronAcceptedState *state);
+int tetragrammatron_validate_citation_candidate(const OmiCitationCandidate *candidate, TetragrammatronValidatedState *out);
+int tetragrammatron_store_validated_state(const TetragrammatronValidatedState *state);
 
 /* Chiral diagonal law */
 typedef enum { CHIRAL_BALANCED=0, CHIRAL_POSTING=1, CHIRAL_PULLING=-1, CHIRAL_INCOMPLETE=-2 } ChiralDir;

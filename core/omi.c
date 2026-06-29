@@ -59,7 +59,6 @@ int omi_construct_citation_candidate(const struct OmiLogCandidate *source, OmiCi
     out->has_source_block=source->has_source_block;
     out->has_o_expression_body=source->has_o_expression_body;
     out->candidate_only=1;
-    out->citation_hash=fnv1a64((const unsigned char*)out->citation_text,strlen(out->citation_text));
     return 1;
 }
 

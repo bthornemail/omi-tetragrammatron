@@ -337,17 +337,18 @@ MetatronSurfaceKind metatron_surface_parse(const char *s) {
 }
 
 static int metatron_slot_accepted(const RingSlot *s) {
-    return s && s->hash != 0 && s->receipt[0] != 0;
+    return s && strncmp(s->receipt, "validated-state;", 16) == 0;
 }
 
 static void metatron_scribe_route(const RingSlot *s, MetatronScribeRecord *o) {
+    uint64_t q = ((uint64_t)s->result << 16) | (uint64_t)(s->cycle & 0xffffu);
     TwinGeometry g = resolve_hopf_ququart_route(
         (int)(s->cycle % 11),
-        (int)(s->hash % 4),
-        (int)((s->hash >> 8) % 4),
-        (int)((s->cycle + s->hash) % 7),
-        (int)(s->hash % 3),
-        s->hash);
+        (int)(s->result % 4),
+        (int)((s->result >> 2) % 4),
+        (int)((s->cycle + s->result) % 7),
+        (int)(s->result % 3),
+        q);
     double p = g.fiberPhase;
     while (p < 0.0) p += 2.0 * M_PI;
     while (p >= 2.0 * M_PI) p -= 2.0 * M_PI;
@@ -360,32 +361,32 @@ static void metatron_scribe_route(const RingSlot *s, MetatronScribeRecord *o) {
     o->local240 = (uint32_t)g.local240;
 }
 
-int metatron_scribe_accepted_slot(const RingSlot *s, MetatronSurfaceKind k, MetatronScribeRecord *o) {
+int metatron_scribe_validated_slot(const RingSlot *s, MetatronSurfaceKind k, MetatronScribeRecord *o) {
     if (!o) return 0;
     memset(o, 0, sizeof(*o));
     o->surface = k;
     if (!metatron_slot_accepted(s)) return 0;
-    o->accepted = 1;
+    o->validated = 1;
     o->cycle = s->cycle;
-    o->hash = s->hash;
+    o->result = s->result;
     if (k == METATRON_SURFACE_UNKNOWN) return 0;
     metatron_scribe_route(s, o);
     const char *n = metatron_surface_name(k);
     int w = 0;
     switch (k) {
         case METATRON_SURFACE_CONS:
-            w = snprintf(o->notation, sizeof(o->notation), "(receipt . (%llu . 0x%016llx))",
-                (unsigned long long)o->cycle, (unsigned long long)o->hash);
+            w = snprintf(o->notation, sizeof(o->notation), "(validated . (%llu . 0x%04x))",
+                (unsigned long long)o->cycle, (unsigned)o->result);
             break;
         case METATRON_SURFACE_OMI_LISP:
             w = snprintf(o->notation, sizeof(o->notation),
-                "(metatron.scribe (surface \"%s\") (cycle %llu) (hash \"0x%016llx\") (slot5040 %u) (frame %u) (fiber %u))",
-                n, (unsigned long long)o->cycle, (unsigned long long)o->hash, o->slot5040, o->frame_type, o->fiber_q);
+                "(metatron.scribe (surface \"%s\") (cycle %llu) (result \"0x%04x\") (slot5040 %u) (frame %u) (fiber %u))",
+                n, (unsigned long long)o->cycle, (unsigned)o->result, o->slot5040, o->frame_type, o->fiber_q);
             break;
         case METATRON_SURFACE_GEOMETRY:
             w = snprintf(o->notation, sizeof(o->notation),
-                "(metatron.geometry (cycle %llu) (hash \"0x%016llx\") (slot5040 %u) (frame %u) (fiber %u) (fano %u) (role %u) (local %u))",
-                (unsigned long long)o->cycle, (unsigned long long)o->hash, o->slot5040, o->frame_type, o->fiber_q, o->fano7, o->role3, o->local240);
+                "(metatron.geometry (cycle %llu) (result \"0x%04x\") (slot5040 %u) (frame %u) (fiber %u) (fano %u) (role %u) (local %u))",
+                (unsigned long long)o->cycle, (unsigned)o->result, o->slot5040, o->frame_type, o->fiber_q, o->fano7, o->role3, o->local240);
             break;
         case METATRON_SURFACE_BARCODE:
         case METATRON_SURFACE_DOM:
@@ -393,8 +394,8 @@ int metatron_scribe_accepted_slot(const RingSlot *s, MetatronSurfaceKind k, Meta
         case METATRON_SURFACE_SYMBOLIC:
         case METATRON_SURFACE_PROJECTIVE:
             w = snprintf(o->notation, sizeof(o->notation),
-                "(metatron.declare (surface \"%s\") (cycle %llu) (hash \"0x%016llx\") (effect none))",
-                n, (unsigned long long)o->cycle, (unsigned long long)o->hash);
+                "(metatron.declare (surface \"%s\") (cycle %llu) (result \"0x%04x\") (effect none))",
+                n, (unsigned long long)o->cycle, (unsigned)o->result);
             break;
         default:
             return 0;
@@ -408,7 +409,7 @@ int metatron_scribe_accepted_slot(const RingSlot *s, MetatronSurfaceKind k, Meta
 }
 
 int metatron_scribe_receipt(const RingSlot *s, MetatronSurfaceKind k, MetatronScribeRecord *o) {
-    return metatron_scribe_accepted_slot(s, k, o);
+    return metatron_scribe_validated_slot(s, k, o);
 }
 
 int metatron_scribe_ring_latest(MetatronSurfaceKind k, MetatronScribeRecord *o) {
@@ -417,7 +418,7 @@ int metatron_scribe_ring_latest(MetatronSurfaceKind k, MetatronScribeRecord *o) 
         if (!metatron_slot_accepted(&ring[i])) continue;
         if (!best || ring[i].cycle >= best->cycle) best = &ring[i];
     }
-    return metatron_scribe_accepted_slot(best, k, o);
+    return metatron_scribe_validated_slot(best, k, o);
 }
 
 void print_twin_geometry(const TwinGeometry *g) {

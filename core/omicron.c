@@ -99,8 +99,9 @@ typedef enum {
 
 typedef struct {
     MetatronSurfaceKind surface;
-    uint8_t accepted, scribable, reserved0, reserved1;
-    uint64_t cycle, hash;
+    uint8_t validated, scribable, reserved0, reserved1;
+    uint64_t cycle;
+    uint16_t result;
     uint32_t slot5040;
     uint32_t frame_type, fiber_q, fiber_phase, fano7, role3, local240;
     char notation[512];
@@ -2763,9 +2764,9 @@ static int omicron_dispatch_legacy(const OmicronConfig *cfgp, int argc, char **a
             MetatronScribeRecord r;
             const RingSlot *best=NULL;
             if(k==METATRON_SURFACE_UNKNOWN){fprintf(stderr,"scribe: unknown surface: %s\n",cfg.command_arg);return 2;}
-            for(size_t i=0;i<RING_SIZE;i++){if(!ring[i].hash||!ring[i].receipt[0])continue;if(!best||ring[i].cycle>=best->cycle)best=&ring[i];}
+            for(size_t i=0;i<RING_SIZE;i++){if(strncmp(ring[i].receipt,"validated-state;",16)!=0)continue;if(!best||ring[i].cycle>=best->cycle)best=&ring[i];}
             metatron_scribe_receipt(best,k,&r);
-            if(!r.accepted){fprintf(stderr,"scribe: no accepted receipt\n");return 3;}
+            if(!r.validated){fprintf(stderr,"scribe: no validated state\n");return 3;}
             if(!r.scribable){fprintf(stderr,"scribe: failed for surface: %s\n",cfg.command_arg);return 4;}
             printf("%s\n",r.notation); return 0;
         }

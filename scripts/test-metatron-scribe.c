@@ -34,37 +34,37 @@ int main(void) {
 
     memset(&s, 0, sizeof(s));
     if (metatron_scribe_receipt(&s, METATRON_SURFACE_CONS, &r)) return fail("empty slot return");
-    if (r.accepted || r.scribable || r.notation[0]) return fail("empty slot state");
+    if (r.validated || r.scribable || r.notation[0]) return fail("empty slot state");
 
     memset(&s, 0, sizeof(s));
     s.cycle = 7;
     s.hash = 0x0123456789abcdefull;
-    if (metatron_scribe_receipt(&s, METATRON_SURFACE_CONS, &r)) return fail("hash-only slot return");
-    if (r.accepted || r.scribable || r.notation[0]) return fail("hash-only slot state");
+    if (metatron_scribe_receipt(&s, METATRON_SURFACE_CONS, &r)) return fail("legacy metadata slot return");
+    if (r.validated || r.scribable || r.notation[0]) return fail("legacy metadata slot state");
 
     memset(&s, 0, sizeof(s));
     strcpy(s.receipt, "{\"ok\":true}");
-    if (metatron_scribe_receipt(&s, METATRON_SURFACE_CONS, &r)) return fail("receipt-only slot return");
-    if (r.accepted || r.scribable || r.notation[0]) return fail("receipt-only slot state");
+    if (metatron_scribe_receipt(&s, METATRON_SURFACE_CONS, &r)) return fail("non-validated slot return");
+    if (r.validated || r.scribable || r.notation[0]) return fail("non-validated slot state");
 
     memset(&s, 0, sizeof(s));
     s.cycle = 7;
-    s.hash = 0x0123456789abcdefull;
-    strcpy(s.receipt, "{\"ok\":true}");
+    s.result = 0xabcd;
+    strcpy(s.receipt, "validated-state;slot5040=77;result=0xabcd;fold=0x1234");
 
-    if (!metatron_scribe_accepted_slot(&s, METATRON_SURFACE_CONS, &r)) return fail("accepted slot scribe");
-    if (!r.accepted || !r.scribable) return fail("accepted slot flags");
+    if (!metatron_scribe_validated_slot(&s, METATRON_SURFACE_CONS, &r)) return fail("validated slot scribe");
+    if (!r.validated || !r.scribable) return fail("validated slot flags");
 
     if (metatron_scribe_receipt(&s, METATRON_SURFACE_UNKNOWN, &r)) return fail("unknown surface return");
-    if (!r.accepted || r.scribable || r.notation[0]) return fail("unknown surface state");
+    if (!r.validated || r.scribable || r.notation[0]) return fail("unknown surface state");
 
     if (!metatron_scribe_receipt(&s, METATRON_SURFACE_CONS, &r)) return fail("cons scribe");
-    if (!r.accepted || !r.scribable) return fail("cons flags");
-    if (strcmp(r.notation, "(receipt . (7 . 0x0123456789abcdef))") != 0) return fail("cons notation");
+    if (!r.validated || !r.scribable) return fail("cons flags");
+    if (strcmp(r.notation, "(validated . (7 . 0xabcd))") != 0) return fail("cons notation");
 
     if (!metatron_scribe_receipt(&s, METATRON_SURFACE_OMI_LISP, &r)) return fail("omi-lisp scribe");
     snprintf(expect, sizeof(expect),
-        "(metatron.scribe (surface \"omi-lisp\") (cycle 7) (hash \"0x0123456789abcdef\") (slot5040 %u) (frame %u) (fiber %u))",
+        "(metatron.scribe (surface \"omi-lisp\") (cycle 7) (result \"0xabcd\") (slot5040 %u) (frame %u) (fiber %u))",
         r.slot5040, r.frame_type, r.fiber_q);
     if (strcmp(r.notation, expect) != 0) return fail("omi-lisp notation");
 
@@ -81,17 +81,17 @@ int main(void) {
 
     memset(ring, 0, sizeof(ring));
     if (metatron_scribe_ring_latest(METATRON_SURFACE_CONS, &r)) return fail("empty ring latest return");
-    if (r.accepted || r.scribable) return fail("empty ring latest state");
+    if (r.validated || r.scribable) return fail("empty ring latest state");
     ring[1] = s;
     ring[1].receipt[0] = 0;
     if (metatron_scribe_ring_latest(METATRON_SURFACE_CONS, &r)) return fail("candidate ring latest return");
-    if (r.accepted || r.scribable) return fail("candidate ring latest state");
+    if (r.validated || r.scribable) return fail("candidate ring latest state");
     ring[2] = s;
     ring[3] = s;
     ring[3].cycle = 9;
-    ring[3].hash = 0x1111111111111111ull;
+    ring[3].result = 0x1111;
     if (!metatron_scribe_ring_latest(METATRON_SURFACE_CONS, &r)) return fail("latest scribe");
-    if (r.cycle != 9 || r.hash != 0x1111111111111111ull) return fail("latest selected");
+    if (r.cycle != 9 || r.result != 0x1111) return fail("latest selected");
 
     printf("PASS metatron scribe\n");
     return 0;

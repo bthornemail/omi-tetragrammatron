@@ -21,7 +21,7 @@ int main(void) {
     OmiLogCandidate lc;
     OmiLogCandidate lc2;
     OmiCitationCandidate cc;
-    TetragrammatronAcceptedState accepted;
+    TetragrammatronValidatedState validated;
     uint8_t h[OMICRON_PREHEADER_LEN];
     char normalized[512];
     char *boot_argv[] = {"omicron.bin", "--boot"};
@@ -104,7 +104,7 @@ int main(void) {
      * These tests cover candidate syntax, normalized notation, lowered frames,
      * dialect surfaces, prefix/path parsing, and CAR/CDR closure decoding only.
      *
-     * Parser fields must not imply validation, acceptance, receipt creation,
+     * Parser fields must not imply validation, receipt creation,
      * proof generation, projection, routing, or receipt-ring storage.
      *
      * Allowed example:
@@ -112,14 +112,13 @@ int main(void) {
      *
      * Forbidden examples:
      *   lowered_valid_candidate
-     *   accepted_candidate
      *   receipt_candidate
      *   proof_candidate
      *   projection_candidate
      *
      * Omicron lowers notation candidates.
-     * Tetragrammatron validates and accepts.
-     * Metatron projects accepted state.
+     * Tetragrammatron validates transition state.
+     * Metatron projects validated carry-forward state.
      */
     if (!omicron_parse_address_candidate("omi---imo", &ac)) return fail("parse omi ring");
     if (!ac.has_open || !ac.has_close) return fail("omi ring bounds");
@@ -180,29 +179,27 @@ int main(void) {
      * Tetragrammatron validation guardrail:
      *
      * OmiCitationCandidate is still candidate state.
-     * Citation text and citation hash are not acceptance.
-     * Future validation may produce accepted-state objects.
+     * Citation text is not validation.
+     * Validation may produce validated carry-forward state.
      * Ring storage must remain a separate explicit step.
      */
     if (!omi_construct_citation_candidate(&lc, &cc)) return fail("omi citation candidate");
     if (!cc.candidate_only) return fail("omi citation candidate only");
     if (strcmp(cc.citation_text, normalized) != 0) return fail("omi citation text");
-    if (cc.citation_hash != fnv1a64((const unsigned char *)normalized, strlen(normalized))) return fail("omi citation hash");
     if (!cc.has_frame || !cc.has_prefix || cc.prefix != 128) return fail("omi citation flags");
     if (cc.frame[6] != 0x0036 || cc.frame[7] != 0x0072) return fail("omi citation frame");
     memset(ring, 0, sizeof(ring));
     g_cycle = 0;
-    if (!tetragrammatron_validate_citation_candidate(&cc, &accepted)) return fail("tetragrammatron validation");
-    if (!accepted.accepted) return fail("tetragrammatron accepted flag");
-    if (accepted.citation_hash != cc.citation_hash) return fail("tetragrammatron citation hash");
-    if (accepted.result != (uint16_t)((cc.citation_hash ^ (cc.citation_hash >> 16) ^ (cc.citation_hash >> 32) ^ (cc.citation_hash >> 48)) & 0xffffu)) return fail("tetragrammatron result");
-    if (accepted.slot5040 >= RING_SIZE) return fail("tetragrammatron slot range");
+    if (!tetragrammatron_validate_citation_candidate(&cc, &validated)) return fail("tetragrammatron validation");
+    if (!validated.validated) return fail("tetragrammatron validated flag");
+    if (validated.relation_fold == 0) return fail("tetragrammatron relation fold");
+    if (validated.slot5040 >= RING_SIZE) return fail("tetragrammatron slot range");
     if (count_filled_ring_slots() != 0) return fail("validation must not store ring");
-    if (!tetragrammatron_store_accepted_state(&accepted)) return fail("tetragrammatron store accepted state");
+    if (!tetragrammatron_store_validated_state(&validated)) return fail("tetragrammatron store validated state");
     if (count_filled_ring_slots() != 1) return fail("store writes one ring slot");
-    if (ring[0].hash != accepted.citation_hash) return fail("stored hash");
-    if (ring[0].result != accepted.result) return fail("stored result");
-    if (strstr(ring[0].receipt, "accepted-state;slot5040=") == NULL) return fail("stored receipt label");
+    if (ring[0].hash != 0) return fail("stored state must not use hash identity");
+    if (ring[0].result != validated.result) return fail("stored result");
+    if (strstr(ring[0].receipt, "validated-state;slot5040=") == NULL) return fail("stored validated label");
 
     if (!omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 FACT candidate-only-fact", &lc)) return fail("parse omilog fact");
     if (!omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 DECLARE candidate-only-declaration", &lc)) return fail("parse omilog declare");
@@ -234,7 +231,7 @@ int main(void) {
     if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 must lower-case-keyword", &lc)) return fail("omilog lowercase keyword");
     if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 MUST", &lc)) return fail("omilog missing assignment");
     if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128", &lc)) return fail("omilog missing keyword");
-    if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 RECEIPT creates-accepted-state", &lc)) return fail("omilog authority keyword receipt");
+    if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 RECEIPT creates-validated-state", &lc)) return fail("omilog authority keyword receipt");
     if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 PROOF creates-proof", &lc)) return fail("omilog authority keyword proof");
     if (omilog_parse_candidate("not-an-address MUST x", &lc)) return fail("omilog invalid address");
     if (omilog_parse_candidate("omi-0000-0000-0000-0000-0000-0000-0036-0072/128 FACT open-block\nomi-\n  ((x . y))", &lc)) return fail("omilog unclosed block");
@@ -242,9 +239,9 @@ int main(void) {
     memset(&lc, 0, sizeof(lc));
     if (omi_construct_citation_candidate(&lc, &cc)) return fail("omi citation rejects empty");
     memset(&cc, 0, sizeof(cc));
-    if (tetragrammatron_validate_citation_candidate(&cc, &accepted)) return fail("tetragrammatron rejects empty");
-    memset(&accepted, 0, sizeof(accepted));
-    if (tetragrammatron_store_accepted_state(&accepted)) return fail("tetragrammatron rejects empty store");
+    if (tetragrammatron_validate_citation_candidate(&cc, &validated)) return fail("tetragrammatron rejects empty");
+    memset(&validated, 0, sizeof(validated));
+    if (tetragrammatron_store_validated_state(&validated)) return fail("tetragrammatron rejects empty store");
 
     printf("PASS omicron boot\n");
     return 0;

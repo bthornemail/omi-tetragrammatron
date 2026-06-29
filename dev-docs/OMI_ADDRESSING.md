@@ -29,7 +29,7 @@ Frame identifies.
 Slash derives.
 Path selects.
 Clauses validate.
-Receipt accepts.
+Validation carries forward.
 ```
 
 CIDR-style notation is a readable CONS surface:
@@ -72,21 +72,57 @@ OMI addressing does not own:
 Canonical invariant:
 
 ```text
-Recognition is not acceptance.
-Citation is not acceptance.
-Omi-Ring formation is not acceptance.
-Slash derivation is not acceptance.
-Projection is not acceptance.
-Validation and receipt accept.
+Recognition is not validation.
+Citation is not validation.
+Omi-Ring formation is not validation.
+Slash derivation is not validation.
+Projection is not validation.
+Validation is the protocol boundary.
 ```
+
+## Place-Value Identity
+
+OMI notation citations are not identified by hashes.
+
+The addressed place-value relation is the identity. Hashing, checksums,
+encryption, signatures, and digest labels are outside the deterministic
+identity model of the protocol.
+
+External systems may hash or encrypt an OMI notation citation for private
+transport, secrecy, indexing, or compatibility. That transformed value is not
+an OMI identity, not an Omi-Ring witness, not validation input, and not
+validated state. It is an external carrier artifact used at the operator's own
+risk.
+
+Cascade:
+
+```text
+omi---imo  names the root relation
+o---o      compiles the relation into object form
+/---/      derives scoped routes from that object relation
+?---?      witnesses or queries the routed relation
+@---@      closes the relation as CAR/CDR continuation
+```
+
+Place-value rule:
+
+```text
+@---@ resolves through ?---?
+?---? resolves through /---/
+/---/ resolves through o---o
+o---o resolves through omi---imo
+```
+
+Wider forms do not replace the root. Wider forms must remain resolvable back to
+the root addressed relation.
 
 ## Omi-Ring Vocabulary
 
 Use `Omi-Ring` for the bounded addressed notation witness.
 
-Use `receipt` only for the accepted validation state of that witness.
+Use `receipt` only as a compatibility name for a stored validated state of that witness.
 
-Use `receipt ring` for storage and replay of accepted Omi-Ring states.
+Use `receipt ring` only as a compatibility name for storage and replay of validated Omi-Ring states.
 
 Correct stack:
 
@@ -95,8 +131,8 @@ omi---imo
   -> Omi-Ring addressed notation witness
   -> candidate citation
   -> validation
-  -> accepted receipt state
-  -> receipt ring storage
+  -> validated carry-forward state
+  -> validated state ring storage
   -> scribing / projection / carrier output
 ```
 
@@ -509,7 +545,7 @@ selector(Frame, 0x28).
 overlay(Frame, euler).
 ```
 
-The path describes how data becomes eligible for accepted receipt state. It does not accept the relation.
+The path describes how data becomes eligible for validated carry-forward state. It does not validate the relation.
 
 ## V0 Implementation Target
 
@@ -533,7 +569,7 @@ lowered hexadecimal candidate frame
 It should not:
 
 - validate
-- store accepted receipt states
+- store validated states
 - perform longest-prefix routing over live tables
 - execute Horn clauses
 - project surfaces
@@ -562,7 +598,7 @@ Suggested C ownership:
 OMI owns canonical address parsing and normalization.
 Omicron owns dialect induction and readable address lowering.
 Tetragrammatron owns validation and acceptance.
-Metatron owns accepted-state scribing and projection.
+Metatron owns validated-state scribing and projection.
 IMO owns carrier parsing, files, server, and output.
 ```
 
@@ -574,4 +610,4 @@ CONS relates.
 Prefix scopes.
 Path selects.
 Validation judges.
-Receipt accepts.
+Validation carries forward.

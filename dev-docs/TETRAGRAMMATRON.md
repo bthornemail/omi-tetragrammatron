@@ -2,7 +2,7 @@
 
 Status: active validation guardrail
 
-Tetragrammatron is the validation authority. It is the only authority that may judge whether an OMI citation candidate becomes an accepted Omi-Ring state.
+Tetragrammatron is the validation authority. It judges whether an OMI citation candidate becomes validated carry-forward state.
 
 ```text
 Omi-Log declares.
@@ -16,10 +16,10 @@ Tetragrammatron validates later.
 Tetragrammatron may:
 
 - validate OMI citation candidates
-- produce accepted Omi-Ring state
-- write accepted-state ring entries
-- export and import accepted-state ring memory
-- compute deterministic folds over accepted-state ring memory
+- produce validated Omi-Ring transition state
+- write validated-state ring entries
+- export and import validated-state ring memory
+- compute deterministic folds over validated-state ring memory
 
 Tetragrammatron must not:
 
@@ -30,12 +30,11 @@ Tetragrammatron must not:
 - serialize carrier files
 - perform browser, network, filesystem, or hardware carrier I/O
 
-## Candidate Is Not Acceptance
+## Candidate Is Not Validation
 
-These are not acceptance:
+These are not validation:
 
 ```text
-OMI citation hash
 OmiCitationCandidate
 Omi-Log source block
 Omicron lowered_candidate
@@ -44,22 +43,24 @@ carrier decode
 projection request
 ```
 
-Validation is the boundary between candidate state and accepted state.
+Validation is the boundary between candidate state and validated carry-forward state.
+
+Hashes, checksums, fingerprints, signatures, encrypted labels, and digest labels are not OMI identity, not Omi-Ring witnesses, not validation input, and not validated state.
 
 ## Validation And Storage Split
 
 The implementation keeps validation and storage separate:
 
 ```text
-validate candidate -> accepted-state object
-store accepted-state -> ring entry
+validate candidate -> validated carry-forward state
+store validated-state -> ring entry
 ```
 
-Validation may accept or reject a candidate.
+Validation may validate or reject a candidate.
 
-Storage records an already accepted state.
+Storage records an already validated state.
 
-Projection still waits for accepted state.
+Projection still waits for validated carry-forward state.
 
 ## V0 Validation API
 
@@ -68,7 +69,7 @@ The V0 validation-only API is:
 ```c
 int tetragrammatron_validate_citation_candidate(
     const OmiCitationCandidate *candidate,
-    TetragrammatronAcceptedState *out
+    TetragrammatronValidatedState *out
 );
 ```
 
@@ -76,11 +77,11 @@ It constructs:
 
 ```c
 typedef struct {
-    uint64_t citation_hash;
     uint16_t result;
+    uint16_t relation_fold;
     uint32_t slot5040;
-    uint8_t accepted;
-} TetragrammatronAcceptedState;
+    uint8_t validated;
+} TetragrammatronValidatedState;
 ```
 
 This function does not write the ring.
@@ -90,12 +91,12 @@ This function does not write the ring.
 The V0 explicit storage API is:
 
 ```c
-int tetragrammatron_store_accepted_state(
-    const TetragrammatronAcceptedState *state
+int tetragrammatron_store_validated_state(
+    const TetragrammatronValidatedState *state
 );
 ```
 
-This function records an already accepted state in the in-memory accepted-state ring.
+This function records an already validated state in the in-memory validated-state ring.
 
 It does not validate candidates, parse source, project surfaces, serialize files, or perform carrier I/O.
 
@@ -107,22 +108,23 @@ accept_omilog
 project_omilog
 proof_from_omilog
 store_candidate_as_receipt
+hash_citation_identity
 ```
 
 Allowed direction:
 
 ```text
 tetragrammatron_validate_citation_candidate
-tetragrammatron_store_accepted_state
+tetragrammatron_store_validated_state
 ```
 
 ## Lock
 
 ```text
-OMI citation candidates are not accepted state.
+OMI citation candidates are not validated state.
+Hashing is not citation identity.
 Tetragrammatron validates.
-Accepted state may then be stored.
+Validated carry-forward state may then be stored.
 IMO serializes later.
 Metatron projects later.
-Receipt accepts.
 ```

@@ -15,36 +15,36 @@ Notation is citation.
 Omi-Ring witnesses.
 Canon validates.
 Cosmology projects.
-Receipt accepts.
+Validation carries forward.
 ```
 
-No layer is authority by itself. Validation is the exclusive boundary between candidate state and accepted state. The Omi-Ring is the addressed palindromic notation witness; a receipt is the accepted validation state of that witness.
+No layer is authority by itself. Validation is the exclusive boundary between candidate state and validated carry-forward state. The Omi-Ring is the addressed palindromic notation witness; a receipt is a compatibility name for stored validated state of that witness.
 
 Compatibility rule:
 
 ```text
-receipt = accepted validation state of an Omi-Ring
-receipt ring = storage/replay surface for accepted Omi-Ring states
-receipt-like = compatibility shape for accepted-state records
+receipt = compatibility record for validated state of an Omi-Ring
+receipt ring = compatibility storage/replay surface for validated Omi-Ring states
+receipt-like = compatibility shape for validated-state records
 ```
 
 ## 2. Authorities
 
 OMI is the Citation Authority.
-- Owns address/ruler notation, CONS/CAR/CDR identity, hashes, fixed-width operations, and citation construction.
+- Owns address/ruler notation, CONS/CAR/CDR identity, fixed-width operations, and citation construction.
 - Owns `OmiCitationCandidate` construction from normalized/lowered Omi-Log candidates.
 - Does not validate, project, transport, or accept.
 
 Tetragrammatron is the Validation Authority.
-- Owns deterministic validation, DeltaC/BQF/Polybius/Fano/slot5040 logic, receipt acceptance, and the 5040-slot accepted-state ring.
-- Owns `TetragrammatronAcceptedState` construction from OMI citation candidates.
-- Owns explicit in-memory accepted-state storage through `tetragrammatron_store_accepted_state`.
+- Owns deterministic validation, DeltaC/BQF/Polybius/Fano/slot5040 logic, validated carry-forward state, and the 5040-slot validated-state ring.
+- Owns `TetragrammatronValidatedState` construction from OMI citation candidates.
+- Owns explicit in-memory validated-state storage through `tetragrammatron_store_validated_state`.
 - Active guardrail: `dev-docs/TETRAGRAMMATRON.md`.
 - Does not render, parse carriers, transport, or mutate identity.
 
 Metatron is the Projection and Scribe-Transducer Authority.
-- Owns deterministic accepted-state-to-notation transduction, geometry, surfaces, coordinates, solids, Smith/Gnomonic/CSS-style projection meaning, and renderers.
-- V0 scribing reads stored accepted-state ring entries through accepted-slot gating; candidate-only state is not a projection input.
+- Owns deterministic validated-state-to-notation transduction, geometry, surfaces, coordinates, solids, Smith/Gnomonic/CSS-style projection meaning, and renderers.
+- V0 scribing reads stored validated-state ring entries through validated-slot gating; candidate-only state is not a projection input.
 - Does not validate, transport, or accept.
 
 IMO is the Carrier Authority.
@@ -78,7 +78,7 @@ Required semantic rules:
 - Notation is citation, not acceptance.
 - Dot pairs preserve CAR/CDR closure.
 - Lazy evaluation applies down to hardware.
-- No side effects before accepted receipt.
+- No side effects before validated carry-forward state.
 - Events and intents are symmetric candidate forms.
 - Accepted Omi-Ring states preserve identity across carriers and projections.
 
@@ -99,10 +99,10 @@ Frame identifies.
 Slash derives.
 Path selects.
 Clauses validate.
-Receipt accepts.
+Validation carries forward.
 ```
 
-The Omi-Ring is the bounded addressed notation witness of an `omi---imo` relation. A receipt is only the accepted validation state of that witness. The receipt ring stores and replays accepted Omi-Ring states.
+The Omi-Ring is the bounded addressed notation witness of an `omi---imo` relation. A receipt is only a compatibility name for stored validated state of that witness. The receipt ring stores and replays validated Omi-Ring states.
 
 Required V0 surface forms:
 
@@ -138,8 +138,8 @@ carrier input
   -> IMO recognizes and normalizes representation
   -> OMI cites identity and constructs candidate relation
   -> Tetragrammatron validates candidate
-  -> receipt ring records accepted Omi-Ring state
-  -> Metatron scribes/projects accepted state
+  -> validated-state ring records validated Omi-Ring state
+  -> Metatron scribes/projects validated state
   -> IMO carries projected surface/output
 ```
 
@@ -178,7 +178,7 @@ Carrier behavior may deliver inputs, but deterministic output must depend only o
 
 Core runtime source files:
 - `core/omi.h` / `core/omi.c`: Citation Authority and deterministic instruction core.
-- `core/tetragrammatron.h` / `core/tetragrammatron.c`: Validation Authority and accepted-state ring.
+- `core/tetragrammatron.h` / `core/tetragrammatron.c`: Validation Authority and validated-state ring.
 - `core/metatron.h` / `core/metatron.c`: Projection Authority and geometry surfaces.
 - `core/imo.h` / `core/imo.c`: Carrier Authority, parsers, files, server, and ports.
 - `core/omicron.h` / `core/omicron.c`: boot/context/dialect scaffold and orchestration application, replacing legacy `opencode.c`.
@@ -220,7 +220,7 @@ Barcode policy:
 
 Adapter policy:
 - Browser, serial, DOM/CSSOM/Canvas/WebGL, ESP32, file, network, and P2P adapters must be receipt-gated for side effects.
-- Hardware and network projection require accepted receipt, declared effect, role/scope permission, and bridge authorization.
+- Hardware and network projection require validated carry-forward state, declared effect, role/scope permission, and bridge authorization.
 
 ## 10. Repository And Version Policy
 
@@ -235,7 +235,7 @@ Versioning model:
 - File diffs are carriers.
 - OMI-Lisp declarations are candidates.
 - Validation determines acceptance.
-- Receipts are accepted Omi-Ring version identity.
+- Receipts are compatibility records for validated Omi-Ring version state.
 - `.imo` files may carry normalized candidate or accepted declarations.
 
 ## 11. Required Tests
@@ -273,10 +273,10 @@ Do not:
 
 The project is specification-complete when:
 - OMI-Lisp notation can be parsed into deterministic candidate relations.
-- Omi-Log declarations lower into Omi-Ring candidates without creating accepted state.
+- Omi-Log declarations lower into Omi-Ring candidates without creating validated state.
 - OMI constructs citation candidates from lowered declaration candidates without validating or accepting them.
-- Candidates validate through Tetragrammatron into accepted-state objects and may then be recorded through explicit accepted-state storage.
+- Candidates validate through Tetragrammatron into validated carry-forward state and may then be recorded through explicit validated-state storage.
 - Accepted Omi-Ring states record identity in the ring.
-- Metatron scribing and projections derive only from accepted states.
+- Metatron scribing and projections derive only from validated states.
 - IMO carries input/output without owning truth.
 - The public portal can bootstrap LLM agents from `agent-docs/` without overriding root repository policy.
