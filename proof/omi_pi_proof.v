@@ -518,6 +518,136 @@ Proof.
     field; split; assumption.
 Qed.
 
+Theorem OMI_PHI_gt_1 :
+  1 < OMI_PHI.
+Proof.
+  unfold OMI_PHI, OMI_PHI_witness, classical_phi.
+  simpl.
+  apply (Rmult_lt_reg_r 2).
+  - lra.
+  - field_simplify.
+    assert (Hs : 1 < sqrt 5).
+    { replace 1 with (sqrt 1) by (rewrite sqrt_1; reflexivity).
+      apply sqrt_lt_1; lra. }
+    lra.
+Qed.
+
+Theorem phi_iter_ge_1 : forall n : nat,
+  1 <= phi_iter n.
+Proof.
+  induction n as [| n IH].
+  - unfold phi_iter.
+    simpl.
+    lra.
+  - rewrite phi_iter_step.
+    unfold phi_step.
+    assert (0 <= / phi_iter n).
+    { apply Rlt_le. apply Rinv_0_lt_compat. lra. }
+    lra.
+Qed.
+
+Theorem phi_error_step : forall n : nat,
+  Rabs (phi_iter (S n) - OMI_PHI) <=
+  Rabs (phi_iter n - OMI_PHI) * / OMI_PHI.
+Proof.
+  intro n.
+  assert (Hxpos : 0 < phi_iter n) by apply phi_iter_positive.
+  assert (Hpgt : 1 < OMI_PHI) by apply OMI_PHI_gt_1.
+  assert (Hppos : 0 < OMI_PHI) by lra.
+  assert (Hxge : 1 <= phi_iter n) by apply phi_iter_ge_1.
+  assert (Hprodpos : 0 < phi_iter n * OMI_PHI) by nra.
+  replace (phi_iter (S n) - OMI_PHI) with
+    (1 + / phi_iter n - (1 + / OMI_PHI)).
+  2:{
+    rewrite phi_iter_step.
+    unfold phi_step.
+    assert (Hphi : OMI_PHI = 1 + / OMI_PHI).
+    { symmetry. exact OMI_PHI_fixed_by_step. }
+    lra.
+  }
+  replace (1 + / phi_iter n - (1 + / OMI_PHI)) with
+    (-(phi_iter n - OMI_PHI) / (phi_iter n * OMI_PHI)).
+  2:{ field; lra. }
+  unfold Rdiv.
+  rewrite Rabs_mult.
+  rewrite Rabs_Ropp.
+  rewrite Rabs_inv.
+  assert (Hden : Rabs (phi_iter n * OMI_PHI) = phi_iter n * OMI_PHI).
+  { apply Rabs_right. left; exact Hprodpos. }
+  rewrite Hden.
+  apply Rmult_le_compat_l.
+  - apply Rabs_pos.
+  - apply Rinv_le_contravar.
+    + nra.
+    + nra.
+Qed.
+
+Theorem phi_iter_error_bound : forall n : nat,
+  Rdist (phi_iter n) OMI_PHI <=
+  Rdist (phi_iter 0) OMI_PHI * (/ OMI_PHI) ^ n.
+Proof.
+  induction n as [| n IH].
+  - simpl.
+    right.
+    ring.
+  - replace ((/ OMI_PHI) ^ S n) with
+      (/ OMI_PHI * (/ OMI_PHI) ^ n) by (simpl; ring).
+    unfold Rdist in *.
+    eapply Rle_trans.
+    + apply phi_error_step.
+    + replace (Rabs (phi_iter 0 - OMI_PHI) *
+        (/ OMI_PHI * (/ OMI_PHI) ^ n)) with
+        ((Rabs (phi_iter 0 - OMI_PHI) * (/ OMI_PHI) ^ n) *
+          / OMI_PHI) by ring.
+      apply Rmult_le_compat_r.
+      * left. apply Rinv_0_lt_compat.
+        apply Rlt_trans with (r2 := 1); [lra | apply OMI_PHI_gt_1].
+      * exact IH.
+Qed.
+
+Theorem phi_iter_converges :
+  Un_cv phi_iter OMI_PHI.
+Proof.
+  unfold Un_cv.
+  intros eps Heps.
+  set (c := Rdist (phi_iter 0) OMI_PHI).
+  assert (Hpgt : 1 < OMI_PHI) by apply OMI_PHI_gt_1.
+  assert (Hpinv_abs : Rabs (/ OMI_PHI) < 1).
+  { rewrite Rabs_right.
+    - replace 1 with (/ 1) by field.
+      apply (Rinv_1_lt_contravar 1 OMI_PHI); lra.
+    - left. apply Rinv_0_lt_compat. lra. }
+  assert (Hcpos : 0 < c).
+  { unfold c, Rdist, phi_iter.
+    simpl.
+    rewrite Rabs_left1; lra. }
+  destruct (pow_lt_1_zero (/ OMI_PHI) Hpinv_abs (eps / c)) as [N HN].
+  { apply Rdiv_lt_0_compat; lra. }
+  exists N.
+  intros n Hn.
+  eapply Rle_lt_trans.
+  - apply phi_iter_error_bound.
+  - assert (Hpow : Rabs ((/ OMI_PHI) ^ n) < eps / c) by
+      apply (HN n Hn).
+    rewrite Rabs_right in Hpow.
+    + change (c * (/ OMI_PHI) ^ n < eps).
+      assert (Hmul : c * (/ OMI_PHI) ^ n < c * (eps / c)).
+      { apply Rmult_lt_compat_l; [exact Hcpos | exact Hpow]. }
+      replace (c * (eps / c)) with eps in Hmul.
+      * exact Hmul.
+      * field. lra.
+    + left. apply pow_lt. apply Rinv_0_lt_compat. lra.
+Qed.
+
+Theorem fib_ratio_converges_phi :
+  Un_cv fib_ratio OMI_PHI.
+Proof.
+  eapply Un_cv_ext with (un := phi_iter).
+  - intro n.
+    apply phi_iter_fib_ratio.
+  - apply phi_iter_converges.
+Qed.
+
 Inductive ChiralPhase : Type :=
 | DPlusPhase
 | DMinusPhase
