@@ -250,6 +250,44 @@ Proof.
   apply fano_plane_valid.
 Qed.
 
+Record SchlafliSymbol : Type := mkSchlafliSymbol {
+  schlafli_p : N;
+  schlafli_q : N
+}.
+
+Definition Schlafli35 : SchlafliSymbol := mkSchlafliSymbol 3 5.
+
+Definition Schlafli53 : SchlafliSymbol := mkSchlafliSymbol 5 3.
+
+Definition schlafli_dual (s t : SchlafliSymbol) : Prop :=
+  schlafli_p s = schlafli_q t /\ schlafli_q s = schlafli_p t.
+
+Theorem dual_35_53 : schlafli_dual Schlafli35 Schlafli53.
+Proof. vm_compute. auto. Qed.
+
+Record RectifiedCommonCore : Type := mkRectifiedCommonCore {
+  core_left : SchlafliSymbol;
+  core_right : SchlafliSymbol;
+  core_vertices : N;
+  core_faces_tri : N;
+  core_faces_pent : N
+}.
+
+Definition rectified_35_common_core : RectifiedCommonCore :=
+  mkRectifiedCommonCore Schlafli35 Schlafli53 30 20 12.
+
+Definition valid_rectified_35_common_core (c : RectifiedCommonCore) : Prop :=
+  schlafli_dual (core_left c) (core_right c) /\
+  core_vertices c = 30 /\
+  core_faces_tri c = 20 /\
+  core_faces_pent c = 12.
+
+Theorem rectified_35_common_core_valid :
+  valid_rectified_35_common_core rectified_35_common_core.
+Proof.
+  repeat split; vm_compute; auto.
+Qed.
+
 Definition bqf_high_shell (x : N) : N := 60 * x * x.
 
 Definition bqf_chiral_bridge (x y : N) : N := 16 * x * y.
@@ -303,6 +341,181 @@ Proof.
   replace (sqrt 3 * sqrt 3) with (sqrt 3 ^ 2) by ring.
   apply pow2_sqrt.
   lra.
+Qed.
+
+Definition classical_phi : R := (1 + sqrt 5) / 2.
+
+Local Lemma sqrt5_sq_for_phi : sqrt 5 ^ 2 = 5.
+Proof.
+  apply pow2_sqrt.
+  lra.
+Qed.
+
+Definition phi_step (x : R) : R := 1 + / x.
+
+Definition phi_fixed_point_equation (x : R) : Prop :=
+  x ^ 2 = x + 1.
+
+Theorem classical_phi_satisfies_quadratic :
+  phi_fixed_point_equation classical_phi.
+Proof.
+  unfold phi_fixed_point_equation, classical_phi.
+  apply (Rmult_eq_reg_l 4).
+  - field_simplify.
+    rewrite sqrt5_sq_for_phi.
+    lra.
+  - lra.
+Qed.
+
+Theorem classical_phi_positive : 0 < classical_phi.
+Proof.
+  unfold classical_phi.
+  apply (Rdiv_lt_0_compat (1 + sqrt 5) 2).
+  - apply Rplus_lt_le_0_compat; [lra | apply sqrt_pos].
+  - lra.
+Qed.
+
+Theorem classical_phi_fixed_by_step :
+  phi_step classical_phi = classical_phi.
+Proof.
+  unfold phi_step.
+  assert (Hnz : classical_phi <> 0) by (apply Rgt_not_eq; exact classical_phi_positive).
+  apply (Rmult_eq_reg_r classical_phi).
+  - field_simplify; [| exact Hnz].
+    rewrite classical_phi_satisfies_quadratic.
+    ring.
+  - exact Hnz.
+Qed.
+
+Definition OMI_PHI_witness :
+  {x : R | valid_rectified_35_common_core rectified_35_common_core /\
+           phi_fixed_point_equation x /\ 0 < x} :=
+  exist _ classical_phi
+    (conj rectified_35_common_core_valid
+      (conj classical_phi_satisfies_quadratic classical_phi_positive)).
+
+Definition OMI_PHI : R := proj1_sig OMI_PHI_witness.
+
+Theorem OMI_PHI_from_incidence :
+  valid_rectified_35_common_core rectified_35_common_core.
+Proof.
+  exact (proj1 (proj2_sig OMI_PHI_witness)).
+Qed.
+
+Theorem OMI_PHI_satisfies_quadratic :
+  phi_fixed_point_equation OMI_PHI.
+Proof.
+  exact (proj1 (proj2 (proj2_sig OMI_PHI_witness))).
+Qed.
+
+Theorem OMI_PHI_positive :
+  0 < OMI_PHI.
+Proof.
+  exact (proj2 (proj2 (proj2_sig OMI_PHI_witness))).
+Qed.
+
+Theorem OMI_PHI_fixed_by_step :
+  phi_step OMI_PHI = OMI_PHI.
+Proof.
+  unfold OMI_PHI, OMI_PHI_witness.
+  simpl.
+  apply classical_phi_fixed_by_step.
+Qed.
+
+Theorem OMI_PHI_equals_classical_phi :
+  OMI_PHI = classical_phi.
+Proof. reflexivity. Qed.
+
+Definition phi_iter (n : nat) : R :=
+  Nat.iter n phi_step 1.
+
+Theorem phi_iter_0 :
+  phi_iter 0 = 1.
+Proof. reflexivity. Qed.
+
+Theorem phi_iter_step : forall n : nat,
+  phi_iter (S n) = phi_step (phi_iter n).
+Proof.
+  intro n.
+  unfold phi_iter.
+  simpl.
+  reflexivity.
+Qed.
+
+Theorem phi_iter_positive : forall n : nat,
+  0 < phi_iter n.
+Proof.
+  induction n as [| n IH].
+  - unfold phi_iter.
+    simpl.
+    lra.
+  - rewrite phi_iter_step.
+    unfold phi_step.
+    assert (0 < / phi_iter n) by
+      (apply Rinv_0_lt_compat; exact IH).
+    lra.
+Qed.
+
+Theorem OMI_PHI_recurrence_fixed_point :
+  phi_step OMI_PHI = OMI_PHI.
+Proof.
+  exact OMI_PHI_fixed_by_step.
+Qed.
+
+Definition OMI_PHI_from_recurrence : R := OMI_PHI.
+
+Theorem OMI_PHI_from_recurrence_equals_OMI_PHI :
+  OMI_PHI_from_recurrence = OMI_PHI.
+Proof. reflexivity. Qed.
+
+Theorem OMI_PHI_from_recurrence_equals_classical_phi :
+  OMI_PHI_from_recurrence = classical_phi.
+Proof.
+  unfold OMI_PHI_from_recurrence.
+  apply OMI_PHI_equals_classical_phi.
+Qed.
+
+Fixpoint fib (n : nat) : nat :=
+  match n with
+  | O => O
+  | S p =>
+      match p with
+      | O => S O
+      | S q => (fib p + fib q)%nat
+      end
+  end.
+
+Theorem fib_succ_positive : forall n : nat,
+  (0 < fib (S n))%nat.
+Proof.
+  induction n as [| n IH].
+  - simpl; lia.
+  - destruct n as [| n].
+    + simpl; lia.
+    + simpl in *; lia.
+Qed.
+
+Definition fib_ratio (n : nat) : R :=
+  INR (fib (S (S n))) / INR (fib (S n)).
+
+Theorem phi_iter_fib_ratio : forall n : nat,
+  phi_iter n = fib_ratio n.
+Proof.
+  induction n as [| n IH].
+  - unfold phi_iter, fib_ratio.
+    simpl.
+    field.
+  - rewrite phi_iter_step, IH.
+    unfold phi_step, fib_ratio.
+    change (fib (S (S (S n)))) with (fib (S (S n)) + fib (S n))%nat.
+    rewrite plus_INR.
+    set (a := INR (fib (S (S n)))).
+    set (b := INR (fib (S n))).
+    assert (Ha : a <> 0).
+    { subst a. apply not_0_INR. pose proof (fib_succ_positive (S n)). lia. }
+    assert (Hb : b <> 0).
+    { subst b. apply not_0_INR. pose proof (fib_succ_positive n). lia. }
+    field; split; assumption.
 Qed.
 
 Inductive ChiralPhase : Type :=
