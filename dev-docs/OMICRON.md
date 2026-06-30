@@ -286,24 +286,82 @@ V0 only checks deterministic pointer/length pair integrity for these bindings.
 
 It does not mean object declarations were parsed, validated, accepted, serialized, projected, loaded from disk, or executed.
 
+## Ladder Phase Audit
+
+This audit maps the normalized OMI-Lisp ladder onto the current `core/omicron.c` implementation.
+
+Audit lock:
+
+```text
+OMI-Lisp declares.
+Omicron lowers.
+OMI cites.
+Tetragrammatron validates.
+Receipt records.
+Metatron projects.
+IMO carries.
+```
+
+| Ladder phase | Current implementation | Status | Boundary note |
+|--------------|------------------------|--------|---------------|
+| stage pre-header | `omicron_stage_preheader` and `omicron_boot` | Implemented V0 | Stages `Fdelta 00 1C 1D 1E 1F 20 Fdelta`; recognition only, not acceptance. |
+| induce readable boundary | `omicron_induce_omi_lisp` | Implemented V0 | Requires staged pre-header and records readable boundary `0x20`. |
+| earn dot operator | `omicron_induce_omi_lisp` sets `dot_operator = 0x2E` | Implemented V0 | Declares dot notation available after SP; does not parse or evaluate by itself. |
+| parse declaration | `omilog_parse_candidate` | Implemented V0 | Parses readable declaration heads and optional `omi-...-imo` blocks as candidate-only state. |
+| lower to OMI frame candidate | `omicron_parse_address_candidate`; `omilog_parse_candidate` calls it | Implemented V0 | Lowers address/CIDR/closure syntax into `lowered_frame` and `lowered_candidate`; no validation. |
+| submit to Tetragrammatron | Tests call `omi_construct_citation_candidate` then `tetragrammatron_validate_citation_candidate` | Implemented as tested authority handoff | Exists as explicit API/test rail, not yet exposed as a dedicated CLI command. |
+| record receipt | `tetragrammatron_store_validated_state`; legacy dispatch still has local `ring_store` paths | Split state | New validated-state storage is explicit and Tetragrammatron-owned; legacy S-expression paths still use compatibility receipt storage inside monolithic dispatch. |
+| project/carry | `--scribe` reads stored validated ring slots; render/server/carrier commands remain in legacy dispatch | Partially boxed | Metatron scribe gate exists for validated slots; broader render/carrier behavior still needs modular ownership cleanup. |
+
+Current implementation shape:
+
+```text
+main()
+-> signal setup and ring load
+-> omicron_config_init
+-> omicron_config_from_cli
+-> omicron_boot when command needs boot context
+-> omicron_dispatch_legacy
+```
+
+The named ladder phases exist, but not all are wired as one public end-to-end CLI path. The candidate-to-validation-to-storage rail is currently covered by `scripts/test-omicron-boot.c`.
+
+Next safe code boundary:
+
+```text
+Add a dedicated declaration-processing helper:
+
+Omi-Log source
+-> OmiLogCandidate
+-> OmiCitationCandidate
+-> Tetragrammatron validated state
+-> explicit validated-state ring storage
+```
+
+This helper must not project, carry, render, serve, or perform file I/O. Projection and carrier behavior remain separate downstream steps.
+
 ## Technical Debt
 
-`core/omicron.c` is still a legacy monolithic runtime file. The V0 API has been added in place, but `main()` has not yet been reduced to an `OmicronConfig` plus authority dispatch flow.
+`core/omicron.c` is still a legacy monolithic runtime file. The V0 API has been added in place, and `main()` now uses `OmicronConfig`, `omicron_boot`, and a boxed legacy dispatch wrapper. The command bodies inside `omicron_dispatch_legacy` are still monolithic compatibility code.
 
-Future reduction target:
+Current wrapper shape:
 
 ```c
 OmicronConfig cfg;
 omicron_config_init(&cfg);
 omicron_config_from_cli(&cfg, argc, argv);
-return omicron_boot(&cfg);
+if (omicron_command_needs_boot_context(cfg.command)) {
+    int rc = omicron_boot(&cfg);
+    if (rc != 0) return rc;
+}
+return omicron_dispatch_legacy(&cfg, argc, argv);
 ```
 
-That refactor must preserve existing CLI behavior.
+Future reduction target: shrink `omicron_dispatch_legacy` one command at a time while preserving existing CLI behavior.
 
 ## Omicron Monolith Reduction Plan
 
-- [ ] Keep current CLI behavior unchanged.
+- [x] Keep current CLI behavior unchanged through the V0 reductions.
 - [x] Move CLI argument interpretation into `omicron_config_from_cli`.
 - [x] Move boot pre-header setup into `omicron_stage_preheader`.
 - [x] Move object binding into `omicron_load_system_objects`.
