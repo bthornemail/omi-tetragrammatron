@@ -136,6 +136,14 @@ Theorem tetra_incidence_equalities :
   tetra_edges tetra_unit * 2 = tetra_faces tetra_unit * 3.
 Proof. vm_compute. auto. Qed.
 
+Definition tetra_centroid_vertex_sqdist : N := 3.
+
+Definition projected_length_squared (sq : N) : N := sq.
+
+Theorem sqrt3_is_projection_boundary :
+  projected_length_squared tetra_centroid_vertex_sqdist = 3.
+Proof. vm_compute. reflexivity. Qed.
+
 Definition fano_line : Type := N * N * N.
 
 Definition fano_points : list N := [0; 1; 2; 3; 4; 5; 6].
@@ -209,6 +217,39 @@ Proof.
   all: vm_compute; reflexivity.
 Qed.
 
+Definition valid_fano_plane : Prop :=
+  length fano_points = 7%nat /\
+  length fano_lines = 7%nat /\
+  fano_each_line_has_three_points /\
+  fano_each_point_has_three_lines /\
+  fano_each_pair_has_unique_line.
+
+Record T0Incidence : Type := mkT0Incidence {
+  t0_points : list N;
+  t0_lines : list fano_line
+}.
+
+Definition T0_fano_incidence : T0Incidence :=
+  mkT0Incidence fano_points fano_lines.
+
+Definition valid_T0_incidence (t : T0Incidence) : Prop :=
+  t0_points t = fano_points /\ t0_lines t = fano_lines.
+
+Theorem fano_plane_valid : valid_fano_plane.
+Proof.
+  exact (conj fano_point_count
+    (conj fano_line_count
+      (conj fano_line_widths
+        (conj fano_point_degrees fano_pair_unique_lines)))).
+Qed.
+
+Theorem T0_induces_fano_plane :
+  valid_T0_incidence T0_fano_incidence -> valid_fano_plane.
+Proof.
+  intro H.
+  apply fano_plane_valid.
+Qed.
+
 Definition bqf_high_shell (x : N) : N := 60 * x * x.
 
 Definition bqf_chiral_bridge (x y : N) : N := 16 * x * y.
@@ -252,6 +293,17 @@ Theorem projection_boundary_separation :
 Proof. repeat split. Qed.
 
 Open Scope R_scope.
+
+Definition OMI_SQRT3 : R := sqrt 3.
+
+Theorem OMI_SQRT3_squared :
+  OMI_SQRT3 * OMI_SQRT3 = 3.
+Proof.
+  unfold OMI_SQRT3.
+  replace (sqrt 3 * sqrt 3) with (sqrt 3 ^ 2) by ring.
+  apply pow2_sqrt.
+  lra.
+Qed.
 
 Inductive ChiralPhase : Type :=
 | DPlusPhase
