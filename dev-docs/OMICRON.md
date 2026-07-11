@@ -2,7 +2,7 @@
 
 Status: active V0 scaffold
 
-Omicron is the boot, context, and dialect induction layer for the runtime. It is not a fifth authority. It prepares execution context, stages the gauge pre-header, binds system object declarations, induces the readable OMI-Lisp surface, and then dispatches to the four authorities.
+Omicron is the boot, context, and dialect induction layer for the runtime. It is not a fifth authority. It prepares execution context, stages the gauge pre-header, binds system object declarations, induces the readable OMI-Lisp surface, and then dispatches to the authorities.
 
 ```text
 Omicron boots and configures.
@@ -12,6 +12,152 @@ Metatron scribes and projects.
 IMO carries.
 Receipt accepts.
 ```
+
+## Name And Runtime Role
+
+Omicron names the OMI Object Model viewpoint: the runtime horizon where the `omi---imo` relation can be staged before validation, projection, or transport.
+
+In the newer canon-facing vocabulary, the executable resolver may also be read as Omnicron: the outside runtime clock or headless resolver that coordinates OMI authorities declaratively. The distinction is:
+
+```text
+Omicron
+  conceptual OMI Object Model / boot context
+
+Omnicron
+  portable runtime resolver / outside declarative clock
+```
+
+This document keeps the implementation name `Omicron` because the current C API is `core/omicron.h` / `core/omicron.c`.
+
+The runtime role is the null/full horizon:
+
+```text
+0x0000...0000  null horizon
+0xFFFF...FFFF  full horizon
+```
+
+Omicron holds the boot context in which those horizons can be read. It does not collapse candidate state into acceptance.
+
+Short doctrine:
+
+```text
+Omnicron holds the horizon.
+Tetragrammatron carries the fold.
+Metatron notices the crossing.
+```
+
+## Centroid And Gnomic Encapsulation
+
+The Omicron pattern is enclosure around a shared point of view.
+
+In the gnomic reading, Omicron is the encapsulator or centroid: the bounded
+reference from which inner and outer, null and full, or left and right can all
+be compared without choosing one prematurely.
+
+`Gnomic` here is an OMI role name for centroid-oriented encapsulation. It does
+not claim that a standard geometric projection validates or accepts state.
+
+```text
+centroid
+  shared reference point
+
+encapsulation
+  preservation of both the interior and its boundary
+
+gnomon
+  orientation witness around that reference
+```
+
+The centroid is not a numeric average and the gnomon is not validation.
+Together they describe the resolver viewpoint: preserve the center, orient the
+reading, and keep complementary extremes available for later law.
+
+Two complementary band witnesses make this visible:
+
+```text
+0x0FF0 = 0000 1111 1111 0000
+         centered full band
+
+0xF00F = 1111 0000 0000 1111
+         outer full boundary
+```
+
+They fit the same field in inverse ways:
+
+```text
+0x0FF0  full center enclosed by null margins
+0xF00F  null center enclosed by full margins
+```
+
+Neither is the whole identity of Omicron. They are centroid/boundary reference
+patterns that show why Omicron can hold an interior and its exterior as
+complementary readings.
+
+In canon-facing language:
+
+```text
+Omicron is the conceptual centroid viewpoint.
+Omnicron is the portable resolver operating from that viewpoint.
+```
+
+## Null/Full Resolver Horizon
+
+The capstone null seed is:
+
+```lisp
+(NULL . NULL)
+```
+
+The full mirror is:
+
+```lisp
+(0xFFFF . 0xFFFF)
+```
+
+Omicron/Omnicron does not choose between them. It stages the horizon in which both can be resolved.
+
+The byte-ring form of that horizon is:
+
+```lisp
+((0x00 . 0x20)
+ (0x20 . 0x7F)
+ (0x7F . 0xFF)
+ (0xFF . 0x00))
+```
+
+The ring reads:
+
+```text
+origin -> space -> seal -> full horizon -> origin
+```
+
+Under XOR-dot interpretation:
+
+```text
+0x00 XOR 0x20 = 0x20
+0x20 XOR 0x7F = 0x5F
+0x7F XOR 0xFF = 0x80
+0xFF XOR 0x00 = 0xFF
+
+0x20 XOR 0x5F XOR 0x80 XOR 0xFF = 0x00
+```
+
+So the explicit byte-ring closes back to null.
+
+Runtime consequence:
+
+```text
+(NULL . NULL)
+  folded null
+
+byte-ring
+  unfolded null
+
+Omnicron
+  runtime horizon where null and full resolve
+```
+
+This is why the resolver envelope begins and ends at the dialect horizon byte.
 
 ## Authority Boundary
 
@@ -93,6 +239,117 @@ F0 00 1C 1D 1E 1F 20 F0
 
 The first and last dialect bytes must match. This is staging and recognition only. It is not acceptance.
 
+The pattern matters before the byte values:
+
+```text
+same horizon byte
+  encloses
+ordered interior boundaries
+  and returns to
+the same horizon byte
+```
+
+For canonical OMI:
+
+```text
+FF | 00 1C 1D 1E 1F 20 | FF
+^                            ^
+same outer resolver horizon
+```
+
+The envelope fits null origin, four scope boundaries, and readable space
+inside one repeated outer horizon. This is why it is an Omnicron resolver
+envelope rather than merely an eight-byte header.
+
+## Pre-Language And Reader Bands
+
+Before readable OMI-Lisp, Omicron stages the non-printing control range:
+
+```text
+0x00..0x1F
+```
+
+There are 32 controls and 32 place-value nibbles in the OMI address cascade:
+
+```text
+0x00 -> n00
+0x01 -> n01
+0x02 -> n02
+...
+0x1F -> n31
+```
+
+The control code is not the nibble value. The control code is the place controller. The nibble value remains one of `0x0..0xF`.
+
+The first visible register band is:
+
+```text
+0x20..0x2F
+```
+
+It contains the punctuation that makes relation syntax readable:
+
+```text
+0x20  SPACE  readable boundary
+0x28  (
+0x29  )
+0x2E  .      dot relation operator
+0x2F  /
+```
+
+The kernel reader band is:
+
+```text
+0x30..0x3F
+```
+
+It contains digits and declaration punctuation:
+
+```text
+0x3C  <  declaration opener / static fold
+0x3D  =
+0x3E  >
+0x3F  ?  unresolved witness
+```
+
+Omicron stages these bands. It does not validate the values they make readable.
+
+## Boot Bridge Sequence
+
+The complete pre-boot order is:
+
+```text
+0x00..0x1F  non-printing place controllers
+0x20..0x2F  register injection / punctuation
+0x30..0x3F  kernel reader
+0x78        full nibble-field witness
+0x7F        local ASCII seal
+0x7C00      boot page witness
+0xAA55      external boot bridge
+afterward   declarative OMI-Lisp dot notation
+```
+
+Constant roles:
+
+```text
+0x1E
+  record separator / diagonal closure witness
+
+0x78
+  full nibble-field system witness
+
+0x7F
+  local ASCII seal
+
+0x7C00
+  boot page witness
+
+0xAA55
+  external bridge word
+```
+
+`0xAA55` is not a byte in the local `0x00..0x7F` gauge. It is a 16-bit external bridge word. Omicron may stage or recognize the bridge resolver context, but the bridge word does not become byte-gauge authority.
+
 ## OMI-Lisp Induction
 
 OMI-Lisp induction means the Omicron boot context has staged the pre-language gauge and declared the visible dot-notation surface available for later parser/runtime use.
@@ -123,9 +380,10 @@ Base64url CDR carriers
 Canonical rule:
 
 ```text
-Hex validates.
+Hex canonically frames.
 CIDR resolves.
 Omicron induces the dialect.
+Tetragrammatron validates the lowered candidate.
 ```
 
 Omicron may parse readable dialect forms and lower them into canonical hexadecimal OMI candidate frames.
@@ -186,9 +444,10 @@ Authority ownership remains:
 ```text
 Omicron parses and lowers dialect candidates.
 OMI cites canonical addressed notation.
-Tetragrammatron validates and accepts.
-Metatron projects accepted state.
+Tetragrammatron validates lawful carry-forward.
+Metatron projects validated state.
 IMO carries serialized input and output.
+Receipt accepts replay-stable state.
 ```
 
 Review rule:
@@ -428,7 +687,10 @@ run C, smoke, Coq, and determinism checks
 compare --eval, --boot, --twin, --render-frame, --check, and --scribe behavior
 ```
 
-Ring cleanup is the sensitive boundary. `core/omicron.c` currently has local ring state for legacy dispatch compatibility. Replacing that state must not create a second acceptance path or move receipt authority out of Tetragrammatron.
+Ring cleanup is the sensitive boundary. `core/omicron.c` currently has local
+ring state for legacy dispatch compatibility. Replacing that state must not
+create a second acceptance path, move validated-state storage out of
+Tetragrammatron, or move acceptance away from receipt.
 
 ## Lock
 
