@@ -77,7 +77,7 @@ That is why `omi.c` is the **citation authority**. It makes the address frame le
 
 ### `execute_omi_op()`
 
-This is the stateless operation resolver. It uses `inst->s3` as the operation selector and computes a 16-bit result.
+This is the meta-memory operation resolver. It uses `inst->s3` as the operation selector and computes a 16-bit result.
 
 The important cases are:
 

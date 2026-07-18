@@ -100999,7 +100999,7 @@ construct the updated summary based on what's in the conversation.
  receipt authority stays above transport) • opencode-mcp-server Disabled
  - Next canon line: reconstruction creates candidates from k-of-n fragment streams; OMI acceptance • test-axiom-canvas Disabled
  remains the final authority layer • wordnet-data-bridge Disabled
- - Reconstruction is per-codeword stateless between piped batches (reset per invocation of omi-pipe
+ - Reconstruction is per-codeword meta-memory between piped batches (reset per invocation of omi-pipe
  binary); no persistence across runs LSP
  - Scale 0x3F covers both MCRSGSP carrier (frag types) and MCRSGSP reconstruction (candidate detection) LSPs are disabled
  - All test frames must pass acceptance seal check: gauge-cell low byte XOR relation XOR control must
